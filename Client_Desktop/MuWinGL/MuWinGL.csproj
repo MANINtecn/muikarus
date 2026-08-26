@@ -1,0 +1,69 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <MonoGamePlatform>DesktopGL</MonoGamePlatform>
+    <TargetFramework>net10.0</TargetFramework>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
+    <PlatformTarget>x64</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <RollForward>LatestPatch</RollForward>
+
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Icon.ico</ApplicationIcon>
+    <AssemblyName>MuMono</AssemblyName>
+    <UseSourceGenerators>true</UseSourceGenerators>
+    <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release' AND '$(PerformanceRelease)' == 'true'">
+    <!-- Match the DirectX performance profile without NativeAOT/reflection breakage. -->
+    <SelfContained>true</SelfContained>
+    <UseAppHost>true</UseAppHost>
+    <PublishSingleFile>false</PublishSingleFile>
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
+
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <PublishReadyToRunComposite>false</PublishReadyToRunComposite>
+    <PublishReadyToRunEmitSymbols>false</PublishReadyToRunEmitSymbols>
+
+    <PublishTrimmed>false</PublishTrimmed>
+    <PublishAot>false</PublishAot>
+    <MonoGameMGCBAdditionalArguments>/config:Release</MonoGameMGCBAdditionalArguments>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <MonoGameContentReference Include="..\Client.Main\MGContent\Content.mgcb">
+      <Link>Content\Content.mgcb</Link>
+    </MonoGameContentReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Client.Main\Client.Main.csproj"
+                      AdditionalProperties="MonoGameFramework=MonoGame.Framework.DesktopGL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.5" />
+    <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.5" />
+  </ItemGroup>
+
+  <!-- Run tool restore only when the content builder is actually needed.
+       Running it before CollectPackageReferences re-enters the restore graph and can overlap builds. -->
+  <Target Name="RestoreDotnetTools"
+          BeforeTargets="RunContentBuilder"
+          Condition="'$(DesignTimeBuild)' != 'true' AND '$(RestoreMonoGameTools)' != 'false'">
+    <Message Text="Restoring MonoGame tools" Importance="High" />
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)" Command="dotnet tool restore" />
+  </Target>
+
+  <Target Name="ValidatePerformancePublish"
+          BeforeTargets="Publish"
+          Condition="'$(Configuration)' == 'Release' AND '$(PerformanceRelease)' == 'true'">
+    <Error Condition="'$(PublishTrimmed)' == 'true'"
+           Text="Performance Release does not support trimming because runtime reflection is used by scene, world, NPC and skill registries." />
+    <Error Condition="'$(PublishAot)' == 'true'"
+           Text="Performance Release does not support NativeAOT until all reflection-driven registries are converted to generated registries." />
+    <Error Condition="'$(PublishSingleFile)' == 'true'"
+           Text="Performance Release intentionally uses a folder publish. Single-file bundling is a distribution option, not a frame-time optimization." />
+  </Target>
+</Project>

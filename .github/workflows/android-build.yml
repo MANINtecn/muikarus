@@ -1,0 +1,30 @@
+name: Build MU Android APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup .NET 9.0
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Install Android Workload
+      run: dotnet workload install android
+
+    - name: Build Android Client
+      run: dotnet publish Client_Android\MuAndroid\MuAndroid.csproj -f net9.0-android -c Release
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: MU-Ikarus-Android-APK
+        path: Client_Android\MuAndroid\bin\Release\net9.0-android\**\*-Signed.apk

@@ -1,0 +1,90 @@
+
+#----------------------------- Global Properties ----------------------------#
+
+/outputDir:bin/$(Platform)
+/intermediateDir:obj/$(Platform)
+/platform:Windows
+/config:
+/profile:HiDef
+/compress:False
+
+#-------------------------------- References --------------------------------#
+
+
+#---------------------------------- Content ---------------------------------#
+
+#begin AlphaRGB.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Optimize
+/build:AlphaRGB.fx
+
+#begin GammaCorrection.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Optimize
+/build:GammaCorrection.fx
+
+#begin Arial.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/build:Arial.spritefont
+
+#begin ArialSmall.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/build:ArialSmall.spritefont
+
+#begin NotoKR.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/build:NotoKR.spritefont
+
+
+#begin FXAA.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Optimize
+/build:FXAA.fx
+
+#begin Shadow.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Optimize
+/build:Shadow.fx
+
+#begin Background.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/build:Background.jpg
+
+#begin Bubbles.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/build:Bubbles.png
+
+#begin WaterSplashParticle.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/build:WaterSplashParticle.png;WaterSplashParticle
+
+#begin ItemMaterial.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Optimize
+/build:ItemMaterial.fx
+
+#begin MonsterMaterial.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Optimize
+/build:MonsterMaterial.fx
+
+#begin DynamicLighting.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Optimize
+/build:DynamicLighting.fx

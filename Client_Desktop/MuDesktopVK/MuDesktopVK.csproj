@@ -1,0 +1,80 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ClientMainTargetFramework>net10.0</ClientMainTargetFramework>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
+    <PlatformTarget>x64</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <RollForward>LatestPatch</RollForward>
+
+    <MonoGamePlatform>DesktopVK</MonoGamePlatform>
+    <!-- MonoGame 3.8.5 parses DesktopVK shader reflection floats using the
+         process culture, while shader-cross emits invariant decimal points. -->
+    <_Command Condition="'$(OS)' == 'Windows_NT'">set &quot;DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1&quot; &amp;&amp; &quot;$(DotnetCommand)&quot; &quot;$(MGCBCommand)&quot;</_Command>
+    <_Command Condition="'$(OS)' != 'Windows_NT'">DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 &quot;$(DotnetCommand)&quot; &quot;$(MGCBCommand)&quot;</_Command>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>MuMonoVK</AssemblyName>
+    <UseSourceGenerators>true</UseSourceGenerators>
+    <DefineConstants>$(DefineConstants);WINDOWS;DESKTOP_VK;NATIVE_BACKEND</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release' AND '$(PerformanceRelease)' == 'true'">
+    <SelfContained>true</SelfContained>
+    <UseAppHost>true</UseAppHost>
+    <PublishSingleFile>false</PublishSingleFile>
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
+
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <PublishReadyToRunComposite>false</PublishReadyToRunComposite>
+    <PublishReadyToRunEmitSymbols>false</PublishReadyToRunEmitSymbols>
+
+    <PublishTrimmed>false</PublishTrimmed>
+    <PublishAot>false</PublishAot>
+    <MonoGameMGCBAdditionalArguments>/config:Release</MonoGameMGCBAdditionalArguments>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <MonoGameContentReference Include="..\Client.Main\MGContent\Content.mgcb">
+      <Link>Content\Content.mgcb</Link>
+    </MonoGameContentReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MonoGame.Framework.Native" Version="3.8.5" />
+    <PackageReference Include="MonoGame.Runtime.Windows.Vulkan" Version="3.8.5" />
+    <PackageReference Include="MonoGame.Runtime.Linux.Vulkan" Version="3.8.5" />
+    <PackageReference Include="MonoGame.Runtime.Mac.Vulkan" Version="3.8.5" />
+    <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Client.Main\Client.Main.csproj"
+                      AdditionalProperties="MonoGameFramework=MonoGame.Framework.Native;MonoGamePlatform=DesktopVK" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)' == 'Release' AND '$(PerformanceRelease)' == 'true'">
+    <None Include="appsettings.performance.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+
+  <Target Name="RestoreDotnetTools"
+          BeforeTargets="RunContentBuilder"
+          Condition="'$(DesignTimeBuild)' != 'true' AND '$(RestoreMonoGameTools)' != 'false'">
+    <Message Text="Restoring MonoGame 3.8.5 tools" Importance="High" />
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)" Command="dotnet tool restore" />
+  </Target>
+
+  <Target Name="ValidateNativeBackendPublish"
+          BeforeTargets="Publish"
+          Condition="'$(Configuration)' == 'Release' AND '$(PerformanceRelease)' == 'true'">
+    <Error Condition="'$(PublishTrimmed)' == 'true'"
+           Text="Native backend performance builds do not support trimming while reflection-driven registries are used." />
+    <Error Condition="'$(PublishAot)' == 'true'"
+           Text="NativeAOT remains disabled until reflection-driven registries are replaced or fully annotated." />
+    <Error Condition="'$(PublishSingleFile)' == 'true'"
+           Text="Native backend performance builds intentionally use folder publish so runtime native libraries stay directly loadable." />
+  </Target>
+</Project>
