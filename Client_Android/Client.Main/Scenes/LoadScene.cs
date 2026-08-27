@@ -208,7 +208,16 @@ namespace Client.Main.Scenes
                 while (true)
                 {
                     int n = await src.ReadAsync(buffer.AsMemory(0, BufferSize), ct);
-                    if (n == 0) break;
+                    if (n == 0)
+                    {
+                        if (total > 0 && done < total)
+                            throw new Exception($"Download incompleto! Baixou {done / 1_048_576:F1} de {total / 1_048_576:F1} MB.");
+                        
+                        if (done < 10_000_000) // Less than 10MB
+                            throw new Exception($"Arquivo falso ({done / 1_048_576:F1} MB). O seu Repositório do GitHub está PRIVADO! Deixe ele Público.");
+                        
+                        break;
+                    }
 
                     await dst.WriteAsync(buffer.AsMemory(0, n), ct);
                     done += n;
