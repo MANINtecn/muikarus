@@ -70,8 +70,8 @@ namespace Client.Main
 
 #if ANDROID || IOS
             _graphics.IsFullScreen = true;
-            _graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
-            _graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+            _graphics.PreferredBackBufferWidth = 0;
+            _graphics.PreferredBackBufferHeight = 0;
             _graphics.SynchronizeWithVerticalRetrace = true;
             IsFixedTimeStep = true;
             TargetElapsedTime = TimeSpan.FromMilliseconds(16.67);
