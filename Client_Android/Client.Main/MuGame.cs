@@ -1,4 +1,4 @@
-﻿using Client.Main.Controllers;
+using Client.Main.Controllers;
 using Client.Main.Scenes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -70,6 +70,8 @@ namespace Client.Main
 
 #if ANDROID || IOS
             _graphics.IsFullScreen = true;
+            _graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
+            _graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
             _graphics.SynchronizeWithVerticalRetrace = true;
             IsFixedTimeStep = true;
             TargetElapsedTime = TimeSpan.FromMilliseconds(16.67);
