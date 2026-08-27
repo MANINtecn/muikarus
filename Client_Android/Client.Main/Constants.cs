@@ -28,7 +28,7 @@ namespace Client.Main
                 public static bool DRAW_BOUNDING_BOXES_INTERACTIVES = false;
                 public static string DataPath = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Data");
 #endif
-                public static string DataPathUrl = "https://drive.google.com/uc?export=download&id=1mS4FmKq1K7NHQvqGqBQTk5bf4LcE0lor&confirm=t";
+                public static string DataPathUrl = "https://github.com/MANINtecn/muikarus/releases/download/data-v1/Data.zip";
                 public static string DefaultDataPathUrl = "https://full-wkr.mu.webzen.co.kr/muweb/full/MU_Red_1_20_61_Full.zip";
 #if DEBUG
                 public static bool UNLIMITED_FPS = true;
