@@ -41,8 +41,8 @@ namespace Client.Main
 
         // Public Instance Properties
         public BaseScene ActiveScene { get; private set; }
-        public int Width => _graphics.PreferredBackBufferWidth;
-        public int Height => _graphics.PreferredBackBufferHeight;
+        public int Width => _graphics.PreferredBackBufferWidth == 0 && GraphicsDevice != null ? GraphicsDevice.PresentationParameters.BackBufferWidth : _graphics.PreferredBackBufferWidth;
+        public int Height => _graphics.PreferredBackBufferHeight == 0 && GraphicsDevice != null ? GraphicsDevice.PresentationParameters.BackBufferHeight : _graphics.PreferredBackBufferHeight;
         public MouseState PrevMouseState { get; private set; }
         public MouseState Mouse { get; private set; }
         public KeyboardState PrevKeyboard { get; private set; }
@@ -233,7 +233,7 @@ namespace Client.Main
 
             // Base aspect ratio (e.g., 16:9)
             float baseAspectRatio = 16f / 9f;
-            float currentAspectRatio = (float)_graphics.PreferredBackBufferWidth / _graphics.PreferredBackBufferHeight;
+            float currentAspectRatio = (float)Width / Height;
             _scaleFactor = currentAspectRatio / baseAspectRatio;
 
             _logger?.LogDebug($"Scale Factor: {_scaleFactor}");
