@@ -240,30 +240,42 @@ namespace Client.Main.Scenes
         {
             await Task.Run(() =>
             {
-                using var archive = ZipFile.OpenRead(zip);
-                var files = archive.Entries.Where(e => !string.IsNullOrEmpty(e.Name)).ToArray();
-                int done = 0; var sw = Stopwatch.StartNew();
-
-                foreach (var entry in files)
+                try
                 {
-                    ct.ThrowIfCancellationRequested();
+                    using var archive = ZipFile.OpenRead(zip);
+                    var files = archive.Entries.Where(e => !string.IsNullOrEmpty(e.Name)).ToArray();
+                    int done = 0; var sw = Stopwatch.StartNew();
 
-                    string rel = entry.FullName.TrimStart("Data/".ToCharArray())
-                                                 .TrimStart("Data\\".ToCharArray());
-                    string full = Path.Combine(outDir, rel);
-
-                    Directory.CreateDirectory(Path.GetDirectoryName(full)!);
-                    entry.ExtractToFile(full, true);
-
-                    done++;
-                    if (sw.Elapsed >= ProgressTick)
+                    foreach (var entry in files)
                     {
-                        sw.Restart();
-                        float pr = (float)done / files.Length;
-                        report?.Invoke($"Extracting... {pr * 100:F0}% ({entry.Name})", pr);
+                        ct.ThrowIfCancellationRequested();
+
+                        string rel = entry.FullName;
+                        if (rel.StartsWith("Data/", StringComparison.OrdinalIgnoreCase))
+                            rel = rel.Substring(5);
+                        else if (rel.StartsWith("Data\\", StringComparison.OrdinalIgnoreCase))
+                            rel = rel.Substring(5);
+
+                        string full = Path.Combine(outDir, rel);
+
+                        Directory.CreateDirectory(Path.GetDirectoryName(full)!);
+                        entry.ExtractToFile(full, true);
+
+                        done++;
+                        if (sw.Elapsed >= ProgressTick)
+                        {
+                            sw.Restart();
+                            float pr = (float)done / files.Length;
+                            report?.Invoke($"Otimizando texturas... {pr * 100:F0}%", pr);
+                        }
                     }
+                    report?.Invoke("Otimização concluída.", 1);
                 }
-                report?.Invoke("Extracting completed.", 1);
+                catch (Exception ex)
+                {
+                    report?.Invoke($"Erro ao extrair: {ex.Message}", 0);
+                    throw; // rethrow to stop process
+                }
             }, ct);
         }
 
