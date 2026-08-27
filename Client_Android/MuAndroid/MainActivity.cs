@@ -107,6 +107,21 @@ namespace MuAndroid
             _game.Run();
         }
 
+        public override void OnWindowFocusChanged(bool hasFocus)
+        {
+            base.OnWindowFocusChanged(hasFocus);
+            if (hasFocus && Build.VERSION.SdkInt >= BuildVersionCodes.Kitkat)
+            {
+                Window.DecorView.SystemUiVisibility = (StatusBarVisibility)(
+                    SystemUiFlags.LayoutStable |
+                    SystemUiFlags.LayoutHideNavigation |
+                    SystemUiFlags.LayoutFullscreen |
+                    SystemUiFlags.HideNavigation |
+                    SystemUiFlags.Fullscreen |
+                    SystemUiFlags.ImmersiveSticky);
+            }
+        }
+
         public override void OnRequestPermissionsResult(int req, string[] p, Permission[] res)
             => base.OnRequestPermissionsResult(req, p, res);
     }
