@@ -33,7 +33,7 @@ namespace Client.Main
 #if DEBUG
                 public static bool UNLIMITED_FPS = true;
 #else
-                public static bool UNLIMITED_FPS = true;
+                public static bool UNLIMITED_FPS = false;
 #endif
 
                 // Camera control constants

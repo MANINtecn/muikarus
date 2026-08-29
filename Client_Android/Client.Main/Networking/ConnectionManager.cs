@@ -90,19 +90,8 @@ namespace Client.Main.Networking
 
             try
             {
-                // Resolve host name to IP addresses and select the first IPv4 address
-                var ipAddresses = await Dns.GetHostAddressesAsync(host, cancellationToken);
-                var ipAddress = ipAddresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork) 
-                                ?? ipAddresses.FirstOrDefault();
-                
-                if (ipAddress == null)
-                {
-                    _logger.LogError("❓ Failed to resolve any IP address for host: {Host}", host);
-                    return false;
-                }
-                
-                // Allow both InterNetwork and InterNetworkV6 correctly
-                var endPoint = new IPEndPoint(ipAddress, port);
+                // Let the OS networking stack handle DNS and NAT64 synthesis by using DnsEndPoint
+                var endPoint = new DnsEndPoint(host, port);
 
                 // Create new SocketConnection
                 var pipeOptions = new PipeOptions();
