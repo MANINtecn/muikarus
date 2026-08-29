@@ -91,13 +91,17 @@ namespace Client.Main.Networking
             try
             {
                 // Resolve host name to IP addresses and select the first IPv4 address
-                var ipAddress = (await Dns.GetHostAddressesAsync(host, cancellationToken))
-                    .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);
+                var ipAddresses = await Dns.GetHostAddressesAsync(host, cancellationToken);
+                var ipAddress = ipAddresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork) 
+                                ?? ipAddresses.FirstOrDefault();
+                
                 if (ipAddress == null)
                 {
-                    _logger.LogError("❓ Failed to resolve IPv4 address for host: {Host}", host);
+                    _logger.LogError("❓ Failed to resolve any IP address for host: {Host}", host);
                     return false;
                 }
+                
+                // Allow both InterNetwork and InterNetworkV6 correctly
                 var endPoint = new IPEndPoint(ipAddress, port);
 
                 // Create new SocketConnection

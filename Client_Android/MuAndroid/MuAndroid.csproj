@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net9.0-android</TargetFramework>
@@ -38,6 +38,12 @@
 
     <AndroidCreatePackagePerAbi>false</AndroidCreatePackagePerAbi>
     <AndroidApiLevel>35</AndroidApiLevel>
+    
+    <AndroidKeyStore>true</AndroidKeyStore>
+    <AndroidSigningKeyStore>ikarus.keystore</AndroidSigningKeyStore>
+    <AndroidSigningKeyAlias>ikarus</AndroidSigningKeyAlias>
+    <AndroidSigningKeyPass>ikarus123</AndroidSigningKeyPass>
+    <AndroidSigningStorePass>ikarus123</AndroidSigningStorePass>
   </PropertyGroup>
 
   <Target Name="RestoreDotnetTools" BeforeTargets="Restore">
