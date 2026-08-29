@@ -110,18 +110,15 @@ namespace Client.Main
             var ctx = Application.Context!;
             var dst = Path.Combine(ctx.FilesDir!.AbsolutePath, "appsettings.json");
 
-            if (!File.Exists(dst))
+            try
             {
-                try
-                {
-                    using var src = ctx.Assets!.Open("appsettings.json");
-                    using var trg = File.Create(dst);
-                    src.CopyTo(trg);
-                }
-                catch (Exception copyEx)
-                {
-                    Android.Util.Log.Error("MuGame", "Cannot copy appsettings.json: " + copyEx);
-                }
+                using var src = ctx.Assets!.Open("appsettings.json");
+                using var trg = File.Create(dst);
+                src.CopyTo(trg);
+            }
+            catch (Exception copyEx)
+            {
+                Android.Util.Log.Error("MuGame", "Cannot copy appsettings.json: " + copyEx);
             }
             return dst;
         }
