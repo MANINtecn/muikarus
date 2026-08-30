@@ -73,8 +73,8 @@ namespace Client.Main
             _graphics.PreferredBackBufferWidth = 0;
             _graphics.PreferredBackBufferHeight = 0;
             _graphics.SynchronizeWithVerticalRetrace = true;
-            IsFixedTimeStep = true;
-            TargetElapsedTime = TimeSpan.FromMilliseconds(16.67);
+            IsFixedTimeStep = false; // Prevents MonoGame Android deadlock
+            TargetElapsedTime = TimeSpan.FromMilliseconds(16.67); // ~60 FPS
 #else
             if (Constants.UNLIMITED_FPS)
             {
