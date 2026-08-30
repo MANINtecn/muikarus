@@ -90,21 +90,8 @@ namespace Client.Main.Networking
 
             try
             {
-                // Resolve host name to IP addresses safely off the UI thread
-                var ipAddresses = await Task.Run(() => Dns.GetHostAddressesAsync(host, cancellationToken));
-                
-                // Prioritize IPv6 (NAT64 compatibility for Android) over IPv4
-                var ipAddress = ipAddresses.FirstOrDefault(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6) 
-                                ?? ipAddresses.FirstOrDefault(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                                ?? ipAddresses.FirstOrDefault();
-                
-                if (ipAddress == null)
-                {
-                    _logger.LogError("❓ Failed to resolve any IP address for host: {Host}", host);
-                    return false;
-                }
-                
-                var endPoint = new IPEndPoint(ipAddress, port);
+                // Let the OS networking stack handle DNS and NAT64 synthesis by using DnsEndPoint
+                var endPoint = new DnsEndPoint(host, port);
 
                 // Create new SocketConnection
                 var pipeOptions = new PipeOptions();
