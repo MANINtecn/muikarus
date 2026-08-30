@@ -21,5 +21,8 @@ namespace Client.Main.Configuration
         public string ClientSerial { get; set; } = "0123456789ABCDEF"; // Example default
         public Dictionary<byte, byte> DirectionMap { get; set; } = new(); // Direction mapping for walk packets
         public PacketLoggingSettings PacketLogging { get; set; } = new();
+        
+        // Graphics Settings
+        public int TargetFPS { get; set; } = 30; // Default to 30 FPS for battery saving
     }
 }

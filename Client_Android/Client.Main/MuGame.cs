@@ -234,6 +234,13 @@ namespace Client.Main
             _scaleFactor = currentAspectRatio / baseAspectRatio;
 
             _logger?.LogDebug($"Scale Factor: {_scaleFactor}");
+
+#if ANDROID || IOS
+            // Apply Target FPS from settings
+            int fps = AppSettings?.TargetFPS > 0 ? AppSettings.TargetFPS : 30; // Default to 30 if invalid
+            TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0 / fps);
+            _logger?.LogInformation($"✅ Android/iOS FPS Target set to: {fps}");
+#endif
         }
 
         protected override void UnloadContent()
