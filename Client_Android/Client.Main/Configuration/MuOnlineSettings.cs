@@ -12,7 +12,7 @@ namespace Client.Main.Configuration
     public class MuOnlineSettings
     {
         // Connect Server Settings
-        public string ConnectServerHost { get; set; } = "127.0.0.1";
+        public string ConnectServerHost { get; set; } = "192.99.110.164";
         public int ConnectServerPort { get; set; } = 44405;
 
         // Client/Protocol Settings
