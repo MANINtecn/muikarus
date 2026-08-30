@@ -90,8 +90,22 @@ namespace Client.Main.Networking
 
             try
             {
-                // Let the OS networking stack handle DNS and NAT64 synthesis by using DnsEndPoint
-                var endPoint = new DnsEndPoint(host, port);
+                // Resolve IP (handles Android NAT64 IPv6 synthesis for IPv4 literals)
+                IPAddress targetIp = null;
+                try 
+                {
+                    var addresses = await Dns.GetHostAddressesAsync(host);
+                    targetIp = addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetworkV6) ?? 
+                               addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);
+                } 
+                catch { }
+
+                if (targetIp == null && IPAddress.TryParse(host, out var parsed))
+                {
+                    targetIp = parsed;
+                }
+                
+                var endPoint = new IPEndPoint(targetIp ?? IPAddress.Loopback, port);
 
                 // Create new SocketConnection
                 var pipeOptions = new PipeOptions();
