@@ -73,7 +73,7 @@ namespace Client.Main
             _graphics.PreferredBackBufferWidth = 0;
             _graphics.PreferredBackBufferHeight = 0;
             _graphics.SynchronizeWithVerticalRetrace = true;
-            IsFixedTimeStep = false; // Prevents MonoGame Android deadlock
+            IsFixedTimeStep = true; // MUST BE TRUE! Se for false, o Update suga 100% da CPU e mata a rede (Starvation).
             TargetElapsedTime = TimeSpan.FromMilliseconds(16.67); // ~60 FPS
 #else
             if (Constants.UNLIMITED_FPS)
