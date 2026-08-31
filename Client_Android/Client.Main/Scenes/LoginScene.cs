@@ -1,4 +1,4 @@
-﻿using Client.Main.Controllers; // Needed for SoundController
+using Client.Main.Controllers; // Needed for SoundController
 using Client.Main.Controls.UI;
 using Client.Main.Controls.UI.Login;
 using Client.Main.Core.Client;
@@ -81,12 +81,21 @@ namespace Client.Main.Scenes
             World?.Dispose();
             var loginWorld = new NewLoginWorld();
             Controls.Add(loginWorld);
-            // Assuming NewLoginWorld.Initialize() is relatively fast.
-            // If it were slow, it would need its own progress reporting that this method would scale.
-            await loginWorld.Initialize();
-            World = loginWorld;
-
-            progressCallback?.Invoke("Login World Loaded.", 0.70f);
+            
+            try 
+            {
+                // Assuming NewLoginWorld.Initialize() is relatively fast.
+                await loginWorld.Initialize();
+                World = loginWorld;
+                progressCallback?.Invoke("Login World Loaded.", 0.70f);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Failed to initialize NewLoginWorld on Android. 3D World will be disabled, but UI will load.");
+                Controls.Remove(loginWorld);
+                // We don't set World, so it remains null. BaseScene will handle rendering UI without the world.
+                progressCallback?.Invoke("Login World Failed - Continuing with UI only.", 0.70f);
+            }
 
             progressCallback?.Invoke("Playing Login Theme...", 0.75f);
             SoundController.Instance.PlayBackgroundMusic("Music/login_theme.mp3");

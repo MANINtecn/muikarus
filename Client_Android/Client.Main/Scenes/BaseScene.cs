@@ -1,4 +1,4 @@
-﻿using Client.Main.Controllers;
+using Client.Main.Controllers;
 using Client.Main.Controls;
 using Client.Main.Controls.UI;
 using Client.Main.Helpers;
@@ -174,8 +174,6 @@ namespace Client.Main.Scenes
             if (Status != GameControlStatus.Ready)
                 return;
 
-            if (World == null) return;
-
             // focus management (driven by GameControl.OnClick via FocusControlIfInteractive)
             if (FocusControl != currentFocusControl)
             {
@@ -252,12 +250,11 @@ namespace Client.Main.Scenes
 
         public override void Draw(GameTime gameTime)
         {
-            if (World == null)
-                return;
-
-            World.Draw(gameTime);
-
-            World.DrawAfter(gameTime);
+            if (World != null)
+            {
+                World.Draw(gameTime);
+                World.DrawAfter(gameTime);
+            }
 
             // UI 2-D
             using (new SpriteBatchScope(
