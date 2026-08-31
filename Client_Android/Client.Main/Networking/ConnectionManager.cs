@@ -28,7 +28,7 @@ namespace Client.Main.Networking
 
         // --- State Fields ---
         // These are volatile during the connect/disconnect cycle
-        private SocketConnection _socketConnection;    // Underlying socket connection
+        private IDisposable _underlyingConnection;    // Underlying socket or tcp client
         private IConnection _connection;               // Abstraction for network connection (potentially encrypted)
         private CancellationTokenSource _receiveCts;   // Controls the receive loop for the CURRENT connection
 
@@ -84,7 +84,7 @@ namespace Client.Main.Networking
             _logger.LogDebug("Pre-connection cleanup completed.");
 
             // --- STEP 2: Create NEW resources using LOCAL variables ---
-            SocketConnection newSocketConn = null;
+            IDisposable newUnderlyingConn = null;
             IConnection newConnection = null;
             CancellationTokenSource newReceiveCts = null;
 
@@ -107,13 +107,24 @@ namespace Client.Main.Networking
                 
                 var endPoint = new IPEndPoint(targetIp ?? IPAddress.Loopback, port);
 
+#if ANDROID
+                var tcpClient = new TcpClient(targetIp?.AddressFamily ?? AddressFamily.InterNetwork);
+                tcpClient.NoDelay = true;
+                await tcpClient.ConnectAsync(endPoint.Address, port, cancellationToken);
+                var stream = tcpClient.GetStream();
+                IDuplexPipe transportPipe = new StreamDuplexPipe(stream);
+                newUnderlyingConn = tcpClient;
+                _logger.LogInformation("✔️ TcpClient connected to {EndPoint}.", endPoint);
+#else
                 // Create new SocketConnection
                 var pipeOptions = new PipeOptions();
-                newSocketConn = await SocketConnection.ConnectAsync(endPoint, pipeOptions);
-                _logger.LogInformation("✔️ Socket connected to {EndPoint}. Socket HashCode: {HashCode}", endPoint, newSocketConn.GetHashCode());
+                var socketConn = await SocketConnection.ConnectAsync(endPoint, pipeOptions);
+                IDuplexPipe transportPipe = socketConn;
+                newUnderlyingConn = socketConn;
+                _logger.LogInformation("✔️ Socket connected to {EndPoint}. Socket HashCode: {HashCode}", endPoint, socketConn.GetHashCode());
+#endif
 
                 var connectionLogger = _loggerFactory.CreateLogger<Connection>();
-                IDuplexPipe transportPipe = newSocketConn;
 
                 // Setup encryption pipeline if requested
                 if (useEncryption)
@@ -135,7 +146,7 @@ namespace Client.Main.Networking
                 _logger.LogDebug("Created new CTS HashCode {CtsHash} for Connection HashCode {ConnHash}", newReceiveCts.GetHashCode(), newConnection.GetHashCode());
 
                 // --- STEP 3: Assign NEW resources to class fields ONLY AFTER success ---
-                _socketConnection = newSocketConn;
+                _underlyingConnection = newUnderlyingConn;
                 _connection = newConnection;
                 _receiveCts = newReceiveCts;
 
@@ -145,25 +156,25 @@ namespace Client.Main.Networking
             catch (SocketException ex)
             {
                 _logger.LogError(ex, "❌ Socket error during connection to {Host}:{Port}: {ErrorCode}", host, port, ex.SocketErrorCode);
-                await CleanupTemporaryResourcesAsync(newSocketConn, newConnection, newReceiveCts);
+                await CleanupTemporaryResourcesAsync(newUnderlyingConn, newConnection, newReceiveCts);
                 return false;
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 _logger.LogWarning("🚫 Connection attempt to {Host}:{Port} cancelled by external token.", host, port);
-                await CleanupTemporaryResourcesAsync(newSocketConn, newConnection, newReceiveCts);
+                await CleanupTemporaryResourcesAsync(newUnderlyingConn, newConnection, newReceiveCts);
                 return false;
             }
             catch (OperationCanceledException ex)
             {
                 _logger.LogWarning(ex, "🚫 Operation cancelled during connection setup for {Host}:{Port}.", host, port);
-                await CleanupTemporaryResourcesAsync(newSocketConn, newConnection, newReceiveCts);
+                await CleanupTemporaryResourcesAsync(newUnderlyingConn, newConnection, newReceiveCts);
                 return false;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "💥 Unexpected error while connecting to {Host}:{Port}.", host, port);
-                await CleanupTemporaryResourcesAsync(newSocketConn, newConnection, newReceiveCts);
+                await CleanupTemporaryResourcesAsync(newUnderlyingConn, newConnection, newReceiveCts);
                 return false;
             }
         }
@@ -209,7 +220,7 @@ namespace Client.Main.Networking
         public async Task DisconnectAsync()
         {
             var connectionToDisconnect = _connection;
-            var socketToDisconnect = _socketConnection;
+            var socketToDisconnect = _underlyingConnection;
             var ctsToCancel = _receiveCts;
 
             if (connectionToDisconnect != null && connectionToDisconnect.Connected)
@@ -263,11 +274,11 @@ namespace Client.Main.Networking
             _logger.LogDebug("CleanupCurrentConnectionAsync started...");
 
             var connectionToClean = _connection;
-            var socketToClean = _socketConnection;
+            var socketToClean = _underlyingConnection;
             var ctsToClean = _receiveCts;
 
             _connection = null;
-            _socketConnection = null;
+            _underlyingConnection = null;
             _receiveCts = null;
 
             if (ctsToClean != null)
@@ -309,7 +320,7 @@ namespace Client.Main.Networking
         /// <summary>
         /// Helper method to clean up resources created temporarily during a failed ConnectAsync attempt.
         /// </summary>
-        private async Task CleanupTemporaryResourcesAsync(SocketConnection socketConn, IConnection conn, CancellationTokenSource cts)
+        private async Task CleanupTemporaryResourcesAsync(IDisposable underlyingConn, IConnection conn, CancellationTokenSource cts)
         {
             _logger.LogWarning("Cleaning up temporary resources from failed connection attempt...");
             if (cts != null)
@@ -322,7 +333,7 @@ namespace Client.Main.Networking
                 if (conn is IAsyncDisposable ad) { try { await ad.DisposeAsync(); } catch { } }
                 else if (conn is IDisposable d) { try { d.Dispose(); } catch { } }
             }
-            if (socketConn != null) { try { socketConn.Dispose(); } catch { } }
+            if (underlyingConn != null) { try { underlyingConn.Dispose(); } catch { } }
             _logger.LogWarning("Temporary resource cleanup finished.");
         }
 
@@ -337,4 +348,22 @@ namespace Client.Main.Networking
             GC.SuppressFinalize(this);
         }
     }
+
+#if ANDROID
+    /// <summary>
+    /// Wrapper for standard NetworkStream to support IDuplexPipe for Android.
+    /// Bypasses bugs in Pipelines.Sockets.Unofficial on Mono.
+    /// </summary>
+    public class StreamDuplexPipe : IDuplexPipe
+    {
+        public PipeReader Input { get; }
+        public PipeWriter Output { get; }
+
+        public StreamDuplexPipe(NetworkStream stream)
+        {
+            Input = PipeReader.Create(stream, new StreamPipeReaderOptions(leaveOpen: true));
+            Output = PipeWriter.Create(stream, new StreamPipeWriterOptions(leaveOpen: true));
+        }
+    }
+#endif
 }

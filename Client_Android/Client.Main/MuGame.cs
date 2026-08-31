@@ -488,8 +488,23 @@ namespace Client.Main
             GraphicsDevice.DepthStencilState = DepthStencilState.Default;
             GraphicsDevice.BlendState = BlendState.AlphaBlend;
 
-            ActiveScene?.Draw(gameTime);
-            ActiveScene?.DrawAfter(gameTime);
+            try 
+            {
+                ActiveScene?.Draw(gameTime);
+            } 
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error drawing ActiveScene. 3D World might be black, but UI should still render.");
+            }
+
+            try 
+            {
+                ActiveScene?.DrawAfter(gameTime);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error in ActiveScene.DrawAfter.");
+            }
 
             GraphicsDevice.SetRenderTarget(null);
         }
@@ -499,6 +514,8 @@ namespace Client.Main
             RenderTarget2D sourceTarget = GraphicsManager.Instance.MainRenderTarget;
             RenderTarget2D destTarget = GraphicsManager.Instance.TempTarget1;
 
+#if !ANDROID
+            // Shaders desativados no Android para previnir crashes silenciosos (Tela Preta)
             if (GraphicsManager.Instance.IsAlphaRGBEnabled && GraphicsManager.Instance.AlphaRGBEffect != null)
             {
                 ApplyEffect(GraphicsManager.Instance.AlphaRGBEffect, sourceTarget, destTarget);
@@ -510,6 +527,7 @@ namespace Client.Main
                 ApplyEffect(GraphicsManager.Instance.FXAAEffect, sourceTarget, destTarget);
                 GraphicsManager.Instance.SwapTargets(ref sourceTarget, ref destTarget);
             }
+#endif
 
             DrawFinalImageToScreen(sourceTarget);
         }
