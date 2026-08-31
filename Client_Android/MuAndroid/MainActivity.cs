@@ -14,6 +14,7 @@ namespace MuAndroid
     [Activity(
         Label = "@string/app_name",
         MainLauncher = true,
+        Exported = true,
         Icon = "@drawable/icon",
         AlwaysRetainTaskState = true,
         LaunchMode = LaunchMode.SingleInstance,
