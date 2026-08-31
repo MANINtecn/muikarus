@@ -18,15 +18,22 @@ namespace Client.Main
                 public static bool SOUND_EFFECTS = true;
                 public static bool DRAW_BOUNDING_BOXES = false;
                 public static bool DRAW_BOUNDING_BOXES_INTERACTIVES = false;
+#if ANDROID
+                public static string DataPath = System.IO.Path.Combine(Android.App.Application.Context.GetExternalFilesDir(null).AbsolutePath, "Data");
+#else
                 public static string DataPath = @"C:\TECX SOFTHOUSE\L2 IKARUS INTERCROW\MU_ONLINE\MU_Full_Data_Extracted\Data";
-                //public static string DataPath = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Data");
+#endif
 #else
                 public static Type ENTRY_SCENE = typeof(Scenes.LoadScene);
                 public static bool BACKGROUND_MUSIC = true;
                 public static bool SOUND_EFFECTS = true;
                 public static bool DRAW_BOUNDING_BOXES = false;
                 public static bool DRAW_BOUNDING_BOXES_INTERACTIVES = false;
+#if ANDROID
+                public static string DataPath = System.IO.Path.Combine(Android.App.Application.Context.GetExternalFilesDir(null).AbsolutePath, "Data");
+#else
                 public static string DataPath = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Data");
+#endif
 #endif
                 public static string DataPathUrl = "https://github.com/MANINtecn/muikarus/releases/download/data-v1/Data.zip";
                 public static string DefaultDataPathUrl = "https://full-wkr.mu.webzen.co.kr/muweb/full/MU_Red_1_20_61_Full.zip";

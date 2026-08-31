@@ -129,9 +129,16 @@ namespace Client.Main.Scenes
             string extractPath = Constants.DataPath;
             string url = _dataPathUrl;
 
-            bool alreadyHaveAssets = Directory.EnumerateFileSystemEntries(Constants.DataPath)
-                                             .Any(e => !e.EndsWith("Data.zip",
-                                                                   StringComparison.OrdinalIgnoreCase));
+            bool alreadyHaveAssets = false;
+            if (Directory.Exists(Constants.DataPath))
+            {
+                alreadyHaveAssets = Directory.EnumerateFileSystemEntries(Constants.DataPath)
+                                             .Any(e => !e.EndsWith("Data.zip", StringComparison.OrdinalIgnoreCase));
+            }
+            else
+            {
+                Directory.CreateDirectory(Constants.DataPath);
+            }
 
             if (alreadyHaveAssets)
             {
