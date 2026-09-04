@@ -146,9 +146,12 @@ namespace MuAndroid
             _hiddenInput = new EditText(this);
             _hiddenInput.Alpha = 0.01f;
             _hiddenInput.Background = null;
-            _hiddenInput.SetX(-500);
-            _hiddenInput.SetY(-500);
-            var layoutParams = new ViewGroup.LayoutParams(1, 1);
+            _hiddenInput.Focusable = true;
+            _hiddenInput.FocusableInTouchMode = true;
+            _hiddenInput.SetSingleLine(true);
+            _hiddenInput.ImeOptions = ImeAction.Next | ImeAction.Done;
+
+            var layoutParams = new ViewGroup.LayoutParams(100, 50);
             AddContentView(_hiddenInput, layoutParams);
 
             _hiddenInput.TextChanged += (s, e) =>
@@ -171,9 +174,20 @@ namespace MuAndroid
 
             _hiddenInput.EditorAction += (s, e) =>
             {
-                if (e.ActionId == ImeAction.Done || e.ActionId == ImeAction.Go || e.ActionId == ImeAction.Send || e.Event?.KeyCode == Keycode.Enter)
+                if (e.ActionId == ImeAction.Next || e.ActionId == ImeAction.Done || e.ActionId == ImeAction.Go || e.ActionId == ImeAction.Send || e.Event?.KeyCode == Keycode.Enter)
                 {
-                    HideKeyboard();
+                    if (_activeField?.NextInput != null)
+                    {
+                        var next = _activeField.NextInput;
+                        Client.Main.MuGame.ScheduleOnMainThread(() =>
+                        {
+                            next.OnFocus();
+                        });
+                    }
+                    else
+                    {
+                        HideKeyboard();
+                    }
                 }
             };
 
@@ -183,20 +197,19 @@ namespace MuAndroid
                 {
                     try
                     {
-                        if (_activeField == control)
-                            return;
-
                         _activeField = control;
 
                         if (control.MaskValue)
                         {
                             _hiddenInput.InputType = Android.Text.InputTypes.ClassText | Android.Text.InputTypes.TextVariationPassword;
                             _hiddenInput.TransformationMethod = Android.Text.Method.PasswordTransformationMethod.Instance;
+                            _hiddenInput.ImeOptions = ImeAction.Done;
                         }
                         else
                         {
                             _hiddenInput.InputType = Android.Text.InputTypes.ClassText | Android.Text.InputTypes.TextVariationVisiblePassword;
                             _hiddenInput.TransformationMethod = null;
+                            _hiddenInput.ImeOptions = control.NextInput != null ? ImeAction.Next : ImeAction.Done;
                         }
 
                         _hiddenInput.Text = control.Value ?? string.Empty;
@@ -206,8 +219,15 @@ namespace MuAndroid
                         }
 
                         _hiddenInput.RequestFocus();
-                        var imm = (InputMethodManager)GetSystemService(InputMethodService);
-                        imm?.ShowSoftInput(_hiddenInput, ShowFlags.Forced);
+                        _hiddenInput.Post(() =>
+                        {
+                            var imm = (InputMethodManager)GetSystemService(InputMethodService);
+                            if (imm != null)
+                            {
+                                imm.ShowSoftInput(_hiddenInput, ShowFlags.Forced);
+                                imm.ToggleSoftInput(ShowFlags.Forced, HideSoftInputFlags.ImplicitOnly);
+                            }
+                        });
                     }
                     catch (Exception ex)
                     {

@@ -214,6 +214,18 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
   - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 16` e `versionName: 1.16`.
   - Workflow GitHub Actions atualizado para gerar e publicar o **`IkarusMU-v1.16.apk`** na release `v1.16`.
 
+### 04/09/2026 — Versão v1.17: Teclado Virtual Fluido e Otimizado no Login
+- [x] **Abertura Fluida do Teclado Nativo no Android (`MainActivity.cs`):**
+  - **Problema:** Na v1.15/v1.16, o campo transparente estava configurado fora da tela (`-500, -500`), o que fazia o gerenciador de métodos de entrada do Android (`InputMethodManager`) ignorar as requisições de foco e não subir o teclado virtual ao tocar nos inputs de usuário e senha.
+  - **Soluções Implementadas:**
+    - Ajustado o `EditText` invisível (`Alpha = 0.01f`) para estar dentro da hierarquia da janela com layout real (`100x50`), garantindo foco imediato via `FocusableInTouchMode = true`.
+    - Implementado despacho assíncrono via `_hiddenInput.Post(...)` combinando `ShowSoftInput(ShowFlags.Forced)` e `ToggleSoftInput(ShowFlags.Forced, HideSoftInputFlags.ImplicitOnly)`.
+    - Adicionada navegação fluida: ao apertar a tecla "Avançar / Próximo" (ImeAction.Next) no teclado do celular enquanto preenche o Usuário, o cursor e foco pulam automaticamente para o campo da Senha.
+    - Sincronização em tempo real frame a frame com o motor do jogo sem travamentos ou janelas brancas intermediárias.
+- [x] **Release e Versionamento v1.17:**
+  - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 17` e `versionName: 1.17`.
+  - Workflow GitHub Actions atualizado para gerar e publicar o **`IkarusMU-v1.17.apk`** na release `v1.17`.
+
 ---
 
 ## 🛠️ PRÓXIMOS PASSOS (ROADMAP)
@@ -228,8 +240,8 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
 8. [x] **CONCLUÍDO (v1.14):** Primeiro protótipo de abertura de teclado virtual no Android.
 9. [x] **CONCLUÍDO (v1.15):** Fim do popup de diálogo, digitação 100% direta dentro das caixas do MU e Zoom ampliado de 440x270 com inputs maiores.
 10. [x] **CONCLUÍDO (v1.16):** Chão de Lorencia 100% texturizado (DXT Decoder + GL thread loading), framerate restaurado para 30+ FPS (desativação do overdraw de grama) e clique-para-andar preciso na coordenada exata do toque.
-11. [ ] **TESTE PELO USUÁRIO (v1.16):** Baixar o `IkarusMU-v1.16.apk`, entrar em Lorencia com o char, conferir a fluidez de 30 FPS, o chão visível e tocar no chão para caminhar com precisão.
-12. [ ] **HUD MOBILE (v1.17):** Desenhar Joystick Analógico de caminhada na esquerda e Botões redondos de Magias/Skills e Poções na direita.
+11. [x] **CONCLUÍDO (v1.17):** Ponte de teclado virtual nativo fluida com foco garantido no ciclo de renderização do Android e avanço automático de campo (Usuário -> Senha).
+12. [ ] **HUD MOBILE (v1.18):** Desenhar Joystick Analógico de caminhada na esquerda e Botões redondos de Magias/Skills e Poções na direita.
 13. [ ] Aprender a usar o **Web Admin Panel** (`http://localhost:5000`) para gerenciar contas, itens e rates.
 14. [ ] **DEPLOY VPS:** Garantir portas `44405` e `55901` totalmente abertas no firewall da VPS Windows (`192.99.110.164`).
 15. [ ] **SISTEMA DE AUTO-UPDATE (PATCHER LEVE):** Criar lógica no `LoadScene.cs` para checar `patch_version.txt`. Se houver atualizações pontuais, baixar apenas um `Patch.zip` de poucos megabytes em vez de pacotes completos.
