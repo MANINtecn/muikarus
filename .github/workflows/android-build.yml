@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: write
 
     steps:
     - uses: actions/checkout@v4
@@ -28,3 +30,19 @@ jobs:
       with:
         name: MU-Ikarus-Android-APK
         path: Client_Android\MuAndroid\bin\Release\net9.0-android\**\*-Signed.apk
+
+    - name: Publish APK to GitHub Releases
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: latest
+        name: "Ikarus MU Mobile - Último APK"
+        body: |
+          🚀 **Build Automático do Ikarus MU Mobile**
+          - **Commit:** ${{ github.sha }}
+          - **Data:** ${{ github.event.head_commit.timestamp }}
+          
+          📱 Baixe o arquivo `.apk` assinado abaixo diretamente no seu celular e instale!
+        draft: false
+        prerelease: false
+        files: Client_Android\MuAndroid\bin\Release\net9.0-android\**\*-Signed.apk
+
