@@ -171,6 +171,25 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
 
 ---
 
+### 04/09/2026 — Versão v1.15: Fim da "Janelinha Branca", Digitação Direta no Jogo e Zoom na Tela de Login
+- [x] **Eliminação da "Janelinha Branca" (Remoção do AlertDialog intermediário):**
+  - **Problema:** Ao tocar nos campos, o Android abria um popup modal branco separado do jogo (`AlertDialog`), que causava estranheza visual, exigia confirmação dupla no "OK", e em alguns casos reabria o teclado desnecessariamente.
+  - **Solução (`MainActivity.cs`):** Implementada uma ponte de digitação transparente em tempo real via `EditText` invisível (`_hiddenInput`) acoplado ao ciclo de vida do Android fora da área de toque da tela. Ao focar em qualquer campo no jogo, o teclado do celular abre suavemente sobre a tela do MU, e cada letra, número ou backspace digitado reflete **diretamente dentro da caixa de texto do próprio MU** em tempo real!
+  - **Fim do Loop de Foco:** O teclado só requisita abertura se o campo ativo mudar, evitando que a tela pisque ou feche/reabra ao digitar.
+  - **Ação Concluído (Enter/Done):** Ao pressionar a tecla Enter/Done no teclado virtual, o teclado é recolhido automaticamente.
+- [x] **Zoom e Ampliação dos Campos de Login (`LoginDialog.cs`):**
+  - **Problema:** A janela de login original de PC (300x200) ficava muito pequena e distante em celulares de tela grande ou alta resolução.
+  - **Solução:**
+    - Dimensões ampliadas em +46%: de `300x200` para **`440x270`**.
+    - Caixas de texto de Usuário e Senha aumentadas para **`280px` de largura por `28px` de altura** (anteriormente 176x14), proporcionando uma área de toque ampla e confortável para os dedos.
+    - Tamanho das fontes aumentado de 12 para 14/16 pixels, tornando os textos e letras nítidos.
+    - Sanitização automática com `.Trim()` nos campos de Usuário e Senha para impedir que espaços invisíveis inseridos pelo corretor do celular impeçam o login.
+- [x] **Release e Versionamento v1.15:**
+  - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 15` e `versionName: 1.15`.
+  - Workflow GitHub Actions atualizado para gerar e publicar o **`IkarusMU-v1.15.apk`** na release `v1.15`.
+
+---
+
 ## 🛠️ PRÓXIMOS PASSOS (ROADMAP)
 
 1. [x] Instalar .NET 8 / 10 SDK e compilar a solução `OpenMU`.
@@ -180,10 +199,13 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
 5. [x] **CONCLUÍDO:** Distribuição dos Assets via GitHub Releases (`Data.zip`), evitando limites de download.
 6. [x] **CONCLUÍDO (v1.12):** Detecção inteligente do Data.zip na memória interna/externa para nunca mais precisar re-baixar 1.7 GB a cada update.
 7. [x] **CONCLUÍDO (v1.13):** Mapeamento de Touch Screen para Mouse Click, auto-exibição da lista de servidores e trava a 30 FPS estáveis sem travamento.
-8. [x] **CONCLUÍDO (v1.14):** Teclado virtual nativo do Android acoplado aos campos de Login e Senha com diálogo interativo.
-9. [ ] **TESTE PELO USUÁRIO (v1.14):** Baixar o `IkarusMU-v1.14.apk`, tocar no campo de usuário/senha, digitar pelo teclado do celular e efetuar o login com o GameServer.
-10. [ ] Aprender a usar o **Web Admin Panel** (`http://localhost:5000`) para gerenciar contas, itens e rates.
-11. [ ] **DEPLOY VPS:** Garantir portas `44405` e `55901` totalmente abertas no firewall da VPS Windows (`192.99.110.164`).
-12. [ ] **SISTEMA DE AUTO-UPDATE (PATCHER LEVE):** Criar lógica no `LoadScene.cs` para checar `patch_version.txt`. Se houver atualizações pontuais, baixar apenas um `Patch.zip` de poucos megabytes em vez de pacotes completos.
+8. [x] **CONCLUÍDO (v1.14):** Primeiro protótipo de abertura de teclado virtual no Android.
+9. [x] **CONCLUÍDO (v1.15):** Fim do popup de diálogo, digitação 100% direta dentro das caixas do MU e Zoom ampliado de 440x270 com inputs maiores.
+10. [ ] **TESTE PELO USUÁRIO (v1.15):** Baixar o `IkarusMU-v1.15.apk`, confirmar os campos ampliados na tela, digitar `testgm` e `testgm` direto no jogo e entrar em Lorencia.
+11. [ ] **HUD MOBILE (v1.16):** Desenhar Joystick Analógico de caminhada na esquerda e Botões redondos de Magias/Skills e Poções na direita.
+12. [ ] Aprender a usar o **Web Admin Panel** (`http://localhost:5000`) para gerenciar contas, itens e rates.
+13. [ ] **DEPLOY VPS:** Garantir portas `44405` e `55901` totalmente abertas no firewall da VPS Windows (`192.99.110.164`).
+14. [ ] **SISTEMA DE AUTO-UPDATE (PATCHER LEVE):** Criar lógica no `LoadScene.cs` para checar `patch_version.txt`. Se houver atualizações pontuais, baixar apenas um `Patch.zip` de poucos megabytes em vez de pacotes completos.
+
 
 

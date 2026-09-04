@@ -30,7 +30,8 @@ namespace Client.Main.Controls.UI
 
         private Texture2D[] _nineSlice = new Texture2D[9];
 
-        public static Func<string, string, string, bool, Task<string>> ShowKeyboardAsync;
+        public static Action<TextFieldControl> OnFieldFocused;
+        public static Action OnFieldBlurred;
 
         public TextFieldSkin Skin { get; set; } = TextFieldSkin.Flat;
         public Color TextColor { get; set; } = Color.White;
@@ -39,8 +40,6 @@ namespace Client.Main.Controls.UI
         public bool IsFocused { get; private set; }
         public string Label { get; set; }
         public string Placeholder { get; set; }
-
-        private bool _isPromptOpen;
 
         public string Value
         {
@@ -83,43 +82,8 @@ namespace Client.Main.Controls.UI
         public override bool OnClick()
         {
             bool handled = base.OnClick();
-            TriggerSoftKeyboard();
+            OnFocus();
             return handled;
-        }
-
-        public void TriggerSoftKeyboard()
-        {
-            if (ShowKeyboardAsync == null || _isPromptOpen)
-                return;
-
-            _isPromptOpen = true;
-            Task.Run(async () =>
-            {
-                try
-                {
-                    string title = !string.IsNullOrEmpty(Label) ? Label : (MaskValue ? "Senha" : "Usuário");
-                    string desc = !string.IsNullOrEmpty(Placeholder) ? Placeholder : (MaskValue ? "Digite sua senha" : "Digite seu usuário");
-                    string defText = Value ?? string.Empty;
-
-                    var result = await ShowKeyboardAsync(title, desc, defText, MaskValue);
-                    if (result != null)
-                    {
-                        MuGame.ScheduleOnMainThread(() =>
-                        {
-                            Value = result;
-                            ValueChanged?.Invoke(this, EventArgs.Empty);
-                        });
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[TextFieldControl] ShowKeyboard error: {ex}");
-                }
-                finally
-                {
-                    _isPromptOpen = false;
-                }
-            });
         }
 
         public override void OnFocus()
@@ -129,6 +93,7 @@ namespace Client.Main.Controls.UI
             _showCursor = true;
             _cursorBlinkTimer = 0;
             if (Scene != null) Scene.FocusControl = this;
+            OnFieldFocused?.Invoke(this);
         }
 
         public override void OnBlur()
@@ -137,6 +102,7 @@ namespace Client.Main.Controls.UI
             IsFocused = false;
             _showCursor = false;
             _cursorBlinkTimer = 0;
+            OnFieldBlurred?.Invoke();
         }
 
         public new void Focus() => OnFocus();

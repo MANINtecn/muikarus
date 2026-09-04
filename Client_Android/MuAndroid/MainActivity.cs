@@ -94,11 +94,7 @@ namespace MuAndroid
             Window.AddFlags(WindowManagerFlags.KeepScreenOn);
             RequestLegacyWritePermission();
 
-            // Connect TextFieldControl virtual keyboard with native Android dialog
-            Client.Main.Controls.UI.TextFieldControl.ShowKeyboardAsync = (title, desc, defText, isPassword) =>
-            {
-                return ShowTextInputDialogAsync(title, desc, defText, isPassword);
-            };
+            InitializeKeyboardBridge();
 
             AppDomain.CurrentDomain.UnhandledException += (_, e) =>
             {
@@ -117,69 +113,109 @@ namespace MuAndroid
             _game.Run();
         }
 
-        private Task<string> ShowTextInputDialogAsync(string title, string description, string defaultText, bool usePasswordMode)
+        private EditText _hiddenInput;
+        private static Client.Main.Controls.UI.TextFieldControl _activeField;
+
+        private void InitializeKeyboardBridge()
         {
-            var tcs = new TaskCompletionSource<string>();
+            _hiddenInput = new EditText(this);
+            _hiddenInput.Alpha = 0.01f;
+            _hiddenInput.Background = null;
+            _hiddenInput.SetX(-500);
+            _hiddenInput.SetY(-500);
+            var layoutParams = new ViewGroup.LayoutParams(1, 1);
+            AddContentView(_hiddenInput, layoutParams);
 
-            RunOnUiThread(() =>
+            _hiddenInput.TextChanged += (s, e) =>
             {
-                try
+                if (_activeField != null)
                 {
-                    var input = new EditText(this);
-                    input.Text = defaultText ?? string.Empty;
-                    if (!string.IsNullOrEmpty(defaultText))
+                    string newText = _hiddenInput.Text ?? string.Empty;
+                    if (_activeField.Value != newText)
                     {
-                        input.SetSelection(input.Text.Length);
-                    }
-
-                    if (usePasswordMode)
-                    {
-                        input.InputType = Android.Text.InputTypes.ClassText | Android.Text.InputTypes.TextVariationPassword;
-                        input.TransformationMethod = Android.Text.Method.PasswordTransformationMethod.Instance;
-                    }
-                    else
-                    {
-                        input.InputType = Android.Text.InputTypes.ClassText | Android.Text.InputTypes.TextVariationVisiblePassword;
-                    }
-
-                    var builder = new AlertDialog.Builder(this)
-                        .SetTitle(title)
-                        .SetMessage(description)
-                        .SetView(input)
-                        .SetPositiveButton("OK", (sender, args) =>
+                        Client.Main.MuGame.ScheduleOnMainThread(() =>
                         {
-                            tcs.TrySetResult(input.Text);
-                        })
-                        .SetNegativeButton("Cancelar", (sender, args) =>
-                        {
-                            tcs.TrySetResult(null);
-                        })
-                        .SetCancelable(true);
+                            if (_activeField != null)
+                            {
+                                _activeField.Value = newText;
+                            }
+                        });
+                    }
+                }
+            };
 
-                    var dialog = builder.Create();
-                    dialog.DismissEvent += (sender, args) =>
+            _hiddenInput.EditorAction += (s, e) =>
+            {
+                if (e.ActionId == ImeAction.Done || e.ActionId == ImeAction.Go || e.ActionId == ImeAction.Send || e.Event?.KeyCode == Keycode.Enter)
+                {
+                    HideKeyboard();
+                }
+            };
+
+            Client.Main.Controls.UI.TextFieldControl.OnFieldFocused = (control) =>
+            {
+                RunOnUiThread(() =>
+                {
+                    try
                     {
-                        if (!tcs.Task.IsCompleted)
+                        if (_activeField == control)
+                            return;
+
+                        _activeField = control;
+
+                        if (control.MaskValue)
                         {
-                            tcs.TrySetResult(null);
+                            _hiddenInput.InputType = Android.Text.InputTypes.ClassText | Android.Text.InputTypes.TextVariationPassword;
+                            _hiddenInput.TransformationMethod = Android.Text.Method.PasswordTransformationMethod.Instance;
                         }
-                    };
+                        else
+                        {
+                            _hiddenInput.InputType = Android.Text.InputTypes.ClassText | Android.Text.InputTypes.TextVariationVisiblePassword;
+                            _hiddenInput.TransformationMethod = null;
+                        }
 
-                    dialog.Window?.SetSoftInputMode(SoftInput.StateAlwaysVisible);
-                    dialog.Show();
+                        _hiddenInput.Text = control.Value ?? string.Empty;
+                        if (!string.IsNullOrEmpty(_hiddenInput.Text))
+                        {
+                            _hiddenInput.SetSelection(_hiddenInput.Text.Length);
+                        }
 
-                    input.RequestFocus();
-                    var imm = (InputMethodManager)GetSystemService(InputMethodService);
-                    imm?.ShowSoftInput(input, ShowFlags.Implicit);
-                }
-                catch (Exception ex)
+                        _hiddenInput.RequestFocus();
+                        var imm = (InputMethodManager)GetSystemService(InputMethodService);
+                        imm?.ShowSoftInput(_hiddenInput, ShowFlags.Forced);
+                    }
+                    catch (Exception ex)
+                    {
+                        Android.Util.Log.Error("MuAndroid", $"Error focusing hidden input: {ex}");
+                    }
+                });
+            };
+
+            Client.Main.Controls.UI.TextFieldControl.OnFieldBlurred = () =>
+            {
+                RunOnUiThread(() =>
                 {
-                    Android.Util.Log.Error("MuAndroid", $"Error showing text dialog: {ex}");
-                    tcs.TrySetResult(null);
-                }
-            });
+                    HideKeyboard();
+                });
+            };
+        }
 
-            return tcs.Task;
+        private void HideKeyboard()
+        {
+            try
+            {
+                var imm = (InputMethodManager)GetSystemService(InputMethodService);
+                if (_hiddenInput != null)
+                {
+                    imm?.HideSoftInputFromWindow(_hiddenInput.WindowToken, 0);
+                    _hiddenInput.ClearFocus();
+                }
+                _activeField = null;
+            }
+            catch (Exception ex)
+            {
+                Android.Util.Log.Error("MuAndroid", $"Error hiding keyboard: {ex}");
+            }
         }
 
         public override void OnWindowFocusChanged(bool hasFocus)

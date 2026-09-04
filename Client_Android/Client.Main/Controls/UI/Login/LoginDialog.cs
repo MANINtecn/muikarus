@@ -25,12 +25,12 @@ namespace Client.Main.Controls.UI.Login
         /// <summary>
         /// Gets the username entered in the text field.
         /// </summary>
-        public string Username => _userInput.Value;
+        public string Username => _userInput.Value?.Trim();
 
         /// <summary>
         /// Gets the password entered in the text field.
         /// </summary>
-        public string Password => _passwordInput.Value;
+        public string Password => _passwordInput.Value?.Trim();
 
         // Events
         /// <summary>
@@ -41,21 +41,21 @@ namespace Client.Main.Controls.UI.Login
         // Constructors
         public LoginDialog()
         {
-            ControlSize = new Point(300, 200);
+            ControlSize = new Point(440, 270);
 
             Controls.Add(new LabelControl
             {
                 Text = "MU Online",
                 Align = ControlAlign.HorizontalCenter,
-                Y = 15,
-                FontSize = 12
+                Y = 16,
+                FontSize = 16
             });
 
             Controls.Add(_line1 = new TextureControl
             {
                 TexturePath = "Interface/GFx/popup_line_m.ozd",
-                X = 10,
-                Y = 40,
+                X = 15,
+                Y = 46,
                 AutoViewSize = false
             });
 
@@ -63,20 +63,20 @@ namespace Client.Main.Controls.UI.Login
             {
                 Text = "OpenMU Server 1",
                 Align = ControlAlign.HorizontalCenter,
-                Y = 55,
-                FontSize = 12,
+                Y = 58,
+                FontSize = 14,
                 TextColor = new Color(241, 188, 37)
             });
 
             var userLabel = new LabelControl
             {
                 Text = "User",
-                Y = 90,
+                Y = 98,
                 X = 20,
                 AutoViewSize = false,
-                ViewSize = new Point(70, 20),
+                ViewSize = new Point(90, 28),
                 TextAlign = HorizontalAlign.Right,
-                FontSize = 12f,
+                FontSize = 14f,
                 Interactive = true
             };
             Controls.Add(userLabel);
@@ -84,12 +84,12 @@ namespace Client.Main.Controls.UI.Login
             var passwordLabel = new LabelControl
             {
                 Text = "Password",
-                Y = 120,
+                Y = 146,
                 X = 20,
                 AutoViewSize = false,
-                ViewSize = new Point(70, 20),
+                ViewSize = new Point(90, 28),
                 TextAlign = HorizontalAlign.Right,
-                FontSize = 12f,
+                FontSize = 14f,
                 Interactive = true
             };
             Controls.Add(passwordLabel);
@@ -97,44 +97,47 @@ namespace Client.Main.Controls.UI.Login
             Controls.Add(_line2 = new TextureControl
             {
                 TexturePath = "Interface/GFx/popup_line_m.ozd",
-                X = 10,
-                Y = 150,
+                X = 15,
+                Y = 192,
                 AutoViewSize = false,
                 Alpha = 0.7f
             });
 
             _userInput = new TextFieldControl
             {
-                X = 100,
-                Y = 87,
-                ViewSize = new Point(176, 20),
+                X = 120,
+                Y = 94,
+                ViewSize = new Point(280, 28),
+                FontSize = 14f,
                 Skin = TextFieldSkin.NineSlice,
                 Label = "Usuário",
-                Placeholder = "Digite seu usuário de login"
+                Placeholder = "Digite seu usuário"
             };
 
             _passwordInput = new TextFieldControl
             {
-                X = 100,
-                Y = 117,
-                ViewSize = new Point(176, 20),
+                X = 120,
+                Y = 142,
+                ViewSize = new Point(280, 28),
+                FontSize = 14f,
                 MaskValue = true,
                 Skin = TextFieldSkin.NineSlice,
                 Label = "Senha",
                 Placeholder = "Digite sua senha"
             };
+            _userInput.NextInput = _passwordInput;
             _passwordInput.ValueChanged += PasswordInput_EnterPressed; // Use dedicated method
             Controls.Add(_userInput);
             Controls.Add(_passwordInput);
 
-            _userInput.Click += (s, e) => { _userInput.OnFocus(); _passwordInput.OnBlur(); _userInput.TriggerSoftKeyboard(); };
-            _passwordInput.Click += (s, e) => { _passwordInput.OnFocus(); _userInput.OnBlur(); _passwordInput.TriggerSoftKeyboard(); };
-            userLabel.Click += (s, e) => { _userInput.OnFocus(); _passwordInput.OnBlur(); _userInput.TriggerSoftKeyboard(); };
-            passwordLabel.Click += (s, e) => { _passwordInput.OnFocus(); _userInput.OnBlur(); _passwordInput.TriggerSoftKeyboard(); };
+            _userInput.Click += (s, e) => { _userInput.OnFocus(); _passwordInput.OnBlur(); };
+            _passwordInput.Click += (s, e) => { _passwordInput.OnFocus(); _userInput.OnBlur(); };
+            userLabel.Click += (s, e) => { _userInput.OnFocus(); _passwordInput.OnBlur(); };
+            passwordLabel.Click += (s, e) => { _passwordInput.OnFocus(); _userInput.OnBlur(); };
 
             _okButton = new OkButton
             {
-                Y = 160,
+                Y = 210,
                 Align = ControlAlign.HorizontalCenter
             };
             _okButton.Click += OkButton_Click; // Use dedicated method
@@ -176,8 +179,8 @@ namespace Client.Main.Controls.UI.Login
         // Protected Methods
         protected override void OnScreenSizeChanged()
         {
-            _line1.ViewSize = new Point(DisplaySize.X - 20, 8);
-            _line2.ViewSize = new Point(DisplaySize.X - 20, 5);
+            _line1.ViewSize = new Point(DisplaySize.X - 30, 8);
+            _line2.ViewSize = new Point(DisplaySize.X - 30, 5);
             base.OnScreenSizeChanged();
         }
 
@@ -185,6 +188,7 @@ namespace Client.Main.Controls.UI.Login
         // Method called after clicking the OK button
         private void OkButton_Click(object sender, EventArgs e)
         {
+            TextFieldControl.OnFieldBlurred?.Invoke();
             AttemptLogin();
         }
 
