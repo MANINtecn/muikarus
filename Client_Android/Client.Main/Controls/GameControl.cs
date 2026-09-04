@@ -155,9 +155,15 @@ namespace Client.Main.Controls
             // Cache mouse and display rectangle to avoid repeated property lookups
             var mouse = MuGame.Instance.Mouse;
             Rectangle rect = DisplayRectangle;
+#if ANDROID || IOS
+            int touchPadding = 12; // Extra touch tolerance for fingers on mobile screens
+            var hitRect = new Rectangle(rect.X - touchPadding, rect.Y - touchPadding, rect.Width + touchPadding * 2, rect.Height + touchPadding * 2);
+            IsMouseOver = Interactive && hitRect.Contains(mouse.Position);
+#else
             IsMouseOver = Interactive &&
                           mouse.Position.X >= rect.X && mouse.Position.X <= rect.X + rect.Width &&
                           mouse.Position.Y >= rect.Y && mouse.Position.Y <= rect.Y + rect.Height;
+#endif
 
             // moved: Scene.MouseControl = this; 
             // MouseControl is now determined by BaseScene to ensure topmost logic.

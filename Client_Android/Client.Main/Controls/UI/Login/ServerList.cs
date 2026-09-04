@@ -1,4 +1,4 @@
-﻿using Client.Main.Models;
+using Client.Main.Models;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
@@ -27,18 +27,20 @@ namespace Client.Main.Controls.UI.Login
                 Index = index,
                 Name = name,
                 X = 0,
-                Y = index * 26,
+                Y = index * 28,
                 Gauge = gauge
             };
             button.Click += (s, e) => ServerClick?.Invoke(this, new ServerSelectEventArgs { Index = index, Name = name });
             _serverButtons.Add(button);
             Controls.Add(button);
+            ViewSize = new Point(192, _serverButtons.Count * 28);
         }
 
         public void Clear()
         {
             _serverButtons.Clear();
             Controls.Clear();
+            ViewSize = Point.Zero;
         }
     }
 }

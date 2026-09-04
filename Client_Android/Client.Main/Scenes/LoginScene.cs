@@ -333,7 +333,27 @@ namespace Client.Main.Scenes
                 {
                     InitializeServerSelectionUI();
                 }
-                // Visibility is now handled by HandleConnectionStateChange after state update
+
+                if (_nonEventGroup != null && _serverList != null && servers != null && servers.Count > 0)
+                {
+                    _nonEventGroup.ActiveIndex = 0;
+                    if (_nonEventGroup.Controls.OfType<ServerGroupButton>().FirstOrDefault() is { } btn)
+                    {
+                        btn.Selected = true;
+                    }
+                    if (_nonEventGroup.IndicatorActive != null)
+                    {
+                        _nonEventGroup.IndicatorActive.Visible = true;
+                        _nonEventGroup.IndicatorActive.Y = 17;
+                    }
+
+                    _serverList.Clear();
+                    foreach (var server in servers)
+                    {
+                        _serverList.AddServer((byte)server.ServerId, $"Server {server.ServerId}", server.LoadPercentage);
+                    }
+                    _serverList.Visible = true;
+                }
             });
         }
 

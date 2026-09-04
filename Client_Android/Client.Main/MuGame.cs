@@ -73,8 +73,8 @@ namespace Client.Main
             _graphics.PreferredBackBufferWidth = 0;
             _graphics.PreferredBackBufferHeight = 0;
             _graphics.SynchronizeWithVerticalRetrace = true;
-            IsFixedTimeStep = true; // MUST BE TRUE! Se for false, o Update suga 100% da CPU e mata a rede (Starvation).
-            TargetElapsedTime = TimeSpan.FromMilliseconds(16.67); // ~60 FPS
+            IsFixedTimeStep = true;
+            TargetElapsedTime = TimeSpan.FromMilliseconds(33.33); // 30 FPS para estabilidade, fluidez e menor aquecimento no Android
 #else
             if (Constants.UNLIMITED_FPS)
             {
@@ -236,10 +236,17 @@ namespace Client.Main
             _logger?.LogDebug($"Scale Factor: {_scaleFactor}");
 
 #if ANDROID || IOS
-            // Apply Target FPS from settings
-            int fps = AppSettings?.TargetFPS > 0 ? AppSettings.TargetFPS : 30; // Default to 30 if invalid
+            // Apply Target FPS from settings (30 FPS for mobile stability)
+            int fps = AppSettings?.TargetFPS > 0 ? AppSettings.TargetFPS : 30;
             TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0 / fps);
             _logger?.LogInformation($"✅ Android/iOS FPS Target set to: {fps}");
+
+            try
+            {
+                TouchPanel.EnableMouseTouchPoint = true;
+                TouchPanel.EnableMouseGestures = true;
+            }
+            catch { }
 #endif
         }
 
@@ -431,6 +438,8 @@ namespace Client.Main
             await ActiveScene.Initialize();
         }
 
+        private Point _lastTouchPos = Point.Zero;
+
         private void UpdateInputInfo(GameTime gameTime)
         {
             var mouseState = Microsoft.Xna.Framework.Input.Mouse.GetState();
@@ -441,8 +450,25 @@ namespace Client.Main
             PrevKeyboard = Keyboard;
             PrevTouchState = Touch;
 
-            var absoluteMousePosition = new Point(mouseState.X + windowBounds.X, mouseState.Y + windowBounds.Y);
-            if (!IsActive || !windowBounds.Contains(absoluteMousePosition))
+#if ANDROID || IOS
+            // Synthesize MouseState from TouchPanel for 100% reliable UI touch clicking on mobile
+            if (touchState.Count > 0)
+            {
+                var touch = touchState[0];
+                _lastTouchPos = new Point((int)touch.Position.X, (int)touch.Position.Y);
+                ButtonState btn = (touch.State == TouchLocationState.Pressed || touch.State == TouchLocationState.Moved)
+                    ? ButtonState.Pressed
+                    : ButtonState.Released;
+                mouseState = new MouseState(_lastTouchPos.X, _lastTouchPos.Y, 0, btn, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
+            }
+            else if (PrevTouchState.Count > 0)
+            {
+                // Finger released on this frame: synthesize LeftButton Released at the last touch position
+                mouseState = new MouseState(_lastTouchPos.X, _lastTouchPos.Y, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
+            }
+#endif
+
+            if (!IsActive)
             {
                 Mouse = PrevMouseState;
                 Keyboard = new KeyboardState();

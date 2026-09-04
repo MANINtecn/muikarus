@@ -16,7 +16,7 @@ namespace Client.Main.Worlds
         {
             _player = new PlayerObject();
 #if ANDROID || IOS
-            Camera.Instance.ViewFar = 6000f;
+            Camera.Instance.ViewFar = 3200f; // Optimized for mobile login scene: culls off-screen ocean quads
 #else
             Camera.Instance.ViewFar = 10000f;
 #endif
@@ -41,10 +41,10 @@ namespace Client.Main.Worlds
         {
             base.AfterLoad();
 
-            // water animation parameters
-            Terrain.WaterSpeed = 0.15f;             // Example: faster water movement
-            Terrain.DistortionAmplitude = 0.2f;      // Example: stronger distortion
-            Terrain.DistortionFrequency = 1.0f;      // Example: lower frequency for distortion
+            // water animation parameters (optimized for mobile performance)
+            Terrain.WaterSpeed = 0.05f;
+            Terrain.DistortionAmplitude = 0.05f;
+            Terrain.DistortionFrequency = 0.5f;
             Terrain.WaterFlowDirection = Vector2.UnitY;
 
             // TODO: We need fix CameraAnglePosition load
