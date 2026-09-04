@@ -1,4 +1,4 @@
-﻿using Client.Main.Models;
+using Client.Main.Models;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using System;
@@ -68,7 +68,7 @@ namespace Client.Main.Controls.UI.Login
                 TextColor = new Color(241, 188, 37)
             });
 
-            Controls.Add(new LabelControl
+            var userLabel = new LabelControl
             {
                 Text = "User",
                 Y = 90,
@@ -76,10 +76,12 @@ namespace Client.Main.Controls.UI.Login
                 AutoViewSize = false,
                 ViewSize = new Point(70, 20),
                 TextAlign = HorizontalAlign.Right,
-                FontSize = 12f
-            });
+                FontSize = 12f,
+                Interactive = true
+            };
+            Controls.Add(userLabel);
 
-            Controls.Add(new LabelControl
+            var passwordLabel = new LabelControl
             {
                 Text = "Password",
                 Y = 120,
@@ -87,8 +89,10 @@ namespace Client.Main.Controls.UI.Login
                 AutoViewSize = false,
                 ViewSize = new Point(70, 20),
                 TextAlign = HorizontalAlign.Right,
-                FontSize = 12f
-            });
+                FontSize = 12f,
+                Interactive = true
+            };
+            Controls.Add(passwordLabel);
 
             Controls.Add(_line2 = new TextureControl
             {
@@ -103,22 +107,30 @@ namespace Client.Main.Controls.UI.Login
             {
                 X = 100,
                 Y = 87,
-                Skin = TextFieldSkin.NineSlice
+                ViewSize = new Point(176, 20),
+                Skin = TextFieldSkin.NineSlice,
+                Label = "Usuário",
+                Placeholder = "Digite seu usuário de login"
             };
 
             _passwordInput = new TextFieldControl
             {
                 X = 100,
                 Y = 117,
+                ViewSize = new Point(176, 20),
                 MaskValue = true,
-                Skin = TextFieldSkin.NineSlice
+                Skin = TextFieldSkin.NineSlice,
+                Label = "Senha",
+                Placeholder = "Digite sua senha"
             };
             _passwordInput.ValueChanged += PasswordInput_EnterPressed; // Use dedicated method
             Controls.Add(_userInput);
             Controls.Add(_passwordInput);
 
-            _userInput.Click += (s, e) => { _userInput.OnFocus(); _passwordInput.OnBlur(); };
-            _passwordInput.Click += (s, e) => { _passwordInput.OnFocus(); _userInput.OnBlur(); };
+            _userInput.Click += (s, e) => { _userInput.OnFocus(); _passwordInput.OnBlur(); _userInput.TriggerSoftKeyboard(); };
+            _passwordInput.Click += (s, e) => { _passwordInput.OnFocus(); _userInput.OnBlur(); _passwordInput.TriggerSoftKeyboard(); };
+            userLabel.Click += (s, e) => { _userInput.OnFocus(); _passwordInput.OnBlur(); _userInput.TriggerSoftKeyboard(); };
+            passwordLabel.Click += (s, e) => { _passwordInput.OnFocus(); _userInput.OnBlur(); _passwordInput.TriggerSoftKeyboard(); };
 
             _okButton = new OkButton
             {

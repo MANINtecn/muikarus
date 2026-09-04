@@ -5,9 +5,12 @@ using Android.Content.PM;
 using Android.OS;
 using Android.Provider;
 using Android.Views;
+using Android.Views.InputMethods;
+using Android.Widget;
 using Microsoft.Xna.Framework;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace MuAndroid
 {
@@ -91,6 +94,12 @@ namespace MuAndroid
             Window.AddFlags(WindowManagerFlags.KeepScreenOn);
             RequestLegacyWritePermission();
 
+            // Connect TextFieldControl virtual keyboard with native Android dialog
+            Client.Main.Controls.UI.TextFieldControl.ShowKeyboardAsync = (title, desc, defText, isPassword) =>
+            {
+                return ShowTextInputDialogAsync(title, desc, defText, isPassword);
+            };
+
             AppDomain.CurrentDomain.UnhandledException += (_, e) =>
             {
                 var msg = $"Global Exception:\n{(Exception)e.ExceptionObject}";
@@ -106,6 +115,71 @@ namespace MuAndroid
             _view = (View)_game.Services.GetService(typeof(View));
             SetContentView(_view);
             _game.Run();
+        }
+
+        private Task<string> ShowTextInputDialogAsync(string title, string description, string defaultText, bool usePasswordMode)
+        {
+            var tcs = new TaskCompletionSource<string>();
+
+            RunOnUiThread(() =>
+            {
+                try
+                {
+                    var input = new EditText(this);
+                    input.Text = defaultText ?? string.Empty;
+                    if (!string.IsNullOrEmpty(defaultText))
+                    {
+                        input.SetSelection(input.Text.Length);
+                    }
+
+                    if (usePasswordMode)
+                    {
+                        input.InputType = Android.Text.InputTypes.ClassText | Android.Text.InputTypes.TextVariationPassword;
+                        input.TransformationMethod = Android.Text.Method.PasswordTransformationMethod.Instance;
+                    }
+                    else
+                    {
+                        input.InputType = Android.Text.InputTypes.ClassText | Android.Text.InputTypes.TextVariationVisiblePassword;
+                    }
+
+                    var builder = new AlertDialog.Builder(this)
+                        .SetTitle(title)
+                        .SetMessage(description)
+                        .SetView(input)
+                        .SetPositiveButton("OK", (sender, args) =>
+                        {
+                            tcs.TrySetResult(input.Text);
+                        })
+                        .SetNegativeButton("Cancelar", (sender, args) =>
+                        {
+                            tcs.TrySetResult(null);
+                        })
+                        .SetCancelable(true);
+
+                    var dialog = builder.Create();
+                    dialog.DismissEvent += (sender, args) =>
+                    {
+                        if (!tcs.Task.IsCompleted)
+                        {
+                            tcs.TrySetResult(null);
+                        }
+                    };
+
+                    dialog.Window?.SetSoftInputMode(SoftInput.StateAlwaysVisible);
+                    dialog.Show();
+
+                    input.RequestFocus();
+                    var imm = (InputMethodManager)GetSystemService(InputMethodService);
+                    imm?.ShowSoftInput(input, ShowFlags.Implicit);
+                }
+                catch (Exception ex)
+                {
+                    Android.Util.Log.Error("MuAndroid", $"Error showing text dialog: {ex}");
+                    tcs.TrySetResult(null);
+                }
+            });
+
+            return tcs.Task;
         }
 
         public override void OnWindowFocusChanged(bool hasFocus)

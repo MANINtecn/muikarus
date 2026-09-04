@@ -1,4 +1,4 @@
-﻿using Client.Main.Content;
+using Client.Main.Content;
 using Client.Main.Controllers;
 using Client.Main.Models;
 using Microsoft.Xna.Framework;
@@ -30,11 +30,17 @@ namespace Client.Main.Controls.UI
 
         private Texture2D[] _nineSlice = new Texture2D[9];
 
+        public static Func<string, string, string, bool, Task<string>> ShowKeyboardAsync;
+
         public TextFieldSkin Skin { get; set; } = TextFieldSkin.Flat;
         public Color TextColor { get; set; } = Color.White;
         public float FontSize { get; set; } = 12f;
         public TextFieldControl NextInput { get; set; }
         public bool IsFocused { get; private set; }
+        public string Label { get; set; }
+        public string Placeholder { get; set; }
+
+        private bool _isPromptOpen;
 
         public string Value
         {
@@ -55,7 +61,7 @@ namespace Client.Main.Controls.UI
         public TextFieldControl()
         {
             AutoViewSize = false;
-            ViewSize = new Point(176, 14);
+            ViewSize = new Point(176, 20);
             Interactive = true;
             IsFocused = false;
         }
@@ -72,6 +78,48 @@ namespace Client.Main.Controls.UI
                     _nineSlice[i] = await TextureLoader.Instance.PrepareAndGetTexture($"Interface/GFx/textbg{names[i]}.ozd");
                 }
             }
+        }
+
+        public override bool OnClick()
+        {
+            bool handled = base.OnClick();
+            TriggerSoftKeyboard();
+            return handled;
+        }
+
+        public void TriggerSoftKeyboard()
+        {
+            if (ShowKeyboardAsync == null || _isPromptOpen)
+                return;
+
+            _isPromptOpen = true;
+            Task.Run(async () =>
+            {
+                try
+                {
+                    string title = !string.IsNullOrEmpty(Label) ? Label : (MaskValue ? "Senha" : "Usuário");
+                    string desc = !string.IsNullOrEmpty(Placeholder) ? Placeholder : (MaskValue ? "Digite sua senha" : "Digite seu usuário");
+                    string defText = Value ?? string.Empty;
+
+                    var result = await ShowKeyboardAsync(title, desc, defText, MaskValue);
+                    if (result != null)
+                    {
+                        MuGame.ScheduleOnMainThread(() =>
+                        {
+                            Value = result;
+                            ValueChanged?.Invoke(this, EventArgs.Empty);
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[TextFieldControl] ShowKeyboard error: {ex}");
+                }
+                finally
+                {
+                    _isPromptOpen = false;
+                }
+            });
         }
 
         public override void OnFocus()

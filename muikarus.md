@@ -150,6 +150,27 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
 
 ---
 
+### 04/09/2026 — Versão v1.14: Teclado Virtual Nativo no Android e Digitação de Login/Senha
+- [x] **Correção Crítica: Teclado virtual não abria ao clicar nos campos ("clico e o teclado não abre"):**
+  - **Diagnóstico:** O sistema de texto do MU (`TextFieldControl.cs`) esperava exclusivamente teclas físicas do teclado do computador (`MuGame.Instance.Keyboard.GetPressedKeys()`). Em smartphones, o sistema operacional Android não exibe o teclado na tela (IME / soft keyboard) automaticamente para jogos MonoGame, porque a tela é um canvas gráfico (`SurfaceView`) sem campos nativos de formulário vinculados.
+  - **Solução no Motor (`TextFieldControl.cs`):**
+    - Criado o delegate estático `ShowKeyboardAsync` e o método `TriggerSoftKeyboard()`, além das propriedades `Label` e `Placeholder`.
+    - Sobrescrito o método `OnClick()` no controle de texto: ao tocar na caixa de Usuário ou Senha, o jogo agora solicita a abertura imediata do teclado para digitação.
+    - Aumentada a altura padrão dos inputs de 14px para 20px, facilitando o toque em telas mobile.
+  - **Implementação Nativa no Android (`MainActivity.cs`):**
+    - Criado o método `ShowTextInputDialogAsync` acoplado ao `AlertDialog` e `EditText` nativos do Android.
+    - Forçado o modo de teclado sempre visível (`SoftInput.StateAlwaysVisible`) e foco imediato com `InputMethodManager.ShowSoftInput`.
+    - Suporte a campo mascarado para Senha (`PasswordTransformationMethod`).
+    - Botões nativos "OK" e "Cancelar" integrados com retorno assíncrono direto para a interface do jogo sem perda de estado.
+  - **Aprimoramento da Tela de Login (`LoginDialog.cs`):**
+    - Tornados os rótulos de texto "User" e "Password" clicáveis (`Interactive = true`), permitindo que tocar tanto na caixinha quanto no texto ao lado abra o teclado para digitar.
+    - Textos de instrução configurados: "Usuário" / "Digite seu usuário de login" e "Senha" / "Digite sua senha".
+- [x] **Release e Versionamento v1.14:**
+  - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 14` e `versionName: 1.14`.
+  - Workflow GitHub Actions atualizado para gerar e publicar o **`IkarusMU-v1.14.apk`** na release `v1.14`.
+
+---
+
 ## 🛠️ PRÓXIMOS PASSOS (ROADMAP)
 
 1. [x] Instalar .NET 8 / 10 SDK e compilar a solução `OpenMU`.
@@ -159,8 +180,10 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
 5. [x] **CONCLUÍDO:** Distribuição dos Assets via GitHub Releases (`Data.zip`), evitando limites de download.
 6. [x] **CONCLUÍDO (v1.12):** Detecção inteligente do Data.zip na memória interna/externa para nunca mais precisar re-baixar 1.7 GB a cada update.
 7. [x] **CONCLUÍDO (v1.13):** Mapeamento de Touch Screen para Mouse Click, auto-exibição da lista de servidores e trava a 30 FPS estáveis sem travamento.
-8. [ ] **TESTE PELO USUÁRIO (v1.13):** Baixar o `IkarusMU-v1.13.apk`, validar a fluidez (30 FPS) e tocar no Servidor para abrir a janela de Login com usuário/senha.
-9. [ ] Aprender a usar o **Web Admin Panel** (`http://localhost:5000`) para gerenciar contas, itens e rates.
-10. [ ] **DEPLOY VPS:** Garantir portas `44405` e `55901` totalmente abertas no firewall da VPS Windows (`192.99.110.164`).
-11. [ ] **SISTEMA DE AUTO-UPDATE (PATCHER LEVE):** Criar lógica no `LoadScene.cs` para checar `patch_version.txt`. Se houver atualizações pontuais, baixar apenas um `Patch.zip` de poucos megabytes em vez de pacotes completos.
+8. [x] **CONCLUÍDO (v1.14):** Teclado virtual nativo do Android acoplado aos campos de Login e Senha com diálogo interativo.
+9. [ ] **TESTE PELO USUÁRIO (v1.14):** Baixar o `IkarusMU-v1.14.apk`, tocar no campo de usuário/senha, digitar pelo teclado do celular e efetuar o login com o GameServer.
+10. [ ] Aprender a usar o **Web Admin Panel** (`http://localhost:5000`) para gerenciar contas, itens e rates.
+11. [ ] **DEPLOY VPS:** Garantir portas `44405` e `55901` totalmente abertas no firewall da VPS Windows (`192.99.110.164`).
+12. [ ] **SISTEMA DE AUTO-UPDATE (PATCHER LEVE):** Criar lógica no `LoadScene.cs` para checar `patch_version.txt`. Se houver atualizações pontuais, baixar apenas um `Patch.zip` de poucos megabytes em vez de pacotes completos.
+
 
