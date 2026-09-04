@@ -4,6 +4,11 @@ on:
   push:
     branches: [ "main" ]
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Número da Versão (ex: v10.1, v10.2)'
+        required: false
+        default: 'v10.1'
 
 jobs:
   build:
@@ -31,18 +36,31 @@ jobs:
         name: MU-Ikarus-Android-APK
         path: Client_Android\MuAndroid\bin\Release\net9.0-android\**\*-Signed.apk
 
+    - name: Prepare APK with Version Name
+      id: prep
+      shell: pwsh
+      run: |
+        $ver = "${{ github.event.inputs.version }}"
+        if (-not $ver) { $ver = "v10.1" }
+        $apk = Get-ChildItem -Path "Client_Android\MuAndroid\bin\Release\net9.0-android" -Filter "*-Signed.apk" -Recurse | Select-Object -First 1
+        $dest = "IkarusMU-$ver.apk"
+        Copy-Item $apk.FullName -Destination $dest
+        Write-Output "APK renomeado para: $dest"
+        echo "version=$ver" >> $env:GITHUB_OUTPUT
+        echo "apk_file=$dest" >> $env:GITHUB_OUTPUT
+
     - name: Publish APK to GitHub Releases
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: latest
-        name: "Ikarus MU Mobile - Último APK"
+        tag_name: ${{ steps.prep.outputs.version }}
+        name: "Ikarus MU Mobile ${{ steps.prep.outputs.version }}"
         body: |
-          🚀 **Build Automático do Ikarus MU Mobile**
+          🚀 **Ikarus MU Mobile — Versão ${{ steps.prep.outputs.version }}**
           - **Commit:** ${{ github.sha }}
           - **Data:** ${{ github.event.head_commit.timestamp }}
           
-          📱 Baixe o arquivo `.apk` assinado abaixo diretamente no seu celular e instale!
+          📱 Baixe o arquivo **${{ steps.prep.outputs.apk_file }}** diretamente no seu celular e instale!
         draft: false
         prerelease: false
-        files: Client_Android\MuAndroid\bin\Release\net9.0-android\**\*-Signed.apk
+        files: ${{ steps.prep.outputs.apk_file }}
 
