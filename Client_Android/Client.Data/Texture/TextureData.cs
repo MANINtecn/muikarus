@@ -1,11 +1,12 @@
-﻿
 namespace Client.Data.Texture
 {
     public class TextureData
     {
-        public float Width { get; set; }
-        public float Height { get; set; }
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public TextureSurfaceFormat Format { get; set; } = TextureSurfaceFormat.Color;
         public byte Components { get; set; }
+        public bool IsCompressed { get; set; }
         public byte[] Data { get; set; } = [];
     }
 }
