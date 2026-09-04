@@ -1,4 +1,4 @@
-﻿using Client.Main.Controllers;
+using Client.Main.Controllers;
 using Client.Main.Models;
 using Client.Main.Objects;
 using Client.Main.Objects.Monsters;
@@ -156,7 +156,7 @@ namespace Client.Main.Controls
         /// </summary>
         private void CalculateMouseTilePos()
         {
-            var mousePos = Mouse.GetState().Position.ToVector2();
+            var mousePos = MuGame.Instance.Mouse.Position.ToVector2();
             var viewport = GraphicsManager.Instance.GraphicsDevice.Viewport;
 
             var near = viewport.Unproject(new Vector3(mousePos, 0f),

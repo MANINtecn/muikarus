@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -14,6 +14,8 @@ namespace Client.Main.Content
     public class TextureLoader
     {
         public static TextureLoader Instance { get; } = new TextureLoader();
+
+        public Func<TextureData, byte[]> CustomDecompressFunction = null;
 
         private readonly ConcurrentDictionary<string, Task<TextureData>> _textureTasks = new();
         private readonly ConcurrentDictionary<string, ClientTexture> _textures = new();
@@ -40,7 +42,7 @@ namespace Client.Main.Content
             if (string.IsNullOrWhiteSpace(path))
                 throw new ArgumentException("Path cannot be null or whitespace.", nameof(path));
 
-            string normalizedKey = path.ToLowerInvariant();
+            string normalizedKey = NormalizePath(path);
 
             if (_textureTasks.TryGetValue(normalizedKey, out var task))
                 return task;
@@ -56,14 +58,19 @@ namespace Client.Main.Content
             return GetTexture2D(path);
         }
 
+        private static string NormalizePath(string path)
+        {
+            return path?.Replace('\\', '/').ToLowerInvariant() ?? string.Empty;
+        }
+
         private async Task<TextureData> InternalPrepare(string path)
         {
             try
             {
-                var dataPath = Path.Combine(Constants.DataPath, path);
+                string dataPath = Path.IsPathRooted(path) ? path : Path.Combine(Constants.DataPath, path);
                 string ext = Path.GetExtension(path)?.ToLowerInvariant();
 
-                if (!_readers.TryGetValue(ext, out var reader))
+                if (string.IsNullOrEmpty(ext) || !_readers.TryGetValue(ext, out var reader))
                 {
                     _logger?.LogDebug($"Unsupported file extension: {ext}");
                     return null;
@@ -85,7 +92,7 @@ namespace Client.Main.Content
                     Script = ParseScript(path)
                 };
 
-                _textures.TryAdd(path.ToLowerInvariant(), clientTexture);
+                _textures.TryAdd(NormalizePath(path), clientTexture);
                 return clientTexture.Info;
             }
             catch (Exception e)
@@ -97,43 +104,29 @@ namespace Client.Main.Content
 
         private string FindTexturePath(string dataPath, string ext)
         {
-            string expectedExtension = _readers[ext].GetType().Name.ToLowerInvariant().Replace("reader", "");
+            if (!_readers.TryGetValue(ext, out var reader)) return null;
+
+            string expectedExtension = reader.GetType().Name.ToLowerInvariant().Replace("reader", "");
             string expectedFilePath = Path.ChangeExtension(dataPath, expectedExtension);
 
-            string actualPath = GetActualPath(expectedFilePath);
-            if (actualPath != null)
+            string actualPath = Utils.GetActualPath(expectedFilePath);
+            if (actualPath != null && File.Exists(actualPath))
+                return actualPath;
+
+            actualPath = Utils.GetActualPath(dataPath);
+            if (actualPath != null && File.Exists(actualPath))
                 return actualPath;
 
             string parentFolder = Path.GetDirectoryName(expectedFilePath);
             if (!string.IsNullOrEmpty(parentFolder))
             {
                 string newFullPath = Path.Combine(parentFolder, "texture", Path.GetFileName(expectedFilePath));
-                actualPath = GetActualPath(newFullPath);
-                if (actualPath != null)
+                actualPath = Utils.GetActualPath(newFullPath);
+                if (actualPath != null && File.Exists(actualPath))
                     return actualPath;
             }
 
             _logger?.LogDebug($"Texture file not found: {expectedFilePath}");
-            return null;
-        }
-
-        private string GetActualPath(string path)
-        {
-            if (File.Exists(path))
-                return path;
-
-            string directory = Path.GetDirectoryName(path);
-            string fileName = Path.GetFileName(path);
-
-            if (Directory.Exists(directory))
-            {
-                foreach (var file in Directory.GetFiles(directory))
-                {
-                    if (string.Equals(Path.GetFileName(file), fileName, StringComparison.OrdinalIgnoreCase))
-                        return file;
-                }
-            }
-
             return null;
         }
 
@@ -169,55 +162,106 @@ namespace Client.Main.Content
 
         public TextureData Get(string path) =>
             string.IsNullOrWhiteSpace(path) ? null :
-            _textures.TryGetValue(path.ToLowerInvariant(), out var value) ? value.Info : null;
+            _textures.TryGetValue(NormalizePath(path), out var value) ? value.Info : null;
 
         public TextureScript GetScript(string path) =>
             string.IsNullOrWhiteSpace(path) ? null :
-            _textures.TryGetValue(path.ToLowerInvariant(), out var value) ? value.Script : null;
+            _textures.TryGetValue(NormalizePath(path), out var value) ? value.Script : null;
 
         public Texture2D GetTexture2D(string path)
         {
             if (string.IsNullOrWhiteSpace(path))
                 return null;
 
-            string normalizedKey = path.ToLowerInvariant();
+            string normalizedKey = NormalizePath(path);
 
             if (!_textures.TryGetValue(normalizedKey, out ClientTexture textureData))
                 return null;
 
-            if (textureData.Texture != null)
+            if (textureData.Texture != null && !textureData.Texture.IsDisposed)
                 return textureData.Texture;
 
             if (textureData.Info?.Width == 0 || textureData.Info?.Height == 0 || textureData.Info.Data == null)
                 return null;
 
-            var texture = new Texture2D(_graphicsDevice, (int)textureData.Info.Width, (int)textureData.Info.Height);
-            textureData.Texture = texture;
-
-            int pixelCount = texture.Width * texture.Height;
-            int components = textureData.Info.Components;
-
-            if (components != 3 && components != 4)
-            {
-                _logger?.LogDebug($"Unsupported texture components: {components} for texture {path}");
+            if (_graphicsDevice == null)
                 return null;
-            }
 
-            Color[] pixelData = new Color[pixelCount];
-            byte[] data = textureData.Info.Data;
-
-            for (int i = 0; i < pixelData.Length; i++)
+            lock (textureData)
             {
-                int dataIndex = i * components;
-                byte r = data[dataIndex];
-                byte g = data[dataIndex + 1];
-                byte b = data[dataIndex + 2];
-                byte a = components == 4 ? data[dataIndex + 3] : (byte)255;
-                pixelData[i] = new Color(r, g, b, a);
-            }
+                if (textureData.Texture != null && !textureData.Texture.IsDisposed)
+                    return textureData.Texture;
 
-            texture.SetData(pixelData);
-            return texture;
+                try
+                {
+                    Texture2D texture = null;
+                    if (textureData.Info.IsCompressed)
+                    {
+                        byte[] decompressed = null;
+                        if (CustomDecompressFunction != null)
+                        {
+                            decompressed = CustomDecompressFunction(textureData.Info);
+                        }
+                        else
+                        {
+                            if (textureData.Info.Format == TextureSurfaceFormat.Dxt1)
+                                decompressed = DxtDecoder.DecompressDXT1(textureData.Info.Data, (int)textureData.Info.Width, (int)textureData.Info.Height);
+                            else if (textureData.Info.Format == TextureSurfaceFormat.Dxt3)
+                                decompressed = DxtDecoder.DecompressDXT3(textureData.Info.Data, (int)textureData.Info.Width, (int)textureData.Info.Height);
+                            else if (textureData.Info.Format == TextureSurfaceFormat.Dxt5)
+                                decompressed = DxtDecoder.DecompressDXT5(textureData.Info.Data, (int)textureData.Info.Width, (int)textureData.Info.Height);
+                        }
+
+                        if (decompressed != null)
+                        {
+                            texture = new Texture2D(_graphicsDevice, (int)textureData.Info.Width, (int)textureData.Info.Height, false, SurfaceFormat.Color);
+                            texture.SetData(decompressed);
+                        }
+                    }
+                    else
+                    {
+                        int pixelCount = (int)(textureData.Info.Width * textureData.Info.Height);
+                        int components = textureData.Info.Components;
+
+                        if (components != 3 && components != 4)
+                        {
+                            _logger?.LogDebug($"Unsupported texture components: {components} for texture {path}");
+                            return null;
+                        }
+
+                        texture = new Texture2D(_graphicsDevice, (int)textureData.Info.Width, (int)textureData.Info.Height);
+
+                        var pool = System.Buffers.ArrayPool<Color>.Shared;
+                        Color[] pixelData = pool.Rent(pixelCount);
+                        try
+                        {
+                            byte[] data = textureData.Info.Data;
+                            for (int i = 0; i < pixelCount; i++)
+                            {
+                                int dataIndex = i * components;
+                                byte r = data[dataIndex];
+                                byte g = data[dataIndex + 1];
+                                byte b = data[dataIndex + 2];
+                                byte a = components == 4 ? data[dataIndex + 3] : (byte)255;
+                                pixelData[i] = new Color(r, g, b, a);
+                            }
+                            texture.SetData(pixelData, 0, pixelCount);
+                        }
+                        finally
+                        {
+                            pool.Return(pixelData);
+                        }
+                    }
+
+                    textureData.Texture = texture;
+                    return texture;
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogDebug($"Failed to create Texture2D for {path}: {ex.Message}");
+                    return null;
+                }
+            }
         }
     }
 }

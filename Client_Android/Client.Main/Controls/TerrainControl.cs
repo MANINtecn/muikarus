@@ -78,6 +78,7 @@ namespace Client.Main.Controls
         private Vector3[] _terrainNormal;
         private Color[] _backTerrainHeight;
         private Color[] _terrainLightData;
+        private string[] _textureMapFiles;
 
         private Vector2 _waterFlowDir = Vector2.UnitX;
         private float waterTotal = 0f; // Continuous accumulator for water texture offset (do not wrap it)
@@ -176,6 +177,7 @@ namespace Client.Main.Controls
             }
 
             _textures = new Texture2D[textureMapFiles.Length];
+            _textureMapFiles = textureMapFiles;
 
             for (int t = 0; t < textureMapFiles.Length; t++)
             {
@@ -470,7 +472,7 @@ namespace Client.Main.Controls
 
         private void InitTerrainWind(GameTime time)
         {
-            if (_terrainGrassWind == null) return;
+            if (_terrainGrassWind == null || !Constants.DRAW_GRASS) return;
 
             if (time.TotalGameTime.TotalMilliseconds - _lastUpdateTime < UPDATE_INTERVAL_MS)
                 return;
@@ -715,7 +717,7 @@ namespace Client.Main.Controls
         /// <summary>Renders the buffered grass tufts and restores GPU states.</summary>
         private void FlushGrassBatch()
         {
-            if (_grassBatchCount == 0 || _grassSpriteTexture == null)
+            if (!Constants.DRAW_GRASS || _grassBatchCount == 0 || _grassSpriteTexture == null)
                 return;
 
             //--------------------------------------------------------------------
@@ -807,6 +809,9 @@ namespace Client.Main.Controls
                 GraphicsDevice.BlendState = BlendState.AlphaBlend;
                 RenderTexture(_mapping.Layer2[idx1], xf, yf, lodScale);
             }
+
+            if (!Constants.DRAW_GRASS)
+                return;
 
             byte baseTex = (a1 < 255) ? _mapping.Layer1[idx1] : _mapping.Layer2[idx1];
             if (baseTex != BASE_GRASS_TEXTURE_INDEX || _grassSpriteTexture == null)
@@ -985,8 +990,26 @@ namespace Client.Main.Controls
             if (Status != Models.GameControlStatus.Ready ||
                 textureIndex == 255 ||
                 textureIndex < 0 ||
-                textureIndex >= _textures.Length ||
-                _textures[textureIndex] == null)
+                textureIndex >= _textures.Length)
+                return;
+
+            if (_textures[textureIndex] == null)
+            {
+                var path = _textureMapFiles != null && textureIndex < _textureMapFiles.Length ? _textureMapFiles[textureIndex] : null;
+                if (!string.IsNullOrEmpty(path))
+                {
+                    try
+                    {
+                        _textures[textureIndex] = TextureLoader.Instance.GetTexture2D(path);
+                    }
+                    catch
+                    {
+                        // Ignore load failures gracefully
+                    }
+                }
+            }
+
+            if (_textures[textureIndex] == null)
                 return;
 
             var texture = _textures[textureIndex];

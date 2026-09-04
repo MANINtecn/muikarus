@@ -11,6 +11,8 @@ using Microsoft.Xna.Framework;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Client.Main.Content;
+using Client.Data.Texture;
 
 namespace MuAndroid
 {
@@ -87,12 +89,35 @@ namespace MuAndroid
             }
         }
 
+        private void ApplyAndroidDefaults()
+        {
+            Client.Main.Constants.DRAW_GRASS = false;
+            Client.Main.Constants.ENABLE_DYNAMIC_LIGHTS = false;
+            Client.Main.Constants.ENABLE_TERRAIN_GPU_LIGHTING = false;
+            Client.Main.Constants.OPTIMIZE_FOR_INTEGRATED_GPU = true;
+            Client.Main.Constants.HIGH_QUALITY_TEXTURES = false;
+            Client.Main.Constants.RENDER_SCALE = 1.0f;
+        }
+
         protected override void OnCreate(Bundle bundle)
         {
             base.OnCreate(bundle);
 
             Window.AddFlags(WindowManagerFlags.KeepScreenOn);
             RequestLegacyWritePermission();
+
+            ApplyAndroidDefaults();
+
+            TextureLoader.Instance.CustomDecompressFunction = (textureInfo) =>
+            {
+                if (textureInfo.Format == TextureSurfaceFormat.Dxt1)
+                    return DxtDecoder.DecompressDXT1(textureInfo.Data, (int)textureInfo.Width, (int)textureInfo.Height);
+                if (textureInfo.Format == TextureSurfaceFormat.Dxt3)
+                    return DxtDecoder.DecompressDXT3(textureInfo.Data, (int)textureInfo.Width, (int)textureInfo.Height);
+                if (textureInfo.Format == TextureSurfaceFormat.Dxt5)
+                    return DxtDecoder.DecompressDXT5(textureInfo.Data, (int)textureInfo.Width, (int)textureInfo.Height);
+                return null;
+            };
 
             InitializeKeyboardBridge();
 

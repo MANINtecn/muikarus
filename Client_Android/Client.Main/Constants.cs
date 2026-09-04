@@ -16,6 +16,12 @@ namespace Client.Main
                 public static bool SOUND_EFFECTS = true;
                 public static bool DRAW_BOUNDING_BOXES = false;
                 public static bool DRAW_BOUNDING_BOXES_INTERACTIVES = false;
+                public static bool DRAW_GRASS = false;
+                public static bool ENABLE_DYNAMIC_LIGHTS = false;
+                public static bool ENABLE_TERRAIN_GPU_LIGHTING = false;
+                public static bool OPTIMIZE_FOR_INTEGRATED_GPU = true;
+                public static bool HIGH_QUALITY_TEXTURES = false;
+                public static float RENDER_SCALE = 1.0f;
 #if ANDROID
                 private static string _dataPath;
                 public static string DataPath
