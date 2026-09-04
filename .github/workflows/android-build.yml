@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Número da Versão (ex: v10.1, v10.2)'
+        description: 'Número da Versão (ex: v1.12, v1.13)'
         required: false
-        default: 'v10.1'
+        default: 'v1.12'
 
 jobs:
   build:
@@ -41,7 +41,7 @@ jobs:
       shell: pwsh
       run: |
         $ver = "${{ github.event.inputs.version }}"
-        if (-not $ver) { $ver = "v10.1" }
+        if (-not $ver) { $ver = "v1.12" }
         $apk = Get-ChildItem -Path "Client_Android\MuAndroid\bin\Release\net9.0-android" -Filter "*-Signed.apk" -Recurse | Select-Object -First 1
         $dest = "IkarusMU-$ver.apk"
         Copy-Item $apk.FullName -Destination $dest
