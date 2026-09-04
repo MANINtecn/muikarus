@@ -90,43 +90,66 @@ namespace Client.Main.Networking
 
             try
             {
-                // Resolve IP (handles Android NAT64 IPv6 synthesis for IPv4 literals)
-                IPAddress targetIp = null;
+                // Resolve candidate endpoints (prioritizing direct IPv4 for OpenMU, with fallback to synthesized NAT64 or resolved DNS)
+                var candidateIps = new System.Collections.Generic.List<IPAddress>();
                 if (IPAddress.TryParse(host, out var parsedIp))
                 {
+                    candidateIps.Add(parsedIp);
                     try
                     {
                         var addresses = await Dns.GetHostAddressesAsync(host);
-                        targetIp = addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetworkV6) ??
-                                   addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork) ??
-                                   parsedIp;
+                        foreach (var a in addresses)
+                        {
+                            if (!candidateIps.Contains(a))
+                                candidateIps.Add(a);
+                        }
                     }
-                    catch
-                    {
-                        targetIp = parsedIp;
-                    }
+                    catch { /* ignore */ }
                 }
                 else
                 {
                     var addresses = await Dns.GetHostAddressesAsync(host);
-                    targetIp = addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetworkV6) ??
-                               addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);
+                    candidateIps.AddRange(addresses.Where(a => a.AddressFamily == AddressFamily.InterNetwork));
+                    candidateIps.AddRange(addresses.Where(a => a.AddressFamily == AddressFamily.InterNetworkV6));
                 }
 
-                if (targetIp == null)
+                if (candidateIps.Count == 0)
                 {
                     _logger.LogError("❓ Failed to resolve IP address for host: {Host}", host);
                     return false;
                 }
 
-                var endPoint = new IPEndPoint(targetIp, port);
-
-                // Create new SocketConnection
                 var pipeOptions = new PipeOptions();
-                var socketConn = await SocketConnection.ConnectAsync(endPoint, pipeOptions);
+                SocketConnection socketConn = null;
+                Exception lastConnectEx = null;
+
+                foreach (var ip in candidateIps)
+                {
+                    try
+                    {
+                        var endPoint = new IPEndPoint(ip, port);
+                        _logger.LogInformation("🔌 Attempting connection to {EndPoint}...", endPoint);
+                        socketConn = await SocketConnection.ConnectAsync(endPoint, pipeOptions);
+                        if (socketConn != null)
+                        {
+                            _logger.LogInformation("✔️ Socket connected to {EndPoint}. Socket HashCode: {HashCode}", endPoint, socketConn.GetHashCode());
+                            break;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        lastConnectEx = ex;
+                        _logger.LogWarning("Connection to {Ip}:{Port} failed: {Message}. Trying next endpoint if available.", ip, port, ex.Message);
+                    }
+                }
+
+                if (socketConn == null)
+                {
+                    throw lastConnectEx ?? new SocketException((int)SocketError.HostUnreachable);
+                }
+
                 IDuplexPipe transportPipe = socketConn;
                 newUnderlyingConn = socketConn;
-                _logger.LogInformation("✔️ Socket connected to {EndPoint}. Socket HashCode: {HashCode}", endPoint, socketConn.GetHashCode());
 
                 var connectionLogger = _loggerFactory.CreateLogger<Connection>();
 

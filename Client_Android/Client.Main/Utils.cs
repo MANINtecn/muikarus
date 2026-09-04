@@ -86,13 +86,21 @@ namespace Client.Main
                     }
                 }
 
-                _pathCache.TryAdd(path, current);
+                if (File.Exists(current) || Directory.Exists(current))
+                {
+                    _pathCache.TryAdd(path, current);
+                }
                 return current;
             }
             catch
             {
                 return path;
             }
+        }
+
+        public static void ClearPathCache()
+        {
+            _pathCache.Clear();
         }
         public static SpriteObject GetEffectByCode(EffectType e)
         {

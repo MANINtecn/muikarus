@@ -217,7 +217,6 @@ namespace Client.Main.Scenes
                 bool showServerSelectionUi = false;
                 bool showLoginDialog = false;
                 bool hideAll = false;
-                bool showErrorAndExit = false;
 
                 switch (newState)
                 {
@@ -251,37 +250,23 @@ namespace Client.Main.Scenes
                     case ClientConnectionState.Disconnected:
                     case ClientConnectionState.Initial:
                         ResetServerSelectionUI();
-                        hideAll = true;
-                        if (_previousStateHandled >= ClientConnectionState.ConnectingToConnectServer && _previousStateHandled < ClientConnectionState.InGame)
+                        showLoginDialog = false;
+                        showServerSelectionUi = false;
+                        _logger.LogDebug("HandleConnectionStateChange: Disconnected/Initial in LoginScene. Scheduling auto-reconnect...");
+                        _ = Task.Run(async () =>
                         {
-                            showErrorAndExit = true;
-                        }
-                        _logger.LogDebug("HandleConnectionStateChange: Setting hideAll = true (Disconnected/Initial). ShowError: {ShowError}", showErrorAndExit);
+                            await Task.Delay(2500);
+                            if (MuGame.Instance.ActiveScene == this &&
+                                (_networkManager.CurrentState == ClientConnectionState.Disconnected || _networkManager.CurrentState == ClientConnectionState.Initial))
+                            {
+                                _logger.LogInformation("Auto-reconnecting to Connect Server...");
+                                await _networkManager.ConnectToConnectServerAsync();
+                            }
+                        });
                         break;
                 }
 
                 UpdateUIVisibility(showServerSelectionUi, showLoginDialog, hideAll);
-
-                if (showErrorAndExit)
-                {
-                    if (!Controls.OfType<MessageWindow>().Any(mw => mw.Text.Contains("Connection lost")))
-                    {
-                        MessageWindow msg = MessageWindow.Show("Connection lost to the server.");
-                        if (msg != null)
-                        {
-                            msg.Closed += (s, e) =>
-                            {
-                                _logger.LogInformation("Closing game after connection lost message.");
-                                MuGame.ScheduleOnMainThread(() => MuGame.Instance.Exit());
-                            };
-                        }
-                        else
-                        {
-                            _logger.LogError("Failed to show MessageWindow for connection lost. Exiting game directly.");
-                            MuGame.ScheduleOnMainThread(() => MuGame.Instance.Exit());
-                        }
-                    }
-                }
 
                 _previousStateHandled = newState;
                 _logger.LogDebug("<<< HandleConnectionStateChange (UI Thread): Finished applying visibility. State handled: {NewState}", newState);

@@ -314,13 +314,13 @@ namespace Client.Main
         {
             GraphicsManager.Instance.Init(GraphicsDevice, Content);
 
-            // --- START NETWORK CONNECTION ---
-            // Start connecting to the Connect Server when the game loads
-            // We do this *after* GraphicsManager is init because some UI might depend on it
-            if (Network != null) // Ensure network was initialized
+            // Only connect immediately if NOT starting on LoadScene (LoadScene manages assets first, then LoginScene connects)
+            if (Constants.ENTRY_SCENE != typeof(Scenes.LoadScene))
             {
-                // Start connection without blocking LoadContent
-                _ = Network.ConnectToConnectServerAsync();
+                if (Network != null)
+                {
+                    _ = Network.ConnectToConnectServerAsync();
+                }
             }
             else
             {

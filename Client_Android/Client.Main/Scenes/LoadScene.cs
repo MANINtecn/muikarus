@@ -123,49 +123,172 @@ namespace Client.Main.Scenes
 
         #region Core Loading Orchestration
 
+        private void NormalizeDirectory(string dirPath, Action<string, float> report = null)
+        {
+            if (string.IsNullOrEmpty(dirPath) || !Directory.Exists(dirPath))
+                return;
+
+            try
+            {
+                // 1. Move any files sitting inside a subfolder named "Data" up to dirPath
+                string nestedData = Path.Combine(dirPath, "Data");
+                if (Directory.Exists(nestedData))
+                {
+                    report?.Invoke("Organizando pasta Data...", 0.1f);
+                    foreach (var file in Directory.GetFiles(nestedData, "*", SearchOption.AllDirectories))
+                    {
+                        string rel = Path.GetRelativePath(nestedData, file).Replace('\\', '/');
+                        string dest = Path.Combine(dirPath, rel);
+                        Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                        if (File.Exists(dest)) File.Delete(dest);
+                        File.Move(file, dest);
+                    }
+                    try { Directory.Delete(nestedData, true); } catch { /* ignore */ }
+                }
+
+                // 2. Scan all files in dirPath for backslashes in filenames (from Windows zips on Linux/Android)
+                var allFiles = Directory.GetFiles(dirPath, "*", SearchOption.AllDirectories);
+                var backslashedFiles = allFiles.Where(f => Path.GetFileName(f).Contains('\\')).ToList();
+
+                if (backslashedFiles.Count > 0)
+                {
+                    report?.Invoke($"Reorganizando {backslashedFiles.Count} arquivos existentes...", 0.2f);
+                    int count = backslashedFiles.Count;
+                    for (int i = 0; i < count; i++)
+                    {
+                        var file = backslashedFiles[i];
+                        string fileName = Path.GetFileName(file);
+                        string cleanRel = fileName.Replace('\\', '/');
+                        if (cleanRel.StartsWith("Data/", StringComparison.OrdinalIgnoreCase))
+                            cleanRel = cleanRel.Substring(5);
+
+                        string dest = Path.Combine(dirPath, cleanRel);
+                        Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                        if (File.Exists(dest)) File.Delete(dest);
+                        File.Move(file, dest);
+
+                        if (i % 200 == 0)
+                        {
+                            float pr = (float)i / count;
+                            report?.Invoke($"Reorganizando dados ({i}/{count})...", pr);
+                        }
+                    }
+                    report?.Invoke("Arquivos reorganizados com sucesso!", 1f);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[NormalizeDirectory] Error: {ex.Message}");
+            }
+        }
+
+        private static bool CheckAssetsComplete(string dataPath)
+        {
+            if (string.IsNullOrEmpty(dataPath) || !Directory.Exists(dataPath))
+                return false;
+
+            string checkFileWorld95 = Path.Combine(dataPath, "World95", "EncTerrain95.att");
+            string checkFileWorld1 = Path.Combine(dataPath, "World1", "EncTerrain1.att");
+
+            return (File.Exists(checkFileWorld95) || !string.IsNullOrEmpty(Utils.GetActualPath(checkFileWorld95))) &&
+                   (File.Exists(checkFileWorld1) || !string.IsNullOrEmpty(Utils.GetActualPath(checkFileWorld1)));
+        }
+
         private async Task PerformInitialLoadAndTransitionAsync()
         {
             string localZip = Path.Combine(Constants.DataPath, "Data.zip");
             string extractPath = Constants.DataPath;
             string url = _dataPathUrl;
 
-            bool alreadyHaveAssets = false;
-            if (Directory.Exists(Constants.DataPath))
+            // Normalize existing files across possible Android directories
+#if ANDROID
+            try
             {
-                string checkFileWorld95 = Path.Combine(Constants.DataPath, "World95", "EncTerrain95.att");
-                string checkFileWorld1 = Path.Combine(Constants.DataPath, "World1", "EncTerrain1.att");
-                alreadyHaveAssets = File.Exists(Utils.GetActualPath(checkFileWorld95)) && 
-                                     File.Exists(Utils.GetActualPath(checkFileWorld1));
+                string externalData = Path.Combine(Android.App.Application.Context.GetExternalFilesDir(null)!.AbsolutePath, "Data");
+                NormalizeDirectory(externalData, UpdateStatus);
             }
-            else
+            catch { }
+            try
             {
-                Directory.CreateDirectory(Constants.DataPath);
+                string internalData = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data");
+                NormalizeDirectory(internalData, UpdateStatus);
             }
+            catch { }
+#endif
+            NormalizeDirectory(Constants.DataPath, UpdateStatus);
+            Utils.ClearPathCache();
+
+            bool alreadyHaveAssets = CheckAssetsComplete(Constants.DataPath);
+
+#if ANDROID
+            if (!alreadyHaveAssets)
+            {
+                string internalData = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data");
+                string externalData = Path.Combine(Android.App.Application.Context.GetExternalFilesDir(null)!.AbsolutePath, "Data");
+                if (CheckAssetsComplete(internalData))
+                {
+                    Constants.DataPath = internalData;
+                    alreadyHaveAssets = true;
+                }
+                else if (CheckAssetsComplete(externalData))
+                {
+                    Constants.DataPath = externalData;
+                    alreadyHaveAssets = true;
+                }
+            }
+#endif
 
             if (alreadyHaveAssets)
             {
-                UpdateStatus("Assets found – skipping download.", 1);
+                UpdateStatus("Arquivos identificados! Pulando download.", 1);
                 await Task.Delay(500);
             }
             else
             {
-                try
+                // Check if Data.zip was already downloaded on the device
+                if (File.Exists(localZip) && new FileInfo(localZip).Length > 500_000_000)
                 {
-                    UpdateStatus("Downloading assets…", 0);
-                    await DownloadFileWithProgressAsync(url, localZip, UpdateStatus);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Primary URL failed: {ex.Message}");
-                    url = Constants.DefaultDataPathUrl;
-                    UpdateStatus("Retrying with default URL…", 0);
-                    await DownloadFileWithProgressAsync(url, localZip, UpdateStatus);
+                    UpdateStatus("Data.zip encontrado no aparelho! Extraindo...", 0);
+                    try
+                    {
+                        await ExtractZipFileWithProgressAsync(localZip, extractPath, UpdateStatus);
+                        NormalizeDirectory(Constants.DataPath, UpdateStatus);
+                        Utils.ClearPathCache();
+                        alreadyHaveAssets = CheckAssetsComplete(Constants.DataPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Erro ao extrair zip local: {ex.Message}");
+                    }
                 }
 
-                UpdateStatus("Extracting assets…", 0);
-                await ExtractZipFileWithProgressAsync(localZip, extractPath, UpdateStatus);
+                if (!alreadyHaveAssets)
+                {
+                    string tempZip = localZip + ".tmp";
+                    try
+                    {
+                        UpdateStatus("Baixando dados do jogo (1.7 GB)...", 0);
+                        await DownloadFileWithProgressAsync(url, tempZip, UpdateStatus);
+                        if (File.Exists(localZip)) File.Delete(localZip);
+                        File.Move(tempZip, localZip);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Primary URL failed: {ex.Message}");
+                        url = Constants.DefaultDataPathUrl;
+                        UpdateStatus("Tentando URL alternativa...", 0);
+                        await DownloadFileWithProgressAsync(url, tempZip, UpdateStatus);
+                        if (File.Exists(localZip)) File.Delete(localZip);
+                        File.Move(tempZip, localZip);
+                    }
 
-                UpdateStatus("Cleaning up…", 1);
+                    UpdateStatus("Extraindo arquivos...", 0);
+                    await ExtractZipFileWithProgressAsync(localZip, extractPath, UpdateStatus);
+                    NormalizeDirectory(Constants.DataPath, UpdateStatus);
+                    Utils.ClearPathCache();
+                }
+
+                UpdateStatus("Limpando temporários…", 1);
                 if (File.Exists(localZip)) File.Delete(localZip);
             }
 
@@ -268,10 +391,8 @@ namespace Client.Main.Scenes
                     {
                         ct.ThrowIfCancellationRequested();
 
-                        string rel = entry.FullName;
+                        string rel = entry.FullName.Replace('\\', '/');
                         if (rel.StartsWith("Data/", StringComparison.OrdinalIgnoreCase))
-                            rel = rel.Substring(5);
-                        else if (rel.StartsWith("Data\\", StringComparison.OrdinalIgnoreCase))
                             rel = rel.Substring(5);
 
                         string full = Path.Combine(outDir, rel);
