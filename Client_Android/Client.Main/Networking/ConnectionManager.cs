@@ -92,37 +92,41 @@ namespace Client.Main.Networking
             {
                 // Resolve IP (handles Android NAT64 IPv6 synthesis for IPv4 literals)
                 IPAddress targetIp = null;
-                try 
+                if (IPAddress.TryParse(host, out var parsedIp))
+                {
+                    try
+                    {
+                        var addresses = await Dns.GetHostAddressesAsync(host);
+                        targetIp = addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetworkV6) ??
+                                   addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork) ??
+                                   parsedIp;
+                    }
+                    catch
+                    {
+                        targetIp = parsedIp;
+                    }
+                }
+                else
                 {
                     var addresses = await Dns.GetHostAddressesAsync(host);
-                    targetIp = addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetworkV6) ?? 
+                    targetIp = addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetworkV6) ??
                                addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);
-                } 
-                catch { }
-
-                if (targetIp == null && IPAddress.TryParse(host, out var parsed))
-                {
-                    targetIp = parsed;
                 }
-                
-                var endPoint = new IPEndPoint(targetIp ?? IPAddress.Loopback, port);
 
-#if ANDROID
-                var tcpClient = new TcpClient(targetIp?.AddressFamily ?? AddressFamily.InterNetwork);
-                tcpClient.NoDelay = true;
-                await tcpClient.ConnectAsync(endPoint.Address, port, cancellationToken);
-                var stream = tcpClient.GetStream();
-                IDuplexPipe transportPipe = new StreamDuplexPipe(stream);
-                newUnderlyingConn = tcpClient;
-                _logger.LogInformation("✔️ TcpClient connected to {EndPoint}.", endPoint);
-#else
+                if (targetIp == null)
+                {
+                    _logger.LogError("❓ Failed to resolve IP address for host: {Host}", host);
+                    return false;
+                }
+
+                var endPoint = new IPEndPoint(targetIp, port);
+
                 // Create new SocketConnection
                 var pipeOptions = new PipeOptions();
                 var socketConn = await SocketConnection.ConnectAsync(endPoint, pipeOptions);
                 IDuplexPipe transportPipe = socketConn;
                 newUnderlyingConn = socketConn;
                 _logger.LogInformation("✔️ Socket connected to {EndPoint}. Socket HashCode: {HashCode}", endPoint, socketConn.GetHashCode());
-#endif
 
                 var connectionLogger = _loggerFactory.CreateLogger<Connection>();
 
@@ -348,22 +352,4 @@ namespace Client.Main.Networking
             GC.SuppressFinalize(this);
         }
     }
-
-#if ANDROID
-    /// <summary>
-    /// Wrapper for standard NetworkStream to support IDuplexPipe for Android.
-    /// Bypasses bugs in Pipelines.Sockets.Unofficial on Mono.
-    /// </summary>
-    public class StreamDuplexPipe : IDuplexPipe
-    {
-        public PipeReader Input { get; }
-        public PipeWriter Output { get; }
-
-        public StreamDuplexPipe(NetworkStream stream)
-        {
-            Input = PipeReader.Create(stream, new StreamPipeReaderOptions(leaveOpen: true));
-            Output = PipeWriter.Create(stream, new StreamPipeWriterOptions(leaveOpen: true));
-        }
-    }
-#endif
 }

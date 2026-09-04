@@ -132,8 +132,10 @@ namespace Client.Main.Scenes
             bool alreadyHaveAssets = false;
             if (Directory.Exists(Constants.DataPath))
             {
-                alreadyHaveAssets = Directory.EnumerateFileSystemEntries(Constants.DataPath)
-                                             .Any(e => !e.EndsWith("Data.zip", StringComparison.OrdinalIgnoreCase));
+                string checkFileWorld95 = Path.Combine(Constants.DataPath, "World95", "EncTerrain95.att");
+                string checkFileWorld1 = Path.Combine(Constants.DataPath, "World1", "EncTerrain1.att");
+                alreadyHaveAssets = File.Exists(Utils.GetActualPath(checkFileWorld95)) && 
+                                     File.Exists(Utils.GetActualPath(checkFileWorld1));
             }
             else
             {

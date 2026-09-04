@@ -1,4 +1,4 @@
-﻿using Client.Main.Controls;
+using Client.Main.Controls;
 using Client.Main.Objects.Player;
 using Client.Main.Objects.Worlds.Login;
 using Microsoft.Extensions.Logging;
@@ -15,7 +15,11 @@ namespace Client.Main.Worlds
         public NewLoginWorld() : base(worldIndex: 95)
         {
             _player = new PlayerObject();
-            Camera.Instance.ViewFar = 50000f;
+#if ANDROID || IOS
+            Camera.Instance.ViewFar = 6000f;
+#else
+            Camera.Instance.ViewFar = 10000f;
+#endif
         }
 
         protected override void CreateMapTileObjects()

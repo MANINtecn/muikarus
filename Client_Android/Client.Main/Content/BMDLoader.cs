@@ -1,4 +1,4 @@
-﻿using Client.Data.BMD;
+using Client.Data.BMD;
 using Microsoft.Extensions.Logging;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -46,11 +46,14 @@ namespace Client.Main.Content
         {
             try
             {
-                path = Path.Combine(Constants.DataPath, path);
+                if (!File.Exists(path))
+                {
+                    path = GetActualPath(path);
+                }
 
                 if (!File.Exists(path))
                 {
-                    _logger?.LogDebug($"Model not found: {path}");
+                    _logger?.LogWarning($"Model not found: {path}");
                     return null;
                 }
 

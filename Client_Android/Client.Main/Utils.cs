@@ -7,21 +7,92 @@ namespace Client.Main
 {
     public static class Utils
     {
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _pathCache = new(StringComparer.OrdinalIgnoreCase);
+
         public static string GetActualPath(string path)
         {
-            if (File.Exists(path))
+            if (string.IsNullOrEmpty(path))
                 return path;
-            string directory = Path.GetDirectoryName(path);
-            string fileName = Path.GetFileName(path);
-            if (Directory.Exists(directory))
+
+            if (_pathCache.TryGetValue(path, out var cached))
+                return cached;
+
+            if (File.Exists(path) || Directory.Exists(path))
             {
-                foreach (var file in Directory.GetFiles(directory))
-                {
-                    if (string.Equals(Path.GetFileName(file), fileName, StringComparison.OrdinalIgnoreCase))
-                        return file;
-                }
+                _pathCache.TryAdd(path, path);
+                return path;
             }
-            return path;
+
+            try
+            {
+                // Normalize separators
+                string normalized = path.Replace('\\', '/');
+                string[] parts = normalized.Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+                string current = normalized.StartsWith('/') ? "/" : string.Empty;
+
+                for (int i = 0; i < parts.Length; i++)
+                {
+                    string part = parts[i];
+                    string candidate = string.IsNullOrEmpty(current) || current == "/" 
+                        ? current + part 
+                        : Path.Combine(current, part);
+
+                    if (Directory.Exists(candidate) || (i == parts.Length - 1 && File.Exists(candidate)))
+                    {
+                        current = candidate;
+                        continue;
+                    }
+
+                    // Look for case-insensitive match in current directory
+                    string parent = string.IsNullOrEmpty(current) ? "." : current;
+                    if (Directory.Exists(parent))
+                    {
+                        bool found = false;
+                        if (i < parts.Length - 1)
+                        {
+                            foreach (var dir in Directory.GetDirectories(parent))
+                            {
+                                if (string.Equals(Path.GetFileName(dir), part, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    current = dir;
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Could be file or directory
+                            foreach (var entry in Directory.GetFileSystemEntries(parent))
+                            {
+                                if (string.Equals(Path.GetFileName(entry), part, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    current = entry;
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!found)
+                        {
+                            current = candidate;
+                        }
+                    }
+                    else
+                    {
+                        current = candidate;
+                    }
+                }
+
+                _pathCache.TryAdd(path, current);
+                return current;
+            }
+            catch
+            {
+                return path;
+            }
         }
         public static SpriteObject GetEffectByCode(EffectType e)
         {

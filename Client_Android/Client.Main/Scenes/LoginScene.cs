@@ -81,20 +81,17 @@ namespace Client.Main.Scenes
             World?.Dispose();
             var loginWorld = new NewLoginWorld();
             Controls.Add(loginWorld);
+            World = loginWorld;
             
             try 
             {
-                // Assuming NewLoginWorld.Initialize() is relatively fast.
                 await loginWorld.Initialize();
-                World = loginWorld;
                 progressCallback?.Invoke("Login World Loaded.", 0.70f);
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "Failed to initialize NewLoginWorld on Android. 3D World will be disabled, but UI will load.");
-                Controls.Remove(loginWorld);
-                // We don't set World, so it remains null. BaseScene will handle rendering UI without the world.
-                progressCallback?.Invoke("Login World Failed - Continuing with UI only.", 0.70f);
+                _logger?.LogError(ex, "Warning initializing NewLoginWorld on Android. World will continue rendering available terrain/models.");
+                progressCallback?.Invoke("Login World Partially Loaded.", 0.70f);
             }
 
             progressCallback?.Invoke("Playing Login Theme...", 0.75f);

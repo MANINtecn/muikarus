@@ -11,36 +11,49 @@ namespace Client.Main
                 public const float TERRAIN_SCALE = 100f;
 
                 // Game settings
+                public static Type ENTRY_SCENE = typeof(Scenes.LoadScene);
+                public static bool BACKGROUND_MUSIC = true;
+                public static bool SOUND_EFFECTS = true;
+                public static bool DRAW_BOUNDING_BOXES = false;
+                public static bool DRAW_BOUNDING_BOXES_INTERACTIVES = false;
+#if ANDROID
+                private static string _dataPath;
+                public static string DataPath
+                {
+                    get
+                    {
+                        if (_dataPath != null) return _dataPath;
 
-#if DEBUG
-                public static Type ENTRY_SCENE = typeof(Scenes.LoadScene);
-                public static bool BACKGROUND_MUSIC = true;
-                public static bool SOUND_EFFECTS = true;
-                public static bool DRAW_BOUNDING_BOXES = false;
-                public static bool DRAW_BOUNDING_BOXES_INTERACTIVES = false;
-#if ANDROID
-                public static string DataPath = System.IO.Path.Combine(Android.App.Application.Context.GetExternalFilesDir(null).AbsolutePath, "Data");
-#else
-                public static string DataPath = @"C:\TECX SOFTHOUSE\L2 IKARUS INTERCROW\MU_ONLINE\MU_Full_Data_Extracted\Data";
-#endif
-#else
-                public static Type ENTRY_SCENE = typeof(Scenes.LoadScene);
-                public static bool BACKGROUND_MUSIC = true;
-                public static bool SOUND_EFFECTS = true;
-                public static bool DRAW_BOUNDING_BOXES = false;
-                public static bool DRAW_BOUNDING_BOXES_INTERACTIVES = false;
-#if ANDROID
-                public static string DataPath = System.IO.Path.Combine(Android.App.Application.Context.GetExternalFilesDir(null).AbsolutePath, "Data");
+                        string externalData = System.IO.Path.Combine(Android.App.Application.Context.GetExternalFilesDir(null)!.AbsolutePath, "Data");
+                        string internalData = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Data");
+
+                        // Check where valid assets actually reside
+                        if (System.IO.Directory.Exists(externalData) && System.IO.File.Exists(System.IO.Path.Combine(externalData, "World95", "EncTerrain95.att")))
+                        {
+                            _dataPath = externalData;
+                        }
+                        else if (System.IO.Directory.Exists(internalData) && System.IO.File.Exists(System.IO.Path.Combine(internalData, "World95", "EncTerrain95.att")))
+                        {
+                            _dataPath = internalData;
+                        }
+                        else
+                        {
+                            _dataPath = externalData;
+                        }
+
+                        return _dataPath;
+                    }
+                    set => _dataPath = value;
+                }
 #else
                 public static string DataPath = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Data");
-#endif
 #endif
                 public static string DataPathUrl = "https://github.com/MANINtecn/muikarus/releases/download/data-v1/Data.zip";
                 public static string DefaultDataPathUrl = "https://full-wkr.mu.webzen.co.kr/muweb/full/MU_Red_1_20_61_Full.zip";
 #if DEBUG
-                public static bool UNLIMITED_FPS = true;
+                public static bool UNLIMITED_FPS = false;
 #else
-                public static bool UNLIMITED_FPS = true;
+                public static bool UNLIMITED_FPS = false;
 #endif
 
                 // Camera control constants

@@ -1,4 +1,4 @@
-﻿using Client.Data.ATT;
+using Client.Data.ATT;
 using Client.Data.BMD;
 using Client.Data.MAP;
 using Client.Data.OBJS;
@@ -183,9 +183,7 @@ namespace Client.Main.Controls
                 if (string.IsNullOrEmpty(path) || !File.Exists(path))
                     continue;
 
-                int textureIndex = t;
-                tasks.Add(TextureLoader.Instance.Prepare(path)
-                    .ContinueWith(_ => _textures[textureIndex] = TextureLoader.Instance.GetTexture2D(path)));
+                tasks.Add(TextureLoader.Instance.Prepare(path));
             }
 
             string textureLightPath = GetActualPath(Path.Combine(fullPathWorldFolder, "TerrainLight.OZB"));
@@ -200,6 +198,22 @@ namespace Client.Main.Controls
             }
 
             await Task.WhenAll(tasks);
+
+            for (int t = 0; t < textureMapFiles.Length; t++)
+            {
+                var path = textureMapFiles[t];
+                if (!string.IsNullOrEmpty(path) && File.Exists(path))
+                {
+                    try
+                    {
+                        _textures[t] = TextureLoader.Instance.GetTexture2D(path);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error creating GPU texture {path}: {ex.Message}");
+                    }
+                }
+            }
 
             _terrainGrassWind = new float[Constants.TERRAIN_SIZE * Constants.TERRAIN_SIZE];
 
