@@ -1,4 +1,4 @@
-﻿using Client.Main.Controls.UI;
+using Client.Main.Controls.UI;
 using Client.Main.Controls.UI.Game;
 using Client.Main.Core.Client;
 using Client.Main.Models;
@@ -146,11 +146,56 @@ namespace Client.Main.Scenes
                         _loadingScreen.Dispose();
                         _loadingScreen = null;
                         _infoLabel.Visible = true;
+                        CreateMobileCharacterButtons();
                         Cursor?.BringToFront();
                         _infoLabel?.BringToFront();
                         DebugPanel?.BringToFront();
                     }
                 });
+            }
+        }
+
+        private void CreateMobileCharacterButtons()
+        {
+            if (_characters == null || !_characters.Any())
+                return;
+
+            int btnWidth = 240;
+            int btnHeight = 46;
+            int spacing = 16;
+            int totalWidth = _characters.Count * (btnWidth + spacing) - spacing;
+            int startX = Math.Max(20, (MuGame.Instance.Width - totalWidth) / 2);
+            int btnY = MuGame.Instance.Height - 65;
+
+            for (int i = 0; i < _characters.Count; i++)
+            {
+                var charInfo = _characters[i];
+                var charBtn = new LabelControl
+                {
+                    Text = $"[ {charInfo.Name}  Lv.{charInfo.Level} ]",
+                    FontSize = 15,
+                    TextColor = new Color(255, 215, 0),
+                    BackgroundColor = new Color(0, 0, 0, 200),
+                    BorderColor = new Color(255, 215, 0, 160),
+                    BorderThickness = 2,
+                    HasShadow = true,
+                    ShadowColor = Color.Black,
+                    TextAlign = HorizontalAlign.Center,
+                    AutoViewSize = false,
+                    ViewSize = new Point(btnWidth, btnHeight),
+                    X = startX + i * (btnWidth + spacing),
+                    Y = btnY,
+                    Interactive = true
+                };
+
+                string charName = charInfo.Name;
+                charBtn.Click += (s, e) =>
+                {
+                    CharacterSelected(charName);
+                };
+
+                Controls.Add(charBtn);
+                charBtn.BringToFront();
             }
         }
 
@@ -242,6 +287,19 @@ namespace Client.Main.Scenes
         private void HandleEnteredGame(object sender, EventArgs e)
         {
             _logger.LogInformation(">>> SelectCharacterScene.HandleEnteredGame: Event received.");
+
+            if (!_selectedCharacterInfo.HasValue)
+            {
+                var charState = _networkManager?.GetCharacterState();
+                if (charState != null && !string.IsNullOrEmpty(charState.Name))
+                {
+                    _selectedCharacterInfo = (charState.Name, charState.Class, charState.Level);
+                }
+                else if (_characters.Any())
+                {
+                    _selectedCharacterInfo = _characters.First();
+                }
+            }
 
             if (!_selectedCharacterInfo.HasValue)
             {

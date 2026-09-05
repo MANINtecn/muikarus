@@ -304,7 +304,8 @@ namespace Client.Main.Networking
 
         public async Task SendSelectCharacterRequestAsync(string characterName)
         {
-            if (_currentState != ClientConnectionState.ConnectedToGameServer)
+            if (_currentState != ClientConnectionState.ConnectedToGameServer &&
+                _currentState != ClientConnectionState.SelectingCharacter)
             {
                 OnErrorOccurred($"Cannot select character in state: {_currentState}");
                 return;
@@ -330,6 +331,12 @@ namespace Client.Main.Networking
                 try
                 {
                     var game = MuGame.Instance;
+                    if (game?.ActiveScene is SelectCharacterScene)
+                    {
+                        _logger.LogInformation("ProcessCharacterRespawn: Currently in SelectCharacterScene; deferring scene change to it.");
+                        return;
+                    }
+
                     if (game?.ActiveScene is not GameScene gs)
                     {
                         _logger.LogWarning("ProcessCharacterRespawn: ActiveScene is not GameScene. Changing scene.");

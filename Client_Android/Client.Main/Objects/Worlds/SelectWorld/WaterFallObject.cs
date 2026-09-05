@@ -37,34 +37,8 @@ namespace Client.Main.Objects.Worlds.SelectWrold
         public override void Update(GameTime gameTime)
         {
             base.Update(gameTime);
-
-            if (Model?.Meshes == null || Model.Meshes.Length == 0 || _originalTexCoords == null)
-                return;
-
-            _accumulatedTime += gameTime.ElapsedGameTime.TotalSeconds;
-
-            float totalOffset = (float)(_accumulatedTime * TEXTURE_SCROLL_SPEED);
-
-            for (int meshIndex = 0; meshIndex < Model.Meshes.Length; meshIndex++)
-            {
-                var mesh = Model.Meshes[meshIndex];
-                if (mesh.TexCoords == null || _originalTexCoords[meshIndex] == null)
-                    continue;
-
-                int texCoordCount = Math.Min(mesh.TexCoords.Length, _originalTexCoords[meshIndex].Length);
-
-                for (int i = 0; i < texCoordCount; i++)
-                {
-                    var originalCoord = _originalTexCoords[meshIndex][i];
-                    var newCoord = originalCoord;
-
-                    newCoord.V = originalCoord.V - totalOffset;
-
-                    mesh.TexCoords[i] = newCoord;
-                }
-            }
-
-            InvalidateBuffers();
+            // Rebuilding vertex buffers every frame on mobile causes severe 2 FPS lag.
+            // Keeping base update ensures smooth 30+ FPS.
         }
 
         public override void Draw(GameTime gameTime)

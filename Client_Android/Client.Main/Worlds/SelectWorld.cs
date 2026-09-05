@@ -1,4 +1,4 @@
-﻿// SelectWorld.cs
+// SelectWorld.cs
 
 using Client.Main.Controllers;
 using Client.Main.Controls;
@@ -34,12 +34,11 @@ namespace Client.Main.Worlds
         public SelectWorld() : base(worldIndex: 94)
         {
             _logger = MuGame.AppLoggerFactory?.CreateLogger<SelectWorld>() ?? throw new InvalidOperationException("LoggerFactory not initialized in MuGame");
-            Camera.Instance.ViewFar = 5500f;
+            Camera.Instance.ViewFar = 3200f;
         }
 
         protected override void CreateMapTileObjects()
         {
-            // ... (existing CreateMapTileObjects logic) ...
             base.CreateMapTileObjects();
             MapTileObjects[14] = null;
             MapTileObjects[71] = typeof(BlendedObjects);
@@ -48,27 +47,28 @@ namespace Client.Main.Worlds
             MapTileObjects[25] = typeof(BlendedObjects);
             MapTileObjects[33] = typeof(BlendedObjects);
             MapTileObjects[30] = typeof(BlendedObjects);
-            MapTileObjects[31] = typeof(FlowersObject2);
-            MapTileObjects[34] = typeof(FlowersObject);
-            MapTileObjects[26] = typeof(WaterFallObject);
-            MapTileObjects[24] = typeof(WaterFallObject);
-            MapTileObjects[54] = typeof(WaterSplashObject);
-            MapTileObjects[55] = typeof(WaterSplashObject);
-            MapTileObjects[56] = typeof(WaterSplashObject);
+            // Disable heavy particles and waterfall rebuilding on mobile
+            MapTileObjects[31] = null;
+            MapTileObjects[34] = null;
+            MapTileObjects[26] = null;
+            MapTileObjects[24] = null;
+            MapTileObjects[54] = null;
+            MapTileObjects[55] = null;
+            MapTileObjects[56] = null;
         }
 
         public override void AfterLoad()
         {
             base.AfterLoad();
 
-            // water animation parameters
-            Terrain.WaterSpeed = 0.05f;
-            Terrain.DistortionAmplitude = 0.2f;
-            Terrain.DistortionFrequency = 1.0f;
+            // Disable heavy water animation and distortion on mobile for 30+ FPS
+            Terrain.WaterSpeed = 0f;
+            Terrain.DistortionAmplitude = 0f;
+            Terrain.DistortionFrequency = 0f;
 
-            // TODO: Camera position check
             Camera.Instance.Target = new Vector3(14229.295898f, 12340.358398f, 380);
             Camera.Instance.FOV = 29;
+            Camera.Instance.ViewFar = 3200f;
         }
 
         // **** CHANGE METHOD SIGNATURE ****
@@ -127,7 +127,17 @@ namespace Client.Main.Worlds
                     HasShadow = true,
                     ShadowColor = Color.Black * 0.8f,
                     ShadowOffset = new Vector2(1, 1),
-                    UseManualPosition = true
+                    UseManualPosition = true,
+                    Interactive = true
+                };
+
+                string charName = name;
+                label.Click += (s, e) =>
+                {
+                    if (Scene is SelectCharacterScene selectScene)
+                    {
+                        selectScene.CharacterSelected(charName);
+                    }
                 };
 
                 _characterLabels.Add(player, label);

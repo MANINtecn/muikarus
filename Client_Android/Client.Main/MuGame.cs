@@ -377,47 +377,52 @@ namespace Client.Main
 
         // Private Instance Methods
         // Private helper method for changing scenes
+        private bool _isChangingScene = false;
         private async void ChangeSceneInternal(BaseScene newScene)
         {
-            _logger.LogInformation("--- ChangeSceneInternal: Starting scene change to {SceneType}...", newScene.GetType().Name);
-
-            // Optional: Show loading screen before disposing the old scene
-            // ShowLoadingScreen();
-
-            // Dispose the old scene
-            if (ActiveScene != null)
+            if (_isChangingScene)
             {
-                _logger.LogDebug("--- ChangeSceneInternal: Disposing previous scene ({SceneType})...", ActiveScene.GetType().Name);
-                ActiveScene.Dispose();
-                _logger.LogDebug("--- ChangeSceneInternal: Previous scene disposed.");
+                _logger.LogWarning("--- ChangeSceneInternal: Scene change already in progress. Ignoring duplicate request to {SceneType}.", newScene.GetType().Name);
+                return;
             }
-            ActiveScene = null; // Ensure there's no reference while loading the new one
+            _isChangingScene = true;
 
-            // Set the new scene
-            ActiveScene = newScene;
-            _logger.LogDebug("--- ChangeSceneInternal: ActiveScene set to {SceneType}.", ActiveScene.GetType().Name);
-
-            // Initialize/Load the new scene (assuming Initialize/Load is asynchronous)
             try
             {
-                _logger.LogDebug("--- ChangeSceneInternal: Calling Initialize() for {SceneType}...", ActiveScene.GetType().Name);
-                // Ensure the Initialize method exists and is appropriate,
-                // or use await ActiveScene.Load() if that's how your system works.
-                await ActiveScene.Initialize();
-                _logger.LogDebug("--- ChangeSceneInternal: Initialize() completed for {SceneType}.", ActiveScene.GetType().Name);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "!!! ChangeSceneInternal: Exception during Initialize() for {SceneType}.", ActiveScene.GetType().Name);
-                // Handle error - maybe return to LoginScene?
-                // ActiveScene = new LoginScene(); // Emergency return
-                // await ActiveScene.Initialize();
-                return; // End scene change after error
-            }
+                _logger.LogInformation("--- ChangeSceneInternal: Starting scene change to {SceneType}...", newScene.GetType().Name);
 
-            // Optional: Hide loading screen after the new scene is loaded
-            // HideLoadingScreen();
-            _logger.LogInformation("<<< ChangeSceneInternal: Scene change to {SceneType} complete.", ActiveScene.GetType().Name);
+                // Dispose the old scene
+                if (ActiveScene != null)
+                {
+                    _logger.LogDebug("--- ChangeSceneInternal: Disposing previous scene ({SceneType})...", ActiveScene.GetType().Name);
+                    ActiveScene.Dispose();
+                    _logger.LogDebug("--- ChangeSceneInternal: Previous scene disposed.");
+                }
+                ActiveScene = null; // Ensure there's no reference while loading the new one
+
+                // Set the new scene
+                ActiveScene = newScene;
+                _logger.LogDebug("--- ChangeSceneInternal: ActiveScene set to {SceneType}.", ActiveScene.GetType().Name);
+
+                // Initialize/Load the new scene (assuming Initialize/Load is asynchronous)
+                try
+                {
+                    _logger.LogDebug("--- ChangeSceneInternal: Calling Initialize() for {SceneType}...", ActiveScene.GetType().Name);
+                    await ActiveScene.Initialize();
+                    _logger.LogDebug("--- ChangeSceneInternal: Initialize() completed for {SceneType}.", ActiveScene.GetType().Name);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "!!! ChangeSceneInternal: Exception during Initialize() for {SceneType}.", ActiveScene.GetType().Name);
+                    return;
+                }
+
+                _logger.LogInformation("<<< ChangeSceneInternal: Scene change to {SceneType} complete.", ActiveScene.GetType().Name);
+            }
+            finally
+            {
+                _isChangingScene = false;
+            }
         }
 
         private void CheckShaderToggles()
