@@ -5,6 +5,40 @@
 
 ---
 
+## 🛡️ LEIS DE OURO & DIRETRIZES ANTI-REGRESSÃO (MOBILE)
+
+> **AVISO CRÍTICO PARA DESENVOLVEDORES E IA:**  
+> Estas regras foram descobertas após testes práticos e diagnósticos intensivos no ambiente Android/MonoGame. **O descumprimento de qualquer uma delas causará regressão grave (queda para 2 FPS, teclado sumindo ou jogo congelando).**
+
+### 1. ⌨️ Teclado Virtual Mobile (`MainActivity.cs` & `TextFieldControl.cs`)
+* ❌ **NUNCA** usar `EditText` transparente, invisível ou off-screen no frame esperando que `InputMethodManager.ShowSoftInput` funcione na `GLSurfaceView` do MonoGame. O modo `ImmersiveSticky` de tela cheia captura todo o foco da janela e o sistema Android descarta o pedido de abertura do teclado.
+* ✅ **SEMPRE** invocar o diálogo nativo escuro com elevação de janela (`AlertDialog` estilizado com `ThemeDeviceDefaultDialogAlert`), configurado com `dialog.Window.SetSoftInputMode(SoftInput.StateAlwaysVisible)` e `ShowSoftInput(ShowFlags.Forced)`.
+* ✅ **SEMPRE** manter a cadeia fluida: Usuário ➔ Senha (transição automática de 150ms) ➔ Disparo de Login automático ao pressionar "Concluir / Done / OK" no teclado.
+
+### 2. ⚡ Desempenho 3D e FPS Mobile (`SelectWorld.cs`, `TerrainControl.cs`, `WalkableWorldControl.cs`)
+* ❌ **EXTREMAMENTE PROIBIDO** chamar `InvalidateBuffers()` todo frame em objetos do mundo (como acontecia no `WaterFallObject.cs`). Reconstruir e enviar DynamicVertexBuffers para a GPU móvel a cada frame reduz o jogo imediatamente para **2 FPS**.
+* ❌ **NUNCA** reativar emissores pesados de partículas contínuas (`WaterSplashObject`) ou distorção matemática de água no terreno (`DistortionAmplitude`) em telas estáticas no mobile.
+* ❌ **NUNCA** reativar `Constants.DRAW_GRASS = true` no mobile (o overdraw da grama derruba o framerate de 30 FPS para 5 FPS em Lorencia).
+* ✅ **SEMPRE** manter o decodificador customizado DXT (`DxtDecoder.DecompressDXT1/3/5`) ativo em `MainActivity.cs` para evitar textura corrompida ou travamentos na carga GL.
+* ✅ **SEMPRE** manter `CalculateMouseTilePos()` no `WalkableWorldControl.cs` lendo `MuGame.Instance.Mouse.Position` (o método desktop `Mouse.GetState()` sempre retorna `(0, 0)` no touch).
+* ✅ Manter `Camera.Instance.ViewFar` limitado entre `3000f` e `3500f` no mobile.
+
+### 3. 🔄 Troca de Cenas e Rede (`NetworkManager.cs` & `MuGame.cs`)
+* ❌ **NUNCA** disparar troca de cena concorrente no `NetworkManager.cs`. Quando o servidor envia `ProcessCharacterRespawn`, se a cena ativa for `SelectCharacterScene`, DEVE-SE ignorar a troca direta e delegar exclusivamente ao evento `EnteredGame`. Caso contrário, duas instâncias de `GameScene` competem, uma é descartada no meio do `Initialize()` e o jogo congela na tela preta.
+* ✅ **SEMPRE** manter a trava de concorrência `_isChangingScene` em `MuGame.ChangeSceneInternal`.
+* ✅ **SEMPRE** manter o fallback em `SelectCharacterScene.HandleEnteredGame` para recuperar dados do personagem via `_networkManager.GetCharacterState()` caso pacotes cheguem fora de ordem.
+
+### 4. 👆 Interatividade e Touch Screen
+* ✅ Elementos 3D distantes em celulares são difíceis de mirar com o dedo. **SEMPRE** disponibilizar atalhos de toque generosos:
+  * Rótulos flutuantes com `Interactive = true`.
+  * Cards/botões touch visíveis na tela (ex: botões dourados no rodapé da seleção de personagem).
+
+### 5. 📦 Versionamento e Build CI/CD
+* ✅ O pipeline GitHub Actions (`android-build.yml`) extrai automaticamente o número da versão do `AndroidManifest.xml`.
+* ✅ Sempre atualizar em sincronia: `AndroidManifest.xml` (versionCode/versionName), `MuAndroid.csproj` (ApplicationVersion/DisplayVersion) e a seção de changelog neste arquivo.
+
+---
+
 ## 🗺️ MAPA DO PROJETO (`c:\TECX SOFTHOUSE\L2 IKARUS INTERCROW\MU_ONLINE\`)
 
 | Pasta / Repositório | O que é | Tecnologias | Origem / Repo |
