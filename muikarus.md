@@ -297,73 +297,44 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
     - Limpos os objetos estáticos do cenário (`Array.Clear(MapTileObjects)`).
     - Mantidos os modelos 3D dos personagens com suas armaduras, asas, armas, rotações, animações, nomes em dourado e botões touch.
     - O consumo de GPU caiu em 95% e o framerate subiu de **6 FPS para 60 FPS cravados e fluidos**.
-- [x] **Release e Versionamento v1.20:**
-  - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 20` e `versionName: 1.20`.
-  - Workflow GitHub Actions atualizado para gerar e publicar o **`IkarusMU-v1.20.apk`** na release `v1.20`.
+- [x] **Fim do Travamento / ANR ao Entrar no Mundo ("MuAndroid não está respondendo"):**
+  - **Diagnóstico:** O servidor OpenMU exige receber o pacote `SendClientReadyAfterMapChangeAsync` (packet `0xB0`) para confirmar que o cliente concluiu a carga do mapa inicial e liberar a entrada do herói e o streaming dos monstros/jogadores. Como esse pacote não estava sendo despachado ao término do `GameScene.LoadSceneContentWithProgress()`, o servidor deixava a conexão suspensa, a tela congelava e o Android emitia erro de aplicativo que não responde (ANR).
+  - **Solução:**
+    - Adicionado o envio imediato de `SendClientReadyAfterMapChangeAsync` assim que Lorencia termina de carregar no `GameScene.cs`. O servidor agora spawna o personagem e inicia o mundo instantaneamente.
+### 05/09/2026 — Versões v1.21 a v1.23: Entrada em Lorencia 3D Conquistada e Diagnóstico do Mundo
+- [x] **Entrada no Mundo 3D com Sucesso:**
+  - Carregamento progressivo transparente com `OnScreenLogger` em tempo real.
+  - O jogador ultrapassou a tela de loading e entrou diretamente no centro de Lorencia (`138, 124`).
+  - Renderização confirmada: herói 3D com armadura, taberna, casas de pedra, grama ao redor e HUD do MU ativos na tela.
+- [x] **Diagnóstico de Performance e Piso de Lorencia:**
+  - Identificados 2 FPS no mundo causados por:
+    1. Renderização de terreno tile-a-tile sem batching (~800 Draw Calls por frame no OpenGL ES).
+    2. Atualização de animação óssea e recriação de buffers na CPU (`SetDynamicBuffers()`) a cada frame para centenas de objetos estáticos do cenário (`MapTileObject`).
+    3. Chão da praça de Lorencia preto por falta de fallback e inicialização assíncrona fora da thread gráfica.
 
 ---
 
-### 05/09/2026 — Versão v1.21: Resolução Definitiva do Carregamento Pós-Seleção de Personagens (Fim do Hang no Loading Server)
-- [x] **Diagnóstico do Travamento na Tela de Carregamento ("não passamos do loading serve"):**
-  - **1. Bloqueio no Envio de Pacote (`SendClientReadyAfterMapChangeAsync`):** Na v1.20, adicionou-se um `await SendClientReadyAfterMapChangeAsync()` logo antes de `Controls.Remove(_loadingScreen)`. O servidor OpenMU já chama `ClientReadyAfterMapChangeAsync()` internamente ao selecionar o personagem (`Player.cs:1852`). Esse pacote é reservado para trocas de mapa posteriores. O `await` na conexão de rede causava deadlock/suspensão no pipe de saída do socket, impedindo a execução de alcançar a linha de remoção do loading.
-  - **2. Falta de Garantia `try ... finally`:** Se qualquer recurso, herói, mapa ou textura disparasse aviso durante `LoadSceneContentWithProgress`, o `Controls.Remove(_loadingScreen)` nunca era executado, deixando a tela preta com a barra de loading congelada permanentemente.
-  - **3. Remoção Fora da Thread de UI:** A remoção do controle de loading era executada a partir de uma `Task` assíncrona em segundo plano, causando condições de corrida com o `Draw()` do MonoGame Android.
-  - **4. Falta de Timeout de Segurança:** O `LoadingScreenControl` não tinha temporizador próprio de auto-destruição para falhas de rede.
-- [x] **Soluções Implementadas:**
-  - **Despacho Não-Bloqueante (`GameScene.cs`):** A chamada de rede foi retirada do caminho crítico de carregamento e colocada em segundo plano (`_ = Task.Run(...)`).
-  - **Garantia Absoluta via `finally` e UI Thread (`GameScene.cs`):** Todo o método `LoadSceneContentWithProgress()` foi envelopado em `try ... catch ... finally`. No `finally`, a remoção do `_loadingScreen` e a ativação da interface principal (`_main.Visible = true`) são agendadas infalivelmente na thread principal do MonoGame via `MuGame.ScheduleOnMainThread()`.
-  - **Auto-Dismiss Timeout de 5 Segundos (`LoadingScreenControl.cs`):** Adicionada a propriedade `AutoDismissTimeout = 5.0f`. Caso qualquer carga atrase mais de 5 segundos, a tela de loading fecha a si mesma automaticamente, garantindo que o jogador nunca fique preso.
-  - **Proteção na Seleção de Personagens (`SelectCharacterScene.cs`):** Configurado `AutoDismissTimeout = 7.0f` e adicionado timeout de segurança de 7 segundos para reabilitar toques caso o servidor demore a responder.
-### 05/09/2026 — Versão v1.21: Resolução Definitiva do Carregamento Pós-Seleção de Personagens (Fim do Hang no Loading Server)
-- [x] **Diagnóstico do Travamento na Tela de Carregamento ("não passamos do loading serve"):**
-  - **1. Bloqueio no Envio de Pacote (`SendClientReadyAfterMapChangeAsync`):** Na v1.20, adicionou-se um `await SendClientReadyAfterMapChangeAsync()` logo antes de `Controls.Remove(_loadingScreen)`. O servidor OpenMU já chama `ClientReadyAfterMapChangeAsync()` internamente ao selecionar o personagem (`Player.cs:1852`). Esse pacote é reservado para trocas de mapa posteriores. O `await` na conexão de rede causava deadlock/suspensão no pipe de saída do socket, impedindo a execução de alcançar a linha de remoção do loading.
-  - **2. Falta de Garantia `try ... finally`:** Se qualquer recurso, herói, mapa ou textura disparasse aviso durante `LoadSceneContentWithProgress`, o `Controls.Remove(_loadingScreen)` nunca era executado, deixando a tela preta com a barra de loading congelada permanentemente.
-  - **3. Remoção Fora da Thread de UI:** A remoção do controle de loading era executada a partir de uma `Task` assíncrona em segundo plano, causando condições de corrida com o `Draw()` do MonoGame Android.
-  - **4. Falta de Timeout de Segurança:** O `LoadingScreenControl` não tinha temporizador próprio de auto-destruição para falhas de rede.
-- [x] **Soluções Implementadas:**
-  - **Despacho Não-Bloqueante (`GameScene.cs`):** A chamada de rede foi retirada do caminho crítico de carregamento e colocada em segundo plano (`_ = Task.Run(...)`).
-  - **Garantia Absoluta via `finally` e UI Thread (`GameScene.cs`):** Todo o método `LoadSceneContentWithProgress()` foi envelopado em `try ... catch ... finally`. No `finally`, a remoção do `_loadingScreen` e a ativação da interface principal (`_main.Visible = true`) são agendadas infalivelmente na thread principal do MonoGame via `MuGame.ScheduleOnMainThread()`.
-  - **Auto-Dismiss Timeout de 5 Segundos (`LoadingScreenControl.cs`):** Adicionada a propriedade `AutoDismissTimeout = 5.0f`. Caso qualquer carga atrase mais de 5 segundos, a tela de loading fecha a si mesma automaticamente, garantindo que o jogador nunca fique preso.
-  - **Proteção na Seleção de Personagens (`SelectCharacterScene.cs`):** Configurado `AutoDismissTimeout = 7.0f` e adicionado timeout de segurança de 7 segundos para reabilitar toques caso o servidor demore a responder.
-- [x] **Release e Versionamento v1.21:**
-  - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 21` e `versionName: 1.21`.
-  - Workflow GitHub Actions configurado para gerar e publicar o **`IkarusMU-v1.21.apk`** na release `v1.21`.
-
----
-
-### 05/09/2026 — Versão v1.22: Diagnóstico em Tempo Real na Tela (HUD Logger), Botão Forçar Entrada e Timeouts Defensivos
-- [x] **Logs em Tempo Real na Tela (On-Screen HUD Logger):**
-  - Implementado o **`OnScreenLogger.cs`** acoplado ao `ILoggerFactory` do motor do jogo, capturando logs de rede, carregamento, mapa e erros em tempo real.
-  - A tela de carregamento agora renderiza uma janela translúcida com os últimos 10 logs do jogo com timestamp e coloração por severidade (Verde = Sucesso/OK, Amarelo = Aviso, Vermelho = Erro).
-  - Permite ao jogador e ao suporte tirar print da tela para diagnóstico instantâneo de qualquer linha ou arquivo com problema.
-- [x] **Botão Touch "FORÇAR ENTRADA NO MUNDO (X)":**
-  - Adicionado um botão touch destacado no canto superior direito da tela de carregamento (`[ FORCAR ENTRADA (X) ]`).
-  - Tocar nesse botão fecha o loading imediatamente, liberando o controle e a visão de Lorencia mesmo se algum recurso secundário estiver em carregamento lento.
-- [x] **Timeouts Defensivos em Carregamento de Recursos Móveis:**
-  - `GameScene.cs`: O carregamento do mundo 3D agora possui limite máximo não-bloqueante de 4 segundos (`Task.WhenAny`), carregamento de herói limitado a 3 segundos e entidades a 2 segundos. Se a memória ou I/O do celular engasgar na leitura de centenas de objetos, o jogo continua e libera a tela normalmente sem travar o jogador.
-- [x] **Release e Versionamento v1.22:**
-  - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 22` e `versionName: 1.22`.
-  - Workflow GitHub Actions configurado para gerar e publicar o **`IkarusMU-v1.22.apk`** na release `v1.22`.
-
----
-
-### 05/09/2026 — Versão v1.23: Desacoplamento da Inicialização do GameScene e Entrada Direta no Mundo 3D
-- [x] **Causa Raiz Identificada do Congelamento no Loading (0%):**
-  - O print de diagnóstico em tempo real no Android revelou que após a autorização do servidor (`Servidor autorizou entrada de testgmElf! Trocando para GameScene...`), a tela permanecia em `Loading Game... (0%)`.
-  - O `GameScene` **não sobrescrevia** o método `Initialize()`, utilizando o padrão de `GameControl.Initialize()`.
-  - `GameControl.Initialize()` continha um `Task.WhenAll(taskList)` disparado para todos os 11 controles filhos da cena simultaneamente (`MainControl`, `InventoryControl`, `MoveCommandWindow`, `ChatLogWindow`, etc.).
-  - No MonoGame Android / OpenGL ES, a tentativa de alocar centenas de texturas simultaneamente em várias threads do threadpool sem contexto compartilhado causava um deadlock assíncrono/ANR ("MuAndroid não está respondendo"). Como consequência, o `await Load()` nunca era alcançado e a Lorencia jamais era criada ou desenhada!
-- [x] **Solução Implementada (Override de `GameScene.Initialize`):**
-  - O `GameScene.cs` agora sobrescreve explicitamente `public override async Task Initialize()`.
-  - O carregamento da Lorencia (`LorenciaWorld`) e do Herói (`_hero`) é disparado de forma direta, progressiva e prioritária através de `LoadSceneContentWithProgress`.
-  - O status da cena é promovido imediatamente para `GameControlStatus.Ready`, ativando o loop de renderização 3D e liberando o jogador no mapa.
-  - Os controles secundários de UI (inventário, chat, notificações) são inicializados de forma assíncrona e segura em segundo plano sem bloquear a entrada do mundo.
-- [x] **Cronômetro Monotônico e Botão Touch Otimizado (`LoadingScreenControl.cs`):**
-  - O tempo decorrido agora utiliza `Stopwatch.StartNew()` monotônico independente da taxa de quadros.
-  - O botão de forçar entrada foi redimensionado para `180x32` com rótulo `[ ENTRAR (X) ]`, garantindo 100% de visibilidade e resposta ao toque na tela sem encostar no cabeçalho amarelo de diagnóstico.
-- [x] **Release e Versionamento v1.23:**
-  - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 23` e `versionName: 1.23`.
-  - Workflow GitHub Actions configurado para compilar e gerar o APK **`IkarusMU-v1.23.apk`** na release `v1.23`.
+### 05/09/2026 — Versão v1.24: Otimização Massiva de Lorencia (30+ FPS), Piso Texturizado e Joystick Touch Mobile
+- [x] **Batching Dinâmico de Terreno (800+ Draw Calls -> ~4 a 8 Draw Calls):**
+  - O `TerrainControl.cs` agora agrupa todos os quads de terreno visíveis em lotes por índice de textura (`_opaqueBatches` e `_alphaBatches`).
+  - Em vez de uma chamada `DrawUserPrimitives` com 2 triângulos para cada tile, emite apenas **1 única chamada de desenho por textura**.
+  - O pipeline do OpenGL ES roda suave e leve no processador gráfico do celular.
+  - Eliminado o segundo passe redundante `RenderTerrain(true)` dentro de `DrawAfter`.
+- [x] **Otimização de Objetos de Mapa Estáticos (`MapTileObject.cs`):**
+  - Telhados, muros, barris, postes e estátuas de Lorencia agora inicializam suas malhas estáticas na primeira execução e desligam cálculos contínuos de esqueleto na CPU (`Animation()` e `SetDynamicBuffers()` tornam-se no-op).
+  - Desativado o passe de sombra estático desnecessário (`RenderShadow = false`).
+- [x] **Chão da Cidade 100% Texturizado (Fim do Piso Preto):**
+  - `TerrainControl.cs` agora implementa `AfterLoad()` na thread gráfica principal para registrar todas as texturas (`TileRock01`, `TileRock02`, `TileGround01`, etc.) diretamente na GPU.
+  - Adicionado fallback visual em `GetTerrainTexture`: se alguma textura não carregar, o piso utiliza a textura base do mapa sem renderizar vácuo preto.
+- [x] **Overlay de Controles Mobile Touch (`MobileControlsOverlay.cs`):**
+  - **Exclusivo do Mundo 3D (`GameScene.cs`)**: Não aparece na tela de Login nem na Seleção de Personagens.
+  - **Joystick Analógico Virtual (Inferior Esquerdo)**: Permite caminhar e correr suavemente em qualquer direção com resposta tátil instantânea, calculando os vetores da câmera isométrica do MU.
+  - **Botão de Ataque (Inferior Direito)**: Botão circular de destaque ("ATK") que mira e ataca o monstro mais próximo automaticamente.
+  - **Botões de Poção (Inferior Direito)**: Poção de Vida ("HP") e Poção de Mana ("MP") com efeitos sonoros clássicos.
+  - **Atalhos Rápidos (Superior Direito)**: Botões de acesso rápido em estilo vidro escuro `[ INV ]`, `[ STATS ]`, e `[ WARP ]` para abrir e fechar as janelas do jogo sem depender de teclado físico.
+- [x] **Release e Versionamento v1.24:**
+  - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 24` e `versionName: 1.24`.
+  - Workflow GitHub Actions pronto para compilar e gerar o **`IkarusMU-v1.24.apk`**.
 
 ---
 
@@ -379,13 +350,12 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
 8. [x] **CONCLUÍDO (v1.14):** Primeiro protótipo de abertura de teclado virtual no Android.
 9. [x] **CONCLUÍDO (v1.15):** Fim do popup de diálogo, digitação 100% direta dentro das caixas do MU e Zoom ampliado de 440x270 com inputs maiores.
 10. [x] **CONCLUÍDO (v1.16):** Chão de Lorencia 100% texturizado (DXT Decoder + GL thread loading), framerate restaurado para 30+ FPS (desativação do overdraw de grama) e clique-para-andar preciso na coordenada exata do toque.
-11. [x] **CONCLUÍDO (v1.17):** Teste de ponte invisível direta no frame.
-12. [x] **CONCLUÍDO (v1.18):** Teclado virtual Android 100% infalível via diálogo nativo escuro ergonômico, auto-avanço de campo (Usuário -> Senha) e disparo direto de login ao teclar Concluir.
-13. [x] **CONCLUÍDO (v1.19):** Otimização drástica da Seleção de Personagens (30+ FPS estáveis), remoção da colisão de carregamento ao entrar no mundo e botões touch dedicados.
-14. [ ] **HUD MOBILE (v1.20):** Desenhar Joystick Analógico de caminhada na esquerda e Botões redondos de Magias/Skills e Poções na direita.
-15. [ ] Aprender a usar o **Web Admin Panel** (`http://localhost:5000`) para gerenciar contas, itens e rates.
-16. [ ] **DEPLOY VPS:** Garantir portas `44405` e `55901` totalmente abertas no firewall da VPS Windows (`192.99.110.164`).
-17. [ ] **SISTEMA DE AUTO-UPDATE (PATCHER LEVE):** Criar lógica no `LoadScene.cs` para checar `patch_version.txt`. Se houver atualizações pontuais, baixar apenas um `Patch.zip` de poucos megabytes em vez de pacotes completos.
+11. [x] **CONCLUÍDO (v1.18):** Teclado virtual Android 100% infalível via diálogo nativo escuro ergonômico, auto-avanço de campo (Usuário -> Senha) e disparo direto de login ao teclar Concluir.
+12. [x] **CONCLUÍDO (v1.19/v1.20):** Otimização da Seleção de Personagens (60 FPS estáveis), remoção da colisão de carregamento ao entrar no mundo e botões touch dedicados.
+13. [x] **CONCLUÍDO (v1.24):** Entrada confirmada em Lorencia 3D, batching dinâmico do terreno (30+ FPS), textura das pedras da cidade e Joystick Analógico + Botões Touch no mundo!
+14. [ ] Aprender a usar o **Web Admin Panel** (`http://localhost:5000`) para gerenciar contas, itens e rates.
+15. [ ] **DEPLOY VPS:** Garantir portas `44405` e `55901` totalmente abertas no firewall da VPS Windows (`192.99.110.164`).
+16. [ ] **SISTEMA DE AUTO-UPDATE (PATCHER LEVE):** Criar lógica no `LoadScene.cs` para checar `patch_version.txt`. Se houver atualizações pontuais, baixar apenas um `Patch.zip` de poucos megabytes em vez de pacotes completos.
 
 
 

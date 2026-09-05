@@ -42,6 +42,7 @@ namespace Client.Main.Scenes
         private bool _isChangingWorld = false;
         private readonly List<(ServerMessage.MessageType Type, string Message)> _pendingNotifications = new();
         private CharacterInfoWindowControl _characterInfoWindow;
+        private MobileControlsOverlay _mobileControls;
         private ILogger _logger = MuGame.AppLoggerFactory?.CreateLogger<GameScene>();
         private MapNameControl _currentMapNameControl; // Track active map name display
 
@@ -145,7 +146,11 @@ namespace Client.Main.Scenes
             _characterInfoWindow = new CharacterInfoWindowControl { X = 20, Y = 50, Visible = false };
             Controls.Add(_characterInfoWindow);
 
+            _mobileControls = new MobileControlsOverlay(this, _hero, _inventoryControl, _characterInfoWindow, _moveCommandWindow);
+            Controls.Add(_mobileControls);
+
             _chatInput.BringToFront();
+            _mobileControls.BringToFront();
             DebugPanel.BringToFront();
             Cursor.BringToFront();
         }

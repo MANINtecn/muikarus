@@ -1,4 +1,4 @@
-﻿using Client.Main.Content;
+using Client.Main.Content;
 using Microsoft.Extensions.Logging;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -11,9 +11,12 @@ namespace Client.Main.Objects
     {
         private ILogger _logger = ModelObject.AppLoggerFactory?.CreateLogger<MapTileObject>();
 
+        private bool _isInitialized = false;
+
         public MapTileObject()
         {
             BlendState = BlendState.AlphaBlend;
+            RenderShadow = false; // Static map tiles don't need shadow pass
         }
 
         public override async Task Load()
@@ -26,6 +29,18 @@ namespace Client.Main.Objects
                 _logger?.LogDebug($"Can't load MapObject for model: {modelPath}");
 
             await base.Load();
+        }
+
+        public override void Update(GameTime gameTime)
+        {
+            if (!_isInitialized)
+            {
+                base.Update(gameTime);
+                if (_contentLoaded)
+                    _isInitialized = true;
+                return;
+            }
+            // Once initialized, static objects never move or animate - completely skip Animation() and SetDynamicBuffers()
         }
 
         public override void Draw(GameTime gameTime)
