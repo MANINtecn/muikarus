@@ -5,6 +5,7 @@ using Client.Main.Controllers;
 using Client.Main.Models;
 using Client.Main.Objects;
 using Client.Main.Objects.Player;
+using Client.Main.Helpers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
