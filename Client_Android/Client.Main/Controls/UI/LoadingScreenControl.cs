@@ -1,5 +1,6 @@
 using Client.Main.Controllers;
 using Client.Main.Helpers;
+using Client.Main.Models;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Threading.Tasks;
