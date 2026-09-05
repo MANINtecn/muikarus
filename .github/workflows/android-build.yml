@@ -41,7 +41,11 @@ jobs:
       shell: pwsh
       run: |
         $ver = "${{ github.event.inputs.version }}"
-        if (-not $ver) { $ver = "v1.17" }
+        if (-not $ver) {
+            $manifest = [xml](Get-Content "Client_Android/MuAndroid/AndroidManifest.xml")
+            $verName = $manifest.manifest.versionName
+            if ($verName) { $ver = "v$verName" } else { $ver = "v1.18" }
+        }
         $apk = Get-ChildItem -Path "Client_Android\MuAndroid\bin\Release\net9.0-android" -Filter "*-Signed.apk" -Recurse | Select-Object -First 1
         $dest = "IkarusMU-$ver.apk"
         Copy-Item $apk.FullName -Destination $dest
