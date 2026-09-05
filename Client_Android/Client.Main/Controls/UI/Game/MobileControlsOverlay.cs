@@ -70,6 +70,8 @@ namespace Client.Main.Controls.UI.Game
             AutoViewSize = false;
             ViewSize = new Point(MuGame.Instance.Width, MuGame.Instance.Height);
             Interactive = true;
+            Status = GameControlStatus.Ready;
+            Visible = true;
 
             UpdateLayoutPositions();
         }
@@ -508,6 +510,21 @@ namespace Client.Main.Controls.UI.Game
             DrawPillButton(sb, pixel, font, _invBtnRect, "INV", _invPressed, new Color(40, 140, 80));
             DrawPillButton(sb, pixel, font, _statsBtnRect, "STATS", _statsPressed, new Color(180, 120, 30));
             DrawPillButton(sb, pixel, font, _warpBtnRect, "WARP", _warpPressed, new Color(60, 100, 180));
+
+            // 6. Real-time Diagnostic HUD (requested by user)
+            if (font != null)
+            {
+                var world = _scene?.World;
+                var terrain = world?.Terrain;
+                string diag1 = $"MAP: {world?.Name ?? "None"} (W:{world?.WorldIndex}, St:{world?.Status}) | TER: {terrain?.Status} (Vis:{terrain?.Visible}) | HERO: ({_hero?.Location.X:F0},{_hero?.Location.Y:F0})";
+                string diag2 = $"CAM: ({Camera.Instance.Position.X:F0},{Camera.Instance.Position.Y:F0},{Camera.Instance.Position.Z:F0}) -> ({Camera.Instance.Target.X:F0},{Camera.Instance.Target.Y:F0})";
+
+                sb.DrawString(font, diag1, new Vector2(11, 11), Color.Black);
+                sb.DrawString(font, diag1, new Vector2(10, 10), Color.Yellow);
+
+                sb.DrawString(font, diag2, new Vector2(11, 27), Color.Black);
+                sb.DrawString(font, diag2, new Vector2(10, 26), Color.Cyan);
+            }
 
             sb.End();
 

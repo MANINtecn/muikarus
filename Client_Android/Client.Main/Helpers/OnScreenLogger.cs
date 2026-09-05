@@ -17,6 +17,8 @@ namespace Client.Main.Helpers
             public string Message;
         }
 
+        public static event Action<string, LogLevel, string> OnLogged;
+
         public static void Log(string message, LogLevel level = LogLevel.Information, string category = "App")
         {
             if (string.IsNullOrEmpty(message)) return;
@@ -37,6 +39,12 @@ namespace Client.Main.Helpers
             {
                 _entries.TryDequeue(out _);
             }
+
+            try
+            {
+                OnLogged?.Invoke(message, level, category);
+            }
+            catch { }
         }
 
         public static LogEntry[] GetEntries()

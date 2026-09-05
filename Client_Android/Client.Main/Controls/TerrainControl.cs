@@ -692,6 +692,16 @@ namespace Client.Main.Controls
                             if (h > maxZ) maxZ = h;
                         }
 
+                    if (maxZ < minZ)
+                    {
+                        minZ = 0f;
+                        maxZ = 500f;
+                    }
+                    else if (maxZ - minZ < 150f)
+                    {
+                        maxZ = minZ + 150f;
+                    }
+
                     block.MinZ = minZ;
                     block.MaxZ = maxZ;
 
@@ -701,8 +711,8 @@ namespace Client.Main.Controls
                     float ey = (block.Yi + BlockSize) * Constants.TERRAIN_SCALE;
 
                     block.Bounds = new BoundingBox(
-                        new Vector3(sx, sy, minZ),
-                        new Vector3(ex, ey, maxZ));
+                        new Vector3(sx - 100f, sy - 100f, minZ - 300f),
+                        new Vector3(ex + 100f, ey + 100f, maxZ + 300f));
                 }
             }
         }
@@ -710,7 +720,7 @@ namespace Client.Main.Controls
         private void UpdateVisibleBlocks(Vector2 cameraPos)
         {
             const float THRESHOLD_SQ = CAMERA_MOVE_THRESHOLD * CAMERA_MOVE_THRESHOLD;
-            if (Vector2.DistanceSquared(_lastCameraPosition, cameraPos) < THRESHOLD_SQ)
+            if (_visibleBlocks.Count > 0 && Vector2.DistanceSquared(_lastCameraPosition, cameraPos) < THRESHOLD_SQ)
                 return;
 
             _lastCameraPosition = cameraPos;

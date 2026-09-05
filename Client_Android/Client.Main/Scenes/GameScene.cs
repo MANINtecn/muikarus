@@ -153,6 +153,29 @@ namespace Client.Main.Scenes
             _mobileControls.BringToFront();
             DebugPanel.BringToFront();
             Cursor.BringToFront();
+
+            OnScreenLogger.OnLogged += OnOnScreenLogged;
+        }
+
+        private void OnOnScreenLogged(string message, LogLevel level, string category)
+        {
+            MuGame.ScheduleOnMainThread(() =>
+            {
+                try
+                {
+                    if (_chatLog != null && _chatLog.Status != GameControlStatus.Disposed)
+                    {
+                        _chatLog.AddMessage("SYS", message, MessageType.System);
+                    }
+                }
+                catch { }
+            });
+        }
+
+        public override void Dispose()
+        {
+            OnScreenLogger.OnLogged -= OnOnScreenLogged;
+            base.Dispose();
         }
 
         public GameScene() : this(GetCharacterInfoFromState()) { }
@@ -256,22 +279,54 @@ namespace Client.Main.Scenes
                 World.Objects.Add(_hero);
 
                 UpdateLoadProgress($"Carregando terreno e modelos ({initialWorldType.Name})...", 0.35f);
-                // Safety timeout on world initialize (4s max so slow disk/assets don't freeze the player)
-                var worldInitTask = worldInstance.Initialize();
-                var finishedTask = await Task.WhenAny(worldInitTask, Task.Delay(4000));
-                if (finishedTask != worldInitTask)
+                try
                 {
-                    OnScreenLogger.Log($"Aviso: Carregamento do mapa demorou >4s. Liberando jogo...", LogLevel.Warning);
+                    var worldInitTask = worldInstance.Initialize();
+                    var finishedTask = await Task.WhenAny(worldInitTask, Task.Delay(8000));
+                    if (finishedTask != worldInitTask)
+                    {
+                        OnScreenLogger.Log($"[MAP] Carregamento de {initialWorldType.Name} demorou >8s. Forcando Status=Ready.", LogLevel.Warning);
+                    }
+                    else
+                    {
+                        await worldInitTask;
+                    }
                 }
+                catch (Exception ex)
+                {
+                    OnScreenLogger.Log($"[MAP] Erro inicializando {initialWorldType.Name}: {ex.Message}", LogLevel.Error);
+                }
+                finally
+                {
+                    // Enforce Ready status and visibility so the 3D scene & terrain are NEVER skipped
+                    worldInstance.Status = GameControlStatus.Ready;
+                    worldInstance.Visible = true;
+                    if (worldInstance.Terrain != null)
+                    {
+                        worldInstance.Terrain.Status = GameControlStatus.Ready;
+                        worldInstance.Terrain.Visible = true;
+                    }
+                }
+
                 UpdateLoadProgress($"Mapa {initialWorldType.Name} pronto.", 0.6f);
 
                 if (worldInstance is WalkableWorldControl walkableAfterInit)
                 {
-                    if (walkableAfterInit.Walker?.NetworkId != charState.Id)
+                    walkableAfterInit.Walker = _hero;
+                    if (walkableAfterInit.Walker.NetworkId != charState.Id)
                     {
                         walkableAfterInit.Walker.NetworkId = charState.Id;
                     }
                 }
+
+                // Force Hero position & immediate camera synchronization
+                _hero.World = worldInstance;
+                _hero.Location = new Vector2(charState.PositionX, charState.PositionY);
+                _hero.Position = _hero.TargetPosition;
+                _hero.MoveTargetPosition = _hero.TargetPosition;
+                _hero.Update(new GameTime());
+
+                OnScreenLogger.Log($"[MAP] Entrou em {initialWorldType.Name} (MapId: {charState.MapId}, Hero: {charState.PositionX},{charState.PositionY})", LogLevel.Information);
 
                 // 4. Load Hero Assets
                 UpdateLoadProgress("Carregando aparencia do heroi...", 0.65f);
@@ -481,7 +536,24 @@ namespace Client.Main.Scenes
 
             _loadingScreen.Progress = 0.1f;
             _logger?.LogDebug($"GameScene.ChangeMap<{worldType.Name}>: Initializing new world...");
-            await _nextWorld.Initialize();
+            try
+            {
+                await _nextWorld.Initialize();
+            }
+            catch (Exception ex)
+            {
+                OnScreenLogger.Log($"[WARP] Erro ao carregar {worldType.Name}: {ex.Message}", LogLevel.Error);
+            }
+            finally
+            {
+                _nextWorld.Status = GameControlStatus.Ready;
+                _nextWorld.Visible = true;
+                if (_nextWorld.Terrain != null)
+                {
+                    _nextWorld.Terrain.Status = GameControlStatus.Ready;
+                    _nextWorld.Terrain.Visible = true;
+                }
+            }
             _logger?.LogDebug($"GameScene.ChangeMap<{worldType.Name}>: New world initialized. Status: {_nextWorld.Status}");
             _loadingScreen.Progress = 0.7f;
 

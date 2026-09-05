@@ -1,4 +1,4 @@
-﻿using Client.Data.ATT;
+using Client.Data.ATT;
 using Client.Data.CAP;
 using Client.Data.OBJS;
 using Client.Main.Controllers;
@@ -99,36 +99,76 @@ namespace Client.Main.Controls
             var tasks = new List<Task>();
 
             // Load terrain OBJ
-            var objPath = Path.Combine(dataPath, worldFolder, $"EncTerrain{WorldIndex}.obj");
-            if (File.Exists(objPath))
+            var rawObjPath = Path.Combine(dataPath, worldFolder, $"EncTerrain{WorldIndex}.obj");
+            var objPath = Utils.GetActualPath(rawObjPath);
+            if (!string.IsNullOrEmpty(objPath) && File.Exists(objPath))
             {
-                var reader = new OBJReader();
-                OBJ obj = await reader.Load(objPath);
-                foreach (var mapObj in obj.Objects)
+                try
                 {
-                    var instance = WorldObjectFactory.CreateMapTileObject(this, mapObj);
-                    if (instance != null) tasks.Add(instance.Load());
+                    var reader = new OBJReader();
+                    OBJ obj = await reader.Load(objPath);
+                    foreach (var mapObj in obj.Objects)
+                    {
+                        var instance = WorldObjectFactory.CreateMapTileObject(this, mapObj);
+                        if (instance != null)
+                        {
+                            tasks.Add(Task.Run(async () =>
+                            {
+                                try
+                                {
+                                    await instance.Load();
+                                }
+                                catch (Exception ex)
+                                {
+                                    OnScreenLogger.Log($"Obj {instance.Type} load err: {ex.Message}", LogLevel.Warning);
+                                }
+                            }));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    OnScreenLogger.Log($"Falha lendo OBJ mapa {WorldIndex}: {ex.Message}", LogLevel.Warning);
                 }
             }
 
-            await Task.WhenAll(tasks);
+            try
+            {
+                await Task.WhenAll(tasks);
+            }
+            catch (Exception ex)
+            {
+                OnScreenLogger.Log($"World objects batch err: {ex.Message}", LogLevel.Warning);
+            }
 
             // Load camera settings
-            var capPath = Path.Combine(dataPath, worldFolder, "Camera_Angle_Position.bmd");
-            if (File.Exists(capPath))
+            var rawCapPath = Path.Combine(dataPath, worldFolder, "Camera_Angle_Position.bmd");
+            var capPath = Utils.GetActualPath(rawCapPath);
+            if (!string.IsNullOrEmpty(capPath) && File.Exists(capPath))
             {
-                var capReader = new CAPReader();
-                var data = await capReader.Load(capPath);
-                Camera.Instance.FOV = data.CameraFOV;
-                Camera.Instance.Position = data.CameraPosition;
-                Camera.Instance.Target = data.HeroPosition;
+                try
+                {
+                    var capReader = new CAPReader();
+                    var data = await capReader.Load(capPath);
+                    Camera.Instance.FOV = data.CameraFOV;
+                    Camera.Instance.Position = data.CameraPosition;
+                    Camera.Instance.Target = data.HeroPosition;
+                }
+                catch (Exception ex)
+                {
+                    OnScreenLogger.Log($"Cap load err: {ex.Message}", LogLevel.Warning);
+                }
             }
 
             // Play or stop background music
-            if (!string.IsNullOrEmpty(BackgroundMusicPath))
-                SoundController.Instance.PlayBackgroundMusic(BackgroundMusicPath);
-            else
-                SoundController.Instance.StopBackgroundMusic();
+            try
+            {
+                if (!string.IsNullOrEmpty(BackgroundMusicPath))
+                    SoundController.Instance.PlayBackgroundMusic(BackgroundMusicPath);
+                else
+                    SoundController.Instance.StopBackgroundMusic();
+            }
+            catch { }
         }
 
         public override void AfterLoad()
