@@ -11,6 +11,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Input.Touch;
 using Client.Main.Models;
+using Client.Main.Helpers;
 
 namespace Client.Main.Controls.UI.Game
 {
@@ -455,81 +456,78 @@ namespace Client.Main.Controls.UI.Game
 
             if (sb == null || pixel == null) return;
 
-            sb.Begin(SpriteSortMode.Deferred, BlendState.NonPremultiplied);
-
-            // 1. Draw Virtual Joystick
-            // Outer Ring
-            DrawCircle(sb, pixel, _joystickCenter, JOYSTICK_RADIUS, new Color(15, 20, 30, 140), true);
-            DrawCircle(sb, pixel, _joystickCenter, JOYSTICK_RADIUS, new Color(200, 220, 255, 180), false, 2f);
-            DrawCircle(sb, pixel, _joystickCenter, JOYSTICK_RADIUS * 0.5f, new Color(100, 140, 200, 60), false, 1f);
-
-            // Joystick Knob
-            Color knobColor = _isJoystickActive ? new Color(100, 180, 255, 220) : new Color(180, 190, 210, 160);
-            DrawCircle(sb, pixel, _knobPosition, KNOB_RADIUS, knobColor, true);
-            DrawCircle(sb, pixel, _knobPosition, KNOB_RADIUS, Color.White * 0.8f, false, 2f);
-
-            // 2. Draw Attack Button
-            Color atkBg = _atkPressed ? new Color(220, 60, 60, 220) : new Color(160, 30, 30, 180);
-            DrawCircle(sb, pixel, _atkButtonCenter, ATK_RADIUS, atkBg, true);
-            DrawCircle(sb, pixel, _atkButtonCenter, ATK_RADIUS, new Color(255, 200, 100, 230), false, 3f);
-            if (font != null)
+            using (new SpriteBatchScope(sb, blend: BlendState.NonPremultiplied))
             {
-                string atkText = "ATK";
-                Vector2 textSize = font.MeasureString(atkText);
-                Vector2 textPos = _atkButtonCenter - textSize * 0.5f;
-                sb.DrawString(font, atkText, textPos + new Vector2(1, 1), Color.Black);
-                sb.DrawString(font, atkText, textPos, Color.Gold);
+                // 1. Draw Virtual Joystick
+                // Outer Ring
+                DrawCircle(sb, pixel, _joystickCenter, JOYSTICK_RADIUS, new Color(15, 20, 30, 140), true);
+                DrawCircle(sb, pixel, _joystickCenter, JOYSTICK_RADIUS, new Color(200, 220, 255, 180), false, 2f);
+                DrawCircle(sb, pixel, _joystickCenter, JOYSTICK_RADIUS * 0.5f, new Color(100, 140, 200, 60), false, 1f);
+
+                // Joystick Knob
+                Color knobColor = _isJoystickActive ? new Color(100, 180, 255, 220) : new Color(180, 190, 210, 160);
+                DrawCircle(sb, pixel, _knobPosition, KNOB_RADIUS, knobColor, true);
+                DrawCircle(sb, pixel, _knobPosition, KNOB_RADIUS, Color.White * 0.8f, false, 2f);
+
+                // 2. Draw Attack Button
+                Color atkBg = _atkPressed ? new Color(220, 60, 60, 220) : new Color(160, 30, 30, 180);
+                DrawCircle(sb, pixel, _atkButtonCenter, ATK_RADIUS, atkBg, true);
+                DrawCircle(sb, pixel, _atkButtonCenter, ATK_RADIUS, new Color(255, 200, 100, 230), false, 3f);
+                if (font != null)
+                {
+                    string atkText = "ATK";
+                    Vector2 textSize = font.MeasureString(atkText);
+                    Vector2 textPos = _atkButtonCenter - textSize * 0.5f;
+                    sb.DrawString(font, atkText, textPos + new Vector2(1, 1), Color.Black);
+                    sb.DrawString(font, atkText, textPos, Color.Gold);
+                }
+
+                // 3. Draw HP Potion Button
+                Color hpBg = _hpPressed ? new Color(255, 80, 80, 220) : new Color(180, 30, 30, 180);
+                DrawCircle(sb, pixel, _hpButtonCenter, POTION_RADIUS, hpBg, true);
+                DrawCircle(sb, pixel, _hpButtonCenter, POTION_RADIUS, Color.Red, false, 2f);
+                if (font != null)
+                {
+                    string hpText = "HP";
+                    Vector2 textSize = font.MeasureString(hpText);
+                    Vector2 textPos = _hpButtonCenter - textSize * 0.5f;
+                    sb.DrawString(font, hpText, textPos + new Vector2(1, 1), Color.Black);
+                    sb.DrawString(font, hpText, textPos, Color.White);
+                }
+
+                // 4. Draw MP Potion Button
+                Color mpBg = _mpPressed ? new Color(80, 140, 255, 220) : new Color(30, 80, 190, 180);
+                DrawCircle(sb, pixel, _mpButtonCenter, POTION_RADIUS, mpBg, true);
+                DrawCircle(sb, pixel, _mpButtonCenter, POTION_RADIUS, Color.DeepSkyBlue, false, 2f);
+                if (font != null)
+                {
+                    string mpText = "MP";
+                    Vector2 textSize = font.MeasureString(mpText);
+                    Vector2 textPos = _mpButtonCenter - textSize * 0.5f;
+                    sb.DrawString(font, mpText, textPos + new Vector2(1, 1), Color.Black);
+                    sb.DrawString(font, mpText, textPos, Color.White);
+                }
+
+                // 5. Draw Top Menu Shortcut Buttons
+                DrawPillButton(sb, pixel, font, _invBtnRect, "INV", _invPressed, new Color(40, 140, 80));
+                DrawPillButton(sb, pixel, font, _statsBtnRect, "STATS", _statsPressed, new Color(180, 120, 30));
+                DrawPillButton(sb, pixel, font, _warpBtnRect, "WARP", _warpPressed, new Color(60, 100, 180));
+
+                // 6. Real-time Diagnostic HUD (requested by user)
+                if (font != null)
+                {
+                    var world = _scene?.World;
+                    var terrain = world?.Terrain;
+                    string diag1 = $"MAP: {world?.Name ?? "None"} (W:{world?.WorldIndex}, St:{world?.Status}) | TER: {terrain?.Status} (Vis:{terrain?.Visible}) | HERO: ({_hero?.Location.X:F0},{_hero?.Location.Y:F0})";
+                    string diag2 = $"CAM: ({Camera.Instance.Position.X:F0},{Camera.Instance.Position.Y:F0},{Camera.Instance.Position.Z:F0}) -> ({Camera.Instance.Target.X:F0},{Camera.Instance.Target.Y:F0})";
+
+                    sb.DrawString(font, diag1, new Vector2(11, 11), Color.Black);
+                    sb.DrawString(font, diag1, new Vector2(10, 10), Color.Yellow);
+
+                    sb.DrawString(font, diag2, new Vector2(11, 27), Color.Black);
+                    sb.DrawString(font, diag2, new Vector2(10, 26), Color.Cyan);
+                }
             }
-
-            // 3. Draw HP Potion Button
-            Color hpBg = _hpPressed ? new Color(255, 80, 80, 220) : new Color(180, 30, 30, 180);
-            DrawCircle(sb, pixel, _hpButtonCenter, POTION_RADIUS, hpBg, true);
-            DrawCircle(sb, pixel, _hpButtonCenter, POTION_RADIUS, Color.Red, false, 2f);
-            if (font != null)
-            {
-                string hpText = "HP";
-                Vector2 textSize = font.MeasureString(hpText);
-                Vector2 textPos = _hpButtonCenter - textSize * 0.5f;
-                sb.DrawString(font, hpText, textPos + new Vector2(1, 1), Color.Black);
-                sb.DrawString(font, hpText, textPos, Color.White);
-            }
-
-            // 4. Draw MP Potion Button
-            Color mpBg = _mpPressed ? new Color(80, 140, 255, 220) : new Color(30, 80, 190, 180);
-            DrawCircle(sb, pixel, _mpButtonCenter, POTION_RADIUS, mpBg, true);
-            DrawCircle(sb, pixel, _mpButtonCenter, POTION_RADIUS, Color.DeepSkyBlue, false, 2f);
-            if (font != null)
-            {
-                string mpText = "MP";
-                Vector2 textSize = font.MeasureString(mpText);
-                Vector2 textPos = _mpButtonCenter - textSize * 0.5f;
-                sb.DrawString(font, mpText, textPos + new Vector2(1, 1), Color.Black);
-                sb.DrawString(font, mpText, textPos, Color.White);
-            }
-
-            // 5. Draw Top Menu Shortcut Buttons
-            DrawPillButton(sb, pixel, font, _invBtnRect, "INV", _invPressed, new Color(40, 140, 80));
-            DrawPillButton(sb, pixel, font, _statsBtnRect, "STATS", _statsPressed, new Color(180, 120, 30));
-            DrawPillButton(sb, pixel, font, _warpBtnRect, "WARP", _warpPressed, new Color(60, 100, 180));
-
-            // 6. Real-time Diagnostic HUD (requested by user)
-            if (font != null)
-            {
-                var world = _scene?.World;
-                var terrain = world?.Terrain;
-                string diag1 = $"MAP: {world?.Name ?? "None"} (W:{world?.WorldIndex}, St:{world?.Status}) | TER: {terrain?.Status} (Vis:{terrain?.Visible}) | HERO: ({_hero?.Location.X:F0},{_hero?.Location.Y:F0})";
-                string diag2 = $"CAM: ({Camera.Instance.Position.X:F0},{Camera.Instance.Position.Y:F0},{Camera.Instance.Position.Z:F0}) -> ({Camera.Instance.Target.X:F0},{Camera.Instance.Target.Y:F0})";
-
-                sb.DrawString(font, diag1, new Vector2(11, 11), Color.Black);
-                sb.DrawString(font, diag1, new Vector2(10, 10), Color.Yellow);
-
-                sb.DrawString(font, diag2, new Vector2(11, 27), Color.Black);
-                sb.DrawString(font, diag2, new Vector2(10, 26), Color.Cyan);
-            }
-
-            sb.End();
-
-            base.Draw(gameTime);
         }
 
         private static void DrawPillButton(SpriteBatch sb, Texture2D pixel, SpriteFont font, Rectangle rect, string text, bool pressed, Color accent)

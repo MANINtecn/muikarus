@@ -862,6 +862,21 @@ namespace Client.Main.Scenes
                 return;
             }
 
+            // 1. Draw 3D World first!
+            try
+            {
+                if (World != null && World.Visible)
+                {
+                    World.Draw(gameTime);
+                    World.DrawAfter(gameTime);
+                }
+            }
+            catch (Exception ex)
+            {
+                OnScreenLogger.Log($"[DRAW] Erro World.Draw: {ex.Message}", LogLevel.Error);
+            }
+
+            // 2. Draw 2D UI Controls on top of 3D World!
             using (new SpriteBatchScope(
                        GraphicsManager.Instance.Sprite,
                        SpriteSortMode.Deferred,
@@ -873,13 +888,25 @@ namespace Client.Main.Scenes
                 {
                     var ctrl = Controls[i];
                     if (ctrl != World && ctrl != _inventoryControl?._pickedItemRenderer && ctrl.Visible)
-                        ctrl.Draw(gameTime);
+                    {
+                        try
+                        {
+                            ctrl.Draw(gameTime);
+                        }
+                        catch (Exception ex)
+                        {
+                            OnScreenLogger.Log($"[DRAW] Erro em {ctrl.GetType().Name}: {ex.Message}", LogLevel.Warning);
+                        }
+                    }
                 }
 
-                _inventoryControl?._pickedItemRenderer?.Draw(gameTime);
+                try
+                {
+                    _inventoryControl?._pickedItemRenderer?.Draw(gameTime);
+                }
+                catch { }
             }
 
-            base.Draw(gameTime);
             _characterInfoWindow?.BringToFront();
         }
 
