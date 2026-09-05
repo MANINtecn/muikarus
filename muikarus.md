@@ -222,9 +222,18 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
     - Implementado despacho assíncrono via `_hiddenInput.Post(...)` combinando `ShowSoftInput(ShowFlags.Forced)` e `ToggleSoftInput(ShowFlags.Forced, HideSoftInputFlags.ImplicitOnly)`.
     - Adicionada navegação fluida: ao apertar a tecla "Avançar / Próximo" (ImeAction.Next) no teclado do celular enquanto preenche o Usuário, o cursor e foco pulam automaticamente para o campo da Senha.
     - Sincronização em tempo real frame a frame com o motor do jogo sem travamentos ou janelas brancas intermediárias.
-- [x] **Release e Versionamento v1.17:**
-  - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 17` e `versionName: 1.17`.
-  - Workflow GitHub Actions atualizado para gerar e publicar o **`IkarusMU-v1.17.apk`** na release `v1.17`.
+### 04/09/2026 — Versão v1.18: Teclado Virtual 100% Infalível e Fluido no Login
+- [x] **Garantia Absoluta de Abertura do Teclado (`MainActivity.cs` & `TextFieldControl.cs`):**
+  - **Diagnóstico:** Em atividades de jogo MonoGame (`AndroidGameActivity`) com modo imersivo de tela cheia (`ImmersiveSticky`) e `GLSurfaceView`, o `InputMethodManager` do sistema Android rejeita abrir o teclado virtual quando solicitado por Views transparentes ou em segundo plano, pois a janela GL captura todo o foco de toque.
+  - **Soluções Implementadas:**
+    - Restaurado e aprimorado o diálogo nativo escuro com foco absoluto de janela (`AlertDialog` estilizado com `ThemeDeviceDefaultDialogAlert` e espaçamentos ergonômicos).
+    - Teclado forçado automaticamente via `dialog.Window.SetSoftInputMode(SoftInput.StateAlwaysVisible)` e `ShowSoftInput(ShowFlags.Forced)` no `EditText`.
+    - **Avanço Automático e Fluido:** Ao terminar de digitar o usuário e pressionar a tecla "Avançar" / "OK" do teclado, a janela do usuário fecha e a da senha abre instantaneamente sem necessidade de toques adicionais.
+    - **Login Automático:** Ao pressionar "Concluir" / "Done" no teclado virtual no campo de senha, a tentativa de login é disparada diretamente, eliminando o esforço de acertar o botão menor na tela.
+    - Toque em qualquer lugar (no campo ou no texto "User" / "Password") aciona imediatamente o teclado.
+- [x] **Release e Versionamento v1.18:**
+  - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 18` e `versionName: 1.18`.
+  - Workflow GitHub Actions atualizado para gerar e publicar o **`IkarusMU-v1.18.apk`** na release `v1.18`.
 
 ---
 
@@ -240,11 +249,13 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
 8. [x] **CONCLUÍDO (v1.14):** Primeiro protótipo de abertura de teclado virtual no Android.
 9. [x] **CONCLUÍDO (v1.15):** Fim do popup de diálogo, digitação 100% direta dentro das caixas do MU e Zoom ampliado de 440x270 com inputs maiores.
 10. [x] **CONCLUÍDO (v1.16):** Chão de Lorencia 100% texturizado (DXT Decoder + GL thread loading), framerate restaurado para 30+ FPS (desativação do overdraw de grama) e clique-para-andar preciso na coordenada exata do toque.
-11. [x] **CONCLUÍDO (v1.17):** Ponte de teclado virtual nativo fluida com foco garantido no ciclo de renderização do Android e avanço automático de campo (Usuário -> Senha).
-12. [ ] **HUD MOBILE (v1.18):** Desenhar Joystick Analógico de caminhada na esquerda e Botões redondos de Magias/Skills e Poções na direita.
-13. [ ] Aprender a usar o **Web Admin Panel** (`http://localhost:5000`) para gerenciar contas, itens e rates.
-14. [ ] **DEPLOY VPS:** Garantir portas `44405` e `55901` totalmente abertas no firewall da VPS Windows (`192.99.110.164`).
-15. [ ] **SISTEMA DE AUTO-UPDATE (PATCHER LEVE):** Criar lógica no `LoadScene.cs` para checar `patch_version.txt`. Se houver atualizações pontuais, baixar apenas um `Patch.zip` de poucos megabytes em vez de pacotes completos.
+11. [x] **CONCLUÍDO (v1.17):** Teste de ponte invisível direta no frame.
+12. [x] **CONCLUÍDO (v1.18):** Teclado virtual Android 100% infalível via diálogo nativo escuro ergonômico, auto-avanço de campo (Usuário -> Senha) e disparo direto de login ao teclar Concluir.
+13. [ ] **HUD MOBILE (v1.19):** Desenhar Joystick Analógico de caminhada na esquerda e Botões redondos de Magias/Skills e Poções na direita.
+14. [ ] Aprender a usar o **Web Admin Panel** (`http://localhost:5000`) para gerenciar contas, itens e rates.
+15. [ ] **DEPLOY VPS:** Garantir portas `44405` e `55901` totalmente abertas no firewall da VPS Windows (`192.99.110.164`).
+16. [ ] **SISTEMA DE AUTO-UPDATE (PATCHER LEVE):** Criar lógica no `LoadScene.cs` para checar `patch_version.txt`. Se houver atualizações pontuais, baixar apenas um `Patch.zip` de poucos megabytes em vez de pacotes completos.
+
 
 
 

@@ -127,13 +127,14 @@ namespace Client.Main.Controls.UI.Login
             };
             _userInput.NextInput = _passwordInput;
             _passwordInput.ValueChanged += PasswordInput_EnterPressed; // Use dedicated method
+            _passwordInput.EnterKeyPressed += (s, e) => AttemptLogin();
             Controls.Add(_userInput);
             Controls.Add(_passwordInput);
 
-            _userInput.Click += (s, e) => { _userInput.OnFocus(); _passwordInput.OnBlur(); };
-            _passwordInput.Click += (s, e) => { _passwordInput.OnFocus(); _userInput.OnBlur(); };
-            userLabel.Click += (s, e) => { _userInput.OnFocus(); _passwordInput.OnBlur(); };
-            passwordLabel.Click += (s, e) => { _passwordInput.OnFocus(); _userInput.OnBlur(); };
+            _userInput.Click += (s, e) => { _userInput.OnFocus(); _passwordInput.OnBlur(); _userInput.TriggerSoftKeyboard(); };
+            _passwordInput.Click += (s, e) => { _passwordInput.OnFocus(); _userInput.OnBlur(); _passwordInput.TriggerSoftKeyboard(); };
+            userLabel.Click += (s, e) => { _userInput.OnFocus(); _passwordInput.OnBlur(); _userInput.TriggerSoftKeyboard(); };
+            passwordLabel.Click += (s, e) => { _passwordInput.OnFocus(); _userInput.OnBlur(); _passwordInput.TriggerSoftKeyboard(); };
 
             _okButton = new OkButton
             {

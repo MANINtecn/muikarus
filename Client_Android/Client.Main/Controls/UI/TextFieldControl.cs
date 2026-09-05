@@ -30,6 +30,7 @@ namespace Client.Main.Controls.UI
 
         private Texture2D[] _nineSlice = new Texture2D[9];
 
+        public static Func<string, string, string, bool, Task<string>> ShowKeyboardAsync;
         public static Action<TextFieldControl> OnFieldFocused;
         public static Action OnFieldBlurred;
 
@@ -40,6 +41,8 @@ namespace Client.Main.Controls.UI
         public bool IsFocused { get; private set; }
         public string Label { get; set; }
         public string Placeholder { get; set; }
+
+        private bool _isPromptOpen;
 
         public string Value
         {
@@ -83,7 +86,56 @@ namespace Client.Main.Controls.UI
         {
             bool handled = base.OnClick();
             OnFocus();
+            TriggerSoftKeyboard();
             return handled;
+        }
+
+        public void TriggerSoftKeyboard()
+        {
+            if (ShowKeyboardAsync == null || _isPromptOpen)
+                return;
+
+            _isPromptOpen = true;
+            Task.Run(async () =>
+            {
+                try
+                {
+                    string title = !string.IsNullOrEmpty(Label) ? Label : (MaskValue ? "Senha" : "Usuário");
+                    string desc = !string.IsNullOrEmpty(Placeholder) ? Placeholder : (MaskValue ? "Digite sua senha" : "Digite seu usuário");
+                    string defText = Value ?? string.Empty;
+
+                    var result = await ShowKeyboardAsync(title, desc, defText, MaskValue);
+                    if (result != null)
+                    {
+                        MuGame.ScheduleOnMainThread(() =>
+                        {
+                            Value = result;
+                            ValueChanged?.Invoke(this, EventArgs.Empty);
+
+                            if (NextInput != null)
+                            {
+                                Task.Run(async () =>
+                                {
+                                    await Task.Delay(150);
+                                    MuGame.ScheduleOnMainThread(() =>
+                                    {
+                                        NextInput.OnFocus();
+                                        NextInput.TriggerSoftKeyboard();
+                                    });
+                                });
+                            }
+                            else
+                            {
+                                EnterKeyPressed?.Invoke(this, EventArgs.Empty);
+                            }
+                        });
+                    }
+                }
+                finally
+                {
+                    _isPromptOpen = false;
+                }
+            });
         }
 
         public override void OnFocus()
