@@ -1,4 +1,4 @@
-﻿using Client.Data.BMD;
+using Client.Data.BMD;
 using Client.Data.Texture;
 using Client.Main.Content;
 using Client.Main.Controllers;
@@ -33,7 +33,7 @@ namespace Client.Main.Objects
         private bool _invalidatedBuffers = true;
         private float _blendMeshLight = 1f;
         protected double _animTime = 0.0;
-        private bool _contentLoaded = false;
+        protected bool _contentLoaded = false;
         public float ShadowOpacity { get; set; } = 1f;
         public Color Color { get; set; } = Color.White;
         protected Matrix[] BoneTransform { get; set; }
