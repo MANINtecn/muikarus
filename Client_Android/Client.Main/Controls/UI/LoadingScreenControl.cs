@@ -18,6 +18,9 @@ namespace Client.Main.Controls.UI.Game
         private const int ProgressBarMargin = 100; // Margin from screen edges
         private const int ProgressBarYOffset = 50; // Offset from the bottom of the screen
 
+        private float _visibleDuration = 0f;
+        public float AutoDismissTimeout { get; set; } = 0f;
+
         public string Message
         {
             get => _pendingMessage;
@@ -28,6 +31,20 @@ namespace Client.Main.Controls.UI.Game
         {
             get => _progress;
             set => _progress = MathHelper.Clamp(value, 0f, 1f);
+        }
+
+        public override void Update(GameTime gameTime)
+        {
+            base.Update(gameTime);
+            if (Visible && AutoDismissTimeout > 0f)
+            {
+                _visibleDuration += (float)gameTime.ElapsedGameTime.TotalSeconds;
+                if (_visibleDuration >= AutoDismissTimeout)
+                {
+                    Visible = false;
+                    Parent?.Controls.Remove(this);
+                }
+            }
         }
 
         public override async Task Load()
@@ -86,7 +103,7 @@ namespace Client.Main.Controls.UI.Game
 
         public override void Draw(GameTime gameTime)
         {
-            if (!Visible) return;
+            if (!Visible || Status == GameControlStatus.Disposed) return;
 
             var gd = GraphicsManager.Instance.GraphicsDevice;
             var spriteBatch = GraphicsManager.Instance.Sprite;

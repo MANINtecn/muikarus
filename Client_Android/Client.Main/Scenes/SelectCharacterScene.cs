@@ -26,6 +26,7 @@ namespace Client.Main.Scenes
         private (string Name, CharacterClassNumber Class, ushort Level)? _selectedCharacterInfo = null;
         private LoadingScreenControl _loadingScreen;
         private bool _initialLoadComplete = false;
+        private float _selectionElapsed = 0f;
 
         // Constructors
         public SelectCharacterScene(List<(string Name, CharacterClassNumber Class, ushort Level)> characters)
@@ -398,8 +399,12 @@ namespace Client.Main.Scenes
 
             if (_loadingScreen == null)
             {
-                _loadingScreen = new LoadingScreenControl { Visible = true };
+                _loadingScreen = new LoadingScreenControl { Visible = true, AutoDismissTimeout = 7.0f };
                 Controls.Add(_loadingScreen);
+            }
+            else
+            {
+                _loadingScreen.AutoDismissTimeout = 7.0f;
             }
             _loadingScreen.Message = $"Entering game as {characterName}...";
             _loadingScreen.Progress = 0f;
@@ -410,6 +415,7 @@ namespace Client.Main.Scenes
 
         private void EnableInteractionAfterSelection()
         {
+            _selectionElapsed = 0f;
             if (_selectWorld != null)
             {
                 _selectWorld.Interactive = true;
@@ -439,6 +445,21 @@ namespace Client.Main.Scenes
 
         public override void Update(GameTime gameTime)
         {
+            if (_selectedCharacterInfo.HasValue)
+            {
+                _selectionElapsed += (float)gameTime.ElapsedGameTime.TotalSeconds;
+                if (_selectionElapsed > 7f)
+                {
+                    _logger?.LogWarning("Selection request timed out after 7s. Re-enabling interaction.");
+                    _selectionElapsed = 0f;
+                    EnableInteractionAfterSelection();
+                }
+            }
+            else
+            {
+                _selectionElapsed = 0f;
+            }
+
             if (_loadingScreen != null && _loadingScreen.Visible)
             {
                 _loadingScreen.Update(gameTime);

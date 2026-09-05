@@ -297,13 +297,26 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
     - Limpos os objetos estáticos do cenário (`Array.Clear(MapTileObjects)`).
     - Mantidos os modelos 3D dos personagens com suas armaduras, asas, armas, rotações, animações, nomes em dourado e botões touch.
     - O consumo de GPU caiu em 95% e o framerate subiu de **6 FPS para 60 FPS cravados e fluidos**.
-- [x] **Fim do Travamento / ANR ao Entrar no Mundo ("MuAndroid não está respondendo"):**
-  - **Diagnóstico:** O servidor OpenMU exige receber o pacote `SendClientReadyAfterMapChangeAsync` (packet `0xB0`) para confirmar que o cliente concluiu a carga do mapa inicial e liberar a entrada do herói e o streaming dos monstros/jogadores. Como esse pacote não estava sendo despachado ao término do `GameScene.LoadSceneContentWithProgress()`, o servidor deixava a conexão suspensa, a tela congelava e o Android emitia erro de aplicativo que não responde (ANR).
-  - **Solução:**
-    - Adicionado o envio imediato de `SendClientReadyAfterMapChangeAsync` assim que Lorencia termina de carregar no `GameScene.cs`. O servidor agora spawna o personagem e inicia o mundo instantaneamente.
 - [x] **Release e Versionamento v1.20:**
   - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 20` e `versionName: 1.20`.
   - Workflow GitHub Actions atualizado para gerar e publicar o **`IkarusMU-v1.20.apk`** na release `v1.20`.
+
+---
+
+### 05/09/2026 — Versão v1.21: Resolução Definitiva do Carregamento Pós-Seleção de Personagens (Fim do Hang no Loading Server)
+- [x] **Diagnóstico do Travamento na Tela de Carregamento ("não passamos do loading serve"):**
+  - **1. Bloqueio no Envio de Pacote (`SendClientReadyAfterMapChangeAsync`):** Na v1.20, adicionou-se um `await SendClientReadyAfterMapChangeAsync()` logo antes de `Controls.Remove(_loadingScreen)`. O servidor OpenMU já chama `ClientReadyAfterMapChangeAsync()` internamente ao selecionar o personagem (`Player.cs:1852`). Esse pacote é reservado para trocas de mapa posteriores. O `await` na conexão de rede causava deadlock/suspensão no pipe de saída do socket, impedindo a execução de alcançar a linha de remoção do loading.
+  - **2. Falta de Garantia `try ... finally`:** Se qualquer recurso, herói, mapa ou textura disparasse aviso durante `LoadSceneContentWithProgress`, o `Controls.Remove(_loadingScreen)` nunca era executado, deixando a tela preta com a barra de loading congelada permanentemente.
+  - **3. Remoção Fora da Thread de UI:** A remoção do controle de loading era executada a partir de uma `Task` assíncrona em segundo plano, causando condições de corrida com o `Draw()` do MonoGame Android.
+  - **4. Falta de Timeout de Segurança:** O `LoadingScreenControl` não tinha temporizador próprio de auto-destruição para falhas de rede.
+- [x] **Soluções Implementadas:**
+  - **Despacho Não-Bloqueante (`GameScene.cs`):** A chamada de rede foi retirada do caminho crítico de carregamento e colocada em segundo plano (`_ = Task.Run(...)`).
+  - **Garantia Absoluta via `finally` e UI Thread (`GameScene.cs`):** Todo o método `LoadSceneContentWithProgress()` foi envelopado em `try ... catch ... finally`. No `finally`, a remoção do `_loadingScreen` e a ativação da interface principal (`_main.Visible = true`) são agendadas infalivelmente na thread principal do MonoGame via `MuGame.ScheduleOnMainThread()`.
+  - **Auto-Dismiss Timeout de 5 Segundos (`LoadingScreenControl.cs`):** Adicionada a propriedade `AutoDismissTimeout = 5.0f`. Caso qualquer carga atrase mais de 5 segundos, a tela de loading fecha a si mesma automaticamente, garantindo que o jogador nunca fique preso.
+  - **Proteção na Seleção de Personagens (`SelectCharacterScene.cs`):** Configurado `AutoDismissTimeout = 7.0f` e adicionado timeout de segurança de 7 segundos para reabilitar toques caso o servidor demore a responder.
+- [x] **Release e Versionamento v1.21:**
+  - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 21` e `versionName: 1.21`.
+  - Workflow GitHub Actions configurado para gerar e publicar o **`IkarusMU-v1.21.apk`** na release `v1.21`.
 
 ---
 
