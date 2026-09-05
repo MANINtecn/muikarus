@@ -350,6 +350,63 @@ namespace Client.Main.Scenes
             }
         }
 
+        public override async Task Initialize()
+        {
+            if (Status != GameControlStatus.NonInitialized)
+                return;
+
+            Status = GameControlStatus.Initializing;
+            OnScreenLogger.Log("GameScene: Inicializando mundo e heroi...");
+
+            try
+            {
+                // Ensure loading screen is initialized so it can draw progress and diagnostic logs
+                if (_loadingScreen != null && _loadingScreen.Status == GameControlStatus.NonInitialized)
+                {
+                    try { await _loadingScreen.Initialize(); } catch { }
+                }
+
+                // Execute the progressive load directly (World, Hero, NPCs, Sounds)
+                await LoadSceneContentWithProgress(UpdateLoadProgress);
+
+                Status = GameControlStatus.Ready;
+                OnScreenLogger.Log("GameScene: Pronto! Lorencia 3D ativa!");
+
+                // Initialize secondary UI controls sequentially in background without blocking world entry
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var uiControls = new GameControl[] { _main, _chatLog, _chatInput, _notificationManager, _inventoryControl, _moveCommandWindow, _characterInfoWindow };
+                        foreach (var ctrl in uiControls)
+                        {
+                            if (ctrl != null && ctrl.Status == GameControlStatus.NonInitialized)
+                            {
+                                try
+                                {
+                                    await ctrl.Initialize();
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger?.LogWarning(ex, "Failed to initialize UI control {CtrlType}", ctrl.GetType().Name);
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogWarning(ex, "Failed to initialize secondary UI controls");
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                OnScreenLogger.Log($"ERRO fatal ao inicializar GameScene: {ex.Message}", LogLevel.Error);
+                _logger?.LogError(ex, "Fatal error initializing GameScene.");
+                Status = GameControlStatus.Error;
+            }
+        }
+
         public override async Task Load()
         {
             // This method is called by BaseScene.Initialize() if LoadSceneContentWithProgress is not overridden,

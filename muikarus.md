@@ -347,6 +347,26 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
 
 ---
 
+### 05/09/2026 — Versão v1.23: Desacoplamento da Inicialização do GameScene e Entrada Direta no Mundo 3D
+- [x] **Causa Raiz Identificada do Congelamento no Loading (0%):**
+  - O print de diagnóstico em tempo real no Android revelou que após a autorização do servidor (`Servidor autorizou entrada de testgmElf! Trocando para GameScene...`), a tela permanecia em `Loading Game... (0%)`.
+  - O `GameScene` **não sobrescrevia** o método `Initialize()`, utilizando o padrão de `GameControl.Initialize()`.
+  - `GameControl.Initialize()` continha um `Task.WhenAll(taskList)` disparado para todos os 11 controles filhos da cena simultaneamente (`MainControl`, `InventoryControl`, `MoveCommandWindow`, `ChatLogWindow`, etc.).
+  - No MonoGame Android / OpenGL ES, a tentativa de alocar centenas de texturas simultaneamente em várias threads do threadpool sem contexto compartilhado causava um deadlock assíncrono/ANR ("MuAndroid não está respondendo"). Como consequência, o `await Load()` nunca era alcançado e a Lorencia jamais era criada ou desenhada!
+- [x] **Solução Implementada (Override de `GameScene.Initialize`):**
+  - O `GameScene.cs` agora sobrescreve explicitamente `public override async Task Initialize()`.
+  - O carregamento da Lorencia (`LorenciaWorld`) e do Herói (`_hero`) é disparado de forma direta, progressiva e prioritária através de `LoadSceneContentWithProgress`.
+  - O status da cena é promovido imediatamente para `GameControlStatus.Ready`, ativando o loop de renderização 3D e liberando o jogador no mapa.
+  - Os controles secundários de UI (inventário, chat, notificações) são inicializados de forma assíncrona e segura em segundo plano sem bloquear a entrada do mundo.
+- [x] **Cronômetro Monotônico e Botão Touch Otimizado (`LoadingScreenControl.cs`):**
+  - O tempo decorrido agora utiliza `Stopwatch.StartNew()` monotônico independente da taxa de quadros.
+  - O botão de forçar entrada foi redimensionado para `180x32` com rótulo `[ ENTRAR (X) ]`, garantindo 100% de visibilidade e resposta ao toque na tela sem encostar no cabeçalho amarelo de diagnóstico.
+- [x] **Release e Versionamento v1.23:**
+  - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 23` e `versionName: 1.23`.
+  - Workflow GitHub Actions configurado para compilar e gerar o APK **`IkarusMU-v1.23.apk`** na release `v1.23`.
+
+---
+
 ## 🛠️ PRÓXIMOS PASSOS (ROADMAP)
 
 1. [x] Instalar .NET 8 / 10 SDK e compilar a solução `OpenMU`.

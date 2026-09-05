@@ -21,7 +21,8 @@ namespace Client.Main.Controls.UI.Game
         private const int ProgressBarMargin = 40;
         private const int ProgressBarYOffset = 30;
 
-        private float _visibleDuration = 0f;
+        private readonly System.Diagnostics.Stopwatch _stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        private float _visibleDuration => (float)_stopwatch.Elapsed.TotalSeconds;
         public float AutoDismissTimeout { get; set; } = 0f;
 
         private Rectangle _dismissButtonRect;
@@ -59,8 +60,6 @@ namespace Client.Main.Controls.UI.Game
 
             if (Visible)
             {
-                _visibleDuration += (float)gameTime.ElapsedGameTime.TotalSeconds;
-
                 // Check touch / click on Dismiss button
                 var mouse = MuGame.Instance.Mouse;
                 if (mouse.LeftButton == ButtonState.Pressed && _dismissButtonRect.Contains(mouse.Position))
@@ -140,7 +139,6 @@ namespace Client.Main.Controls.UI.Game
             var pixel = GraphicsManager.Instance.Pixel;
 
             // Failsafe auto-dismiss check during draw loop
-            _visibleDuration += (float)gameTime.ElapsedGameTime.TotalSeconds;
             if (AutoDismissTimeout > 0f && _visibleDuration >= AutoDismissTimeout)
             {
                 Dismiss();
@@ -148,9 +146,9 @@ namespace Client.Main.Controls.UI.Game
             }
 
             // Define button rect in top right
-            int btnWidth = 260;
-            int btnHeight = 36;
-            _dismissButtonRect = new Rectangle(gd.Viewport.Width - btnWidth - 15, 12, btnWidth, btnHeight);
+            int btnWidth = 180;
+            int btnHeight = 32;
+            _dismissButtonRect = new Rectangle(gd.Viewport.Width - btnWidth - 16, 12, btnWidth, btnHeight);
 
             // Check touch in Draw loop as well (for guaranteed responsiveness)
             var mouse = MuGame.Instance.Mouse;
@@ -174,7 +172,7 @@ namespace Client.Main.Controls.UI.Game
                 if (_font != null)
                 {
                     // 1. Top Title
-                    string title = $"[IKARUS MU v1.22] CARREGANDO MUNDO ({_visibleDuration:F1}s)";
+                    string title = $"[IKARUS MU v1.23] CARREGANDO MUNDO ({_visibleDuration:F1}s)";
                     spriteBatch.DrawString(_font, title, new Vector2(20, 16), Color.Goldenrod);
 
                     // 2. Dismiss Button (Top Right)
@@ -185,7 +183,7 @@ namespace Client.Main.Controls.UI.Game
                     spriteBatch.Draw(pixel, new Rectangle(_dismissButtonRect.X, _dismissButtonRect.Y, 2, _dismissButtonRect.Height), Color.Gold);
                     spriteBatch.Draw(pixel, new Rectangle(_dismissButtonRect.Right - 2, _dismissButtonRect.Y, 2, _dismissButtonRect.Height), Color.Gold);
 
-                    string btnText = "[ FORCAR ENTRADA (X) ]";
+                    string btnText = "[ ENTRAR (X) ]";
                     Vector2 btnTextSize = _font.MeasureString(btnText);
                     Vector2 btnTextPos = new Vector2(
                         _dismissButtonRect.X + (_dismissButtonRect.Width - btnTextSize.X) * 0.5f,
