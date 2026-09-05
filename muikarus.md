@@ -314,9 +314,36 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
   - **Garantia Absoluta via `finally` e UI Thread (`GameScene.cs`):** Todo o método `LoadSceneContentWithProgress()` foi envelopado em `try ... catch ... finally`. No `finally`, a remoção do `_loadingScreen` e a ativação da interface principal (`_main.Visible = true`) são agendadas infalivelmente na thread principal do MonoGame via `MuGame.ScheduleOnMainThread()`.
   - **Auto-Dismiss Timeout de 5 Segundos (`LoadingScreenControl.cs`):** Adicionada a propriedade `AutoDismissTimeout = 5.0f`. Caso qualquer carga atrase mais de 5 segundos, a tela de loading fecha a si mesma automaticamente, garantindo que o jogador nunca fique preso.
   - **Proteção na Seleção de Personagens (`SelectCharacterScene.cs`):** Configurado `AutoDismissTimeout = 7.0f` e adicionado timeout de segurança de 7 segundos para reabilitar toques caso o servidor demore a responder.
+### 05/09/2026 — Versão v1.21: Resolução Definitiva do Carregamento Pós-Seleção de Personagens (Fim do Hang no Loading Server)
+- [x] **Diagnóstico do Travamento na Tela de Carregamento ("não passamos do loading serve"):**
+  - **1. Bloqueio no Envio de Pacote (`SendClientReadyAfterMapChangeAsync`):** Na v1.20, adicionou-se um `await SendClientReadyAfterMapChangeAsync()` logo antes de `Controls.Remove(_loadingScreen)`. O servidor OpenMU já chama `ClientReadyAfterMapChangeAsync()` internamente ao selecionar o personagem (`Player.cs:1852`). Esse pacote é reservado para trocas de mapa posteriores. O `await` na conexão de rede causava deadlock/suspensão no pipe de saída do socket, impedindo a execução de alcançar a linha de remoção do loading.
+  - **2. Falta de Garantia `try ... finally`:** Se qualquer recurso, herói, mapa ou textura disparasse aviso durante `LoadSceneContentWithProgress`, o `Controls.Remove(_loadingScreen)` nunca era executado, deixando a tela preta com a barra de loading congelada permanentemente.
+  - **3. Remoção Fora da Thread de UI:** A remoção do controle de loading era executada a partir de uma `Task` assíncrona em segundo plano, causando condições de corrida com o `Draw()` do MonoGame Android.
+  - **4. Falta de Timeout de Segurança:** O `LoadingScreenControl` não tinha temporizador próprio de auto-destruição para falhas de rede.
+- [x] **Soluções Implementadas:**
+  - **Despacho Não-Bloqueante (`GameScene.cs`):** A chamada de rede foi retirada do caminho crítico de carregamento e colocada em segundo plano (`_ = Task.Run(...)`).
+  - **Garantia Absoluta via `finally` e UI Thread (`GameScene.cs`):** Todo o método `LoadSceneContentWithProgress()` foi envelopado em `try ... catch ... finally`. No `finally`, a remoção do `_loadingScreen` e a ativação da interface principal (`_main.Visible = true`) são agendadas infalivelmente na thread principal do MonoGame via `MuGame.ScheduleOnMainThread()`.
+  - **Auto-Dismiss Timeout de 5 Segundos (`LoadingScreenControl.cs`):** Adicionada a propriedade `AutoDismissTimeout = 5.0f`. Caso qualquer carga atrase mais de 5 segundos, a tela de loading fecha a si mesma automaticamente, garantindo que o jogador nunca fique preso.
+  - **Proteção na Seleção de Personagens (`SelectCharacterScene.cs`):** Configurado `AutoDismissTimeout = 7.0f` e adicionado timeout de segurança de 7 segundos para reabilitar toques caso o servidor demore a responder.
 - [x] **Release e Versionamento v1.21:**
   - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 21` e `versionName: 1.21`.
   - Workflow GitHub Actions configurado para gerar e publicar o **`IkarusMU-v1.21.apk`** na release `v1.21`.
+
+---
+
+### 05/09/2026 — Versão v1.22: Diagnóstico em Tempo Real na Tela (HUD Logger), Botão Forçar Entrada e Timeouts Defensivos
+- [x] **Logs em Tempo Real na Tela (On-Screen HUD Logger):**
+  - Implementado o **`OnScreenLogger.cs`** acoplado ao `ILoggerFactory` do motor do jogo, capturando logs de rede, carregamento, mapa e erros em tempo real.
+  - A tela de carregamento agora renderiza uma janela translúcida com os últimos 10 logs do jogo com timestamp e coloração por severidade (Verde = Sucesso/OK, Amarelo = Aviso, Vermelho = Erro).
+  - Permite ao jogador e ao suporte tirar print da tela para diagnóstico instantâneo de qualquer linha ou arquivo com problema.
+- [x] **Botão Touch "FORÇAR ENTRADA NO MUNDO (X)":**
+  - Adicionado um botão touch destacado no canto superior direito da tela de carregamento (`[ FORCAR ENTRADA (X) ]`).
+  - Tocar nesse botão fecha o loading imediatamente, liberando o controle e a visão de Lorencia mesmo se algum recurso secundário estiver em carregamento lento.
+- [x] **Timeouts Defensivos em Carregamento de Recursos Móveis:**
+  - `GameScene.cs`: O carregamento do mundo 3D agora possui limite máximo não-bloqueante de 4 segundos (`Task.WhenAny`), carregamento de herói limitado a 3 segundos e entidades a 2 segundos. Se a memória ou I/O do celular engasgar na leitura de centenas de objetos, o jogo continua e libera a tela normalmente sem travar o jogador.
+- [x] **Release e Versionamento v1.22:**
+  - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 22` e `versionName: 1.22`.
+  - Workflow GitHub Actions configurado para gerar e publicar o **`IkarusMU-v1.22.apk`** na release `v1.22`.
 
 ---
 

@@ -165,6 +165,7 @@ namespace Client.Main.Scenes
         // ───────────────────── Content Loading (Progressive) ─────────────────────
         private void UpdateLoadProgress(string message, float progress)
         {
+            OnScreenLogger.Log(message);
             MuGame.ScheduleOnMainThread(() => // Ensure UI updates are on the main thread
             {
                 if (_loadingScreen != null)
@@ -179,15 +180,16 @@ namespace Client.Main.Scenes
         {
             try
             {
-                UpdateLoadProgress("Initializing Game Scene...", 0.0f);
+                UpdateLoadProgress("Iniciando carregamento do jogo...", 0.0f);
 
                 // 1. Hero Setup
-                UpdateLoadProgress("Setting up hero info...", 0.05f);
+                UpdateLoadProgress("Configurando dados do personagem...", 0.05f);
 
                 var charState = MuGame.Network?.GetCharacterState();
                 if (charState == null)
                 {
-                    UpdateLoadProgress("Error: CharacterState is null.", 1.0f);
+                    UpdateLoadProgress("Erro: CharacterState nulo.", 1.0f);
+                    OnScreenLogger.Log("ERRO: CharacterState nulo ao entrar no mundo.", LogLevel.Error);
                     _logger?.LogDebug("CharacterState is null in GameScene.Load, cannot proceed.");
                     return;
                 }
@@ -209,10 +211,10 @@ namespace Client.Main.Scenes
                 _hero.Location = new Vector2(charState.PositionX, charState.PositionY);
                 _logger?.LogDebug($"GameScene.LoadSceneContentWithProgress: _hero.NetworkId set to {charState.Id:X4}, Location set to ({charState.PositionX}, {charState.PositionY}).");
 
-                UpdateLoadProgress("Hero info applied.", 0.1f);
+                UpdateLoadProgress("Dados do heroi aplicados.", 0.1f);
 
                 // 2. Determine Initial World (Quick)
-                UpdateLoadProgress("Determining initial world...", 0.15f);
+                UpdateLoadProgress("Determinando mapa inicial...", 0.15f);
                 Type initialWorldType = typeof(LorenciaWorld);
                 if (charState != null && MapWorldRegistry.TryGetValue((byte)charState.MapId, out var mappedType))
                 {
@@ -222,10 +224,10 @@ namespace Client.Main.Scenes
                 {
                     _logger?.LogDebug($"GameScene.Load: Unknown MapId: {charState?.MapId}. Defaulting to Lorencia.");
                 }
-                UpdateLoadProgress($"Initial world: {initialWorldType.Name}.", 0.2f);
+                UpdateLoadProgress($"Mapa definido: {initialWorldType.Name}.", 0.2f);
 
                 // 3. Instantiate and Initialize World
-                UpdateLoadProgress($"Loading world: {initialWorldType.Name}...", 0.25f);
+                UpdateLoadProgress($"Instanciando mapa: {initialWorldType.Name}...", 0.25f);
 
                 if (World != null)
                 {
@@ -237,87 +239,71 @@ namespace Client.Main.Scenes
                 var worldInstance = (WorldControl)Activator.CreateInstance(initialWorldType);
                 if (worldInstance is WalkableWorldControl walkable)
                 {
-                    _logger?.LogDebug($"GameScene.LoadSceneContentWithProgress: About to assign _hero to walkable.Walker. _hero.NetworkId: {_hero.NetworkId:X4}");
-
                     walkable.Walker = _hero;
-                    _logger?.LogDebug($"GameScene.LoadSceneContentWithProgress: Assigned _hero ({_hero.NetworkId:X4}) to walkableWorld.Walker.");
-
                     if (walkable.Walker.NetworkId != charState.Id)
                     {
-                        _logger?.LogWarning($"GameScene.LoadSceneContentWithProgress: Walker.NetworkId ({walkable.Walker.NetworkId:X4}) doesn't match expected ({charState.Id:X4}). Re-setting.");
                         walkable.Walker.NetworkId = charState.Id;
                     }
-
-                    _logger?.LogDebug($"GameScene.LoadSceneContentWithProgress: Walker.NetworkId after assignment and verification: {walkable.Walker?.NetworkId:X4}");
                 }
 
                 Controls.Add(worldInstance);
                 World = worldInstance;
-
                 World.Objects.Add(_hero);
-                _logger?.LogDebug($"GameScene.LoadSceneContentWithProgress: Added _hero to World.Objects.");
 
-                await worldInstance.Initialize();
-                UpdateLoadProgress($"World {initialWorldType.Name} initialized.", 0.6f);
+                UpdateLoadProgress($"Carregando terreno e modelos ({initialWorldType.Name})...", 0.35f);
+                // Safety timeout on world initialize (4s max so slow disk/assets don't freeze the player)
+                var worldInitTask = worldInstance.Initialize();
+                var finishedTask = await Task.WhenAny(worldInitTask, Task.Delay(4000));
+                if (finishedTask != worldInitTask)
+                {
+                    OnScreenLogger.Log($"Aviso: Carregamento do mapa demorou >4s. Liberando jogo...", LogLevel.Warning);
+                }
+                UpdateLoadProgress($"Mapa {initialWorldType.Name} pronto.", 0.6f);
 
                 if (worldInstance is WalkableWorldControl walkableAfterInit)
                 {
-                    _logger?.LogDebug($"GameScene.LoadSceneContentWithProgress: Walker.NetworkId after world initialization: {walkableAfterInit.Walker?.NetworkId:X4}");
-
                     if (walkableAfterInit.Walker?.NetworkId != charState.Id)
                     {
-                        _logger?.LogWarning($"GameScene.LoadSceneContentWithProgress: Walker.NetworkId was reset during world initialization. Fixing from {walkableAfterInit.Walker?.NetworkId:X4} to {charState.Id:X4}");
                         walkableAfterInit.Walker.NetworkId = charState.Id;
-                        _logger?.LogDebug($"GameScene.LoadSceneContentWithProgress: Walker.NetworkId after fix: {walkableAfterInit.Walker?.NetworkId:X4}");
                     }
                 }
 
                 // 4. Load Hero Assets
-                UpdateLoadProgress("Loading hero assets...", 0.65f);
+                UpdateLoadProgress("Carregando aparencia do heroi...", 0.65f);
                 if (_hero.Status == GameControlStatus.NonInitialized || _hero.Status == GameControlStatus.Initializing)
                 {
                     ushort expectedNetworkId = charState.Id;
-                    _logger?.LogDebug($"GameScene.LoadSceneContentWithProgress: _hero.NetworkId before Load(): {_hero.NetworkId:X4}");
-
-                    await _hero.Load();
-
-                    _logger?.LogDebug($"GameScene.LoadSceneContentWithProgress: _hero.NetworkId after Load(): {_hero.NetworkId:X4}");
+                    var heroLoadTask = _hero.Load();
+                    await Task.WhenAny(heroLoadTask, Task.Delay(3000));
                     if (_hero.NetworkId != expectedNetworkId)
                     {
-                        _logger?.LogWarning($"GameScene.LoadSceneContentWithProgress: _hero.NetworkId was changed during Load(). Restoring from {_hero.NetworkId:X4} to {expectedNetworkId:X4}");
                         _hero.NetworkId = expectedNetworkId;
                     }
                 }
-                UpdateLoadProgress("Hero assets loaded.", 0.80f);
+                UpdateLoadProgress("Heroi pronto.", 0.80f);
 
                 // 5. Import Pending Objects
-                UpdateLoadProgress("Importing nearby entities...", 0.85f);
+                UpdateLoadProgress("Importando monstros e NPCs...", 0.85f);
                 if (World.Status == GameControlStatus.Ready)
                 {
-                    await ImportPendingRemotePlayers();
-                    await ImportPendingNpcsMonsters();
+                    try
+                    {
+                        await Task.WhenAny(Task.WhenAll(ImportPendingRemotePlayers(), ImportPendingNpcsMonsters()), Task.Delay(2000));
+                    }
+                    catch { }
                 }
-                else
-                {
-                    _logger?.LogDebug($"GameScene.Load: World not ready after Initialize (Status: {World.Status}). Pending objects may not import correctly.");
-                }
-                UpdateLoadProgress("Entities imported.", 0.95f);
+                UpdateLoadProgress("Entidades importadas.", 0.95f);
 
                 // Preload sounds for dropped items
-                UpdateLoadProgress("Preloading sounds...", 0.96f);
-                PreloadSounds();
-                UpdateLoadProgress("Sounds preloaded.", 0.97f);
+                UpdateLoadProgress("Inicializando sons...", 0.96f);
+                try { PreloadSounds(); } catch { }
+                UpdateLoadProgress("Sons prontos.", 0.97f);
 
                 if (World is WalkableWorldControl finalWalkable)
                 {
-                    _logger?.LogDebug($"GameScene.LoadSceneContentWithProgress: FINAL CHECK - Walker.NetworkId: {finalWalkable.Walker?.NetworkId:X4}, CharState.Id: {charState.Id:X4}");
-
-                    // One last check and fix if needed
                     if (finalWalkable.Walker?.NetworkId != charState.Id)
                     {
-                        _logger?.LogError($"GameScene.LoadSceneContentWithProgress: FINAL MISMATCH DETECTED! Attempting final fix...");
                         finalWalkable.Walker.NetworkId = charState.Id;
-                        _logger?.LogDebug($"GameScene.LoadSceneContentWithProgress: After final fix - Walker.NetworkId: {finalWalkable.Walker?.NetworkId:X4}");
                     }
                 }
 
@@ -336,10 +322,12 @@ namespace Client.Main.Scenes
             }
             catch (Exception ex)
             {
+                OnScreenLogger.Log($"ERRO no carregamento: {ex.Message}", LogLevel.Error);
                 _logger?.LogError(ex, "Error during GameScene.LoadSceneContentWithProgress.");
             }
             finally
             {
+                OnScreenLogger.Log(">>> Carregamento concluido com sucesso! Ativando Lorencia 3D.");
                 MuGame.ScheduleOnMainThread(() =>
                 {
                     if (_loadingScreen != null)
@@ -353,7 +341,11 @@ namespace Client.Main.Scenes
                     {
                         _main.Visible = true;
                     }
-                    UpdateLoadProgress("Game ready!", 1.0f);
+                    if (World != null)
+                    {
+                        World.Visible = true;
+                    }
+                    UpdateLoadProgress("Jogo pronto!", 1.0f);
                 });
             }
         }

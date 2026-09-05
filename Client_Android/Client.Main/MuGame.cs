@@ -202,6 +202,7 @@ namespace Client.Main
                     AppConfiguration.GetSection("Logging:SimpleConsole").Bind(options);
                     options.IncludeScopes = true; // Optional: Include scopes if you use them
                 });
+                builder.AddProvider(new Client.Main.Helpers.OnScreenLoggerProvider());
             });
 
             _logger = AppLoggerFactory.CreateLogger<MuGame>();

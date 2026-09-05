@@ -1,6 +1,7 @@
 using Client.Main.Controls.UI;
 using Client.Main.Controls.UI.Game;
 using Client.Main.Core.Client;
+using Client.Main.Helpers;
 using Client.Main.Models;
 using Client.Main.Networking;
 using Client.Main.Objects.Player;
@@ -319,6 +320,7 @@ namespace Client.Main.Scenes
             }
 
             var characterInfo = _selectedCharacterInfo.Value;
+            OnScreenLogger.Log($"Servidor autorizou entrada de {characterInfo.Name}! Trocando para GameScene...");
             _logger.LogInformation("--- SelectCharacterScene.HandleEnteredGame: Scheduling scene change to GameScene for character: {Name} ({Class})",
                 characterInfo.Name, characterInfo.Class);
 
@@ -334,6 +336,7 @@ namespace Client.Main.Scenes
                     }
                     catch (Exception ex)
                     {
+                        OnScreenLogger.Log($"ERRO ao trocar para GameScene: {ex.Message}", LogLevel.Error);
                         _logger.LogError(ex, "!!! SelectCharacterScene.HandleEnteredGame (UI Thread): Exception during ChangeScene to GameScene.");
                         EnableInteractionAfterSelection();
                     }
@@ -349,6 +352,7 @@ namespace Client.Main.Scenes
         {
             MuGame.ScheduleOnMainThread(() =>
             {
+                OnScreenLogger.Log($"Erro de rede na selecao: {errorMessage}", LogLevel.Error);
                 _logger.LogError("SelectCharacterScene received NetworkError: {Error}", errorMessage);
                 MessageWindow.Show($"Network Error: {errorMessage}");
                 EnableInteractionAfterSelection();
@@ -366,6 +370,7 @@ namespace Client.Main.Scenes
                 _logger.LogDebug("SelectCharacterScene received ConnectionStateChanged: {NewState}", newState);
                 if (newState == ClientConnectionState.Disconnected)
                 {
+                    OnScreenLogger.Log("Desconectado do servidor.", LogLevel.Warning);
                     _logger.LogWarning("Disconnected while in character selection. Returning to LoginScene.");
                     MessageWindow.Show("Connection lost.");
                     if (MuGame.Instance.ActiveScene == this)
@@ -378,6 +383,7 @@ namespace Client.Main.Scenes
 
         private void DisableInteractionDuringSelection(string characterName)
         {
+            OnScreenLogger.Log($"Personagem selecionado: {characterName}. Solicitando entrada ao servidor...");
             if (_selectWorld != null)
             {
                 _selectWorld.Interactive = false;
