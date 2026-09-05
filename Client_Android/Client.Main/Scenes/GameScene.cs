@@ -321,6 +321,22 @@ namespace Client.Main.Scenes
                 }
             }
 
+            // Send client ready notification to server so OpenMU starts spawning objects and player
+            if (MuGame.Network != null)
+            {
+                UpdateLoadProgress("Entering world...", 0.98f);
+                _logger?.LogInformation("GameScene: Sending SendClientReadyAfterMapChangeAsync to server...");
+                try
+                {
+                    await MuGame.Network.SendClientReadyAfterMapChangeAsync();
+                    _logger?.LogInformation("GameScene: ClientReadyAfterMapChange sent successfully.");
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogError(ex, "GameScene: Error sending ClientReadyAfterMapChange.");
+                }
+            }
+
             // Finalize
             if (_loadingScreen != null)
             {

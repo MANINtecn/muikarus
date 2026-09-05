@@ -40,28 +40,17 @@ namespace Client.Main.Worlds
         protected override void CreateMapTileObjects()
         {
             base.CreateMapTileObjects();
-            MapTileObjects[14] = null;
-            MapTileObjects[71] = typeof(BlendedObjects);
-            MapTileObjects[11] = typeof(BlendedObjects);
-            MapTileObjects[36] = typeof(LightObject);
-            MapTileObjects[25] = typeof(BlendedObjects);
-            MapTileObjects[33] = typeof(BlendedObjects);
-            MapTileObjects[30] = typeof(BlendedObjects);
-            // Disable heavy particles and waterfall rebuilding on mobile
-            MapTileObjects[31] = null;
-            MapTileObjects[34] = null;
-            MapTileObjects[26] = null;
-            MapTileObjects[24] = null;
-            MapTileObjects[54] = null;
-            MapTileObjects[55] = null;
-            MapTileObjects[56] = null;
+            // Ultra-light classic mode: clear heavy terrain objects (rocks, waterfall, particles)
+            Array.Clear(MapTileObjects, 0, MapTileObjects.Length);
         }
 
         public override void AfterLoad()
         {
             base.AfterLoad();
 
-            // Disable heavy water animation and distortion on mobile for 30+ FPS
+            // Classic ultra-light character selection (60 FPS on mobile):
+            // Disable heavy 3D terrain rendering completely.
+            Terrain.Visible = false;
             Terrain.WaterSpeed = 0f;
             Terrain.DistortionAmplitude = 0f;
             Terrain.DistortionFrequency = 0f;

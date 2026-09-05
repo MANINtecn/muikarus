@@ -271,6 +271,9 @@ namespace Client.Main.Controls
 
         public override void DrawAfter(GameTime gameTime)
         {
+            if (!Visible || Status != Models.GameControlStatus.Ready)
+                return;
+
             RenderTerrain(true);
             base.DrawAfter(gameTime);
         }
