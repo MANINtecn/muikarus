@@ -1,6 +1,7 @@
-﻿using Client.Main.Controls;
-using Microsoft.Xna.Framework;
+using System;
 using System.Collections.Generic;
+using Client.Main.Controls;
+using Microsoft.Xna.Framework;
 
 namespace Client.Main
 {
@@ -24,6 +25,10 @@ namespace Client.Main
     {
         public static List<Vector2> FindPath(Vector2 start, Vector2 goal, WorldControl world)
         {
+            // Grid tile coordinates in MU must always be exact integers
+            start = new Vector2(MathF.Round(start.X), MathF.Round(start.Y));
+            goal = new Vector2(MathF.Round(goal.X), MathF.Round(goal.Y));
+
             var openSet = new PriorityQueue<PathNode, float>();
             var allNodes = new Dictionary<Vector2, PathNode>();
             var closedSet = new HashSet<Vector2>();

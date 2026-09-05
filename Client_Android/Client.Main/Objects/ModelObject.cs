@@ -127,7 +127,7 @@ namespace Client.Main.Objects
             if (World == null) return;
             base.Update(gameTime);
 
-            if (!Visible) return;
+            if (!Visible || OutOfView) return;
 
             Animation(gameTime);
 
@@ -350,6 +350,9 @@ namespace Client.Main.Objects
 
         public virtual void DrawShadowMesh(int mesh, Matrix view, Matrix projection, GameTime gameTime)
         {
+#if ANDROID || IOS
+            return; // 3D projected shadow meshes heavily bottleneck mobile OpenGL ES
+#endif
             try
             {
                 if (IsHiddenMesh(mesh) || _boneVertexBuffers == null)

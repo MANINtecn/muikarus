@@ -39,7 +39,7 @@ namespace Client.Main.Controls
     {
         // --- Fields & Constants ---
 
-        private const float CullingOffset = 800f;
+        private const float CullingOffset = 300f;
 
         private int _renderCounter;
         private DepthStencilState _currentDepthState = DepthStencilState.Default;
@@ -183,10 +183,11 @@ namespace Client.Main.Controls
             base.Update(time);
             if (Status != GameControlStatus.Ready) return;
 
-            // Iterate over a copy to avoid modification during update
-            foreach (var obj in Objects.ToArray())
+            int count = Objects.Count;
+            for (int i = 0; i < count; i++)
             {
-                if (obj.Status != GameControlStatus.Disposed)
+                var obj = Objects[i];
+                if (obj != null && obj.Status != GameControlStatus.Disposed)
                     obj.Update(time);
             }
         }
@@ -342,9 +343,11 @@ namespace Client.Main.Controls
             _solidInFront.Clear();
 
             // Classify objects
-            foreach (var obj in Objects.ToArray())
+            int count = Objects.Count;
+            for (int i = 0; i < count; i++)
             {
-                if (obj.Status == GameControlStatus.Disposed || !obj.Visible) continue;
+                var obj = Objects[i];
+                if (obj == null || obj.Status == GameControlStatus.Disposed || !obj.Visible) continue;
                 if (!IsObjectInView(obj)) continue;
 
                 if (obj.IsTransparent)
@@ -421,8 +424,9 @@ namespace Client.Main.Controls
             if (Vector2.DistanceSquared(cam2, obj2) > maxDist * maxDist)
                 return false;
 
-            if (_boundingFrustum == null) return false;
-            return _boundingFrustum.Contains(obj.BoundingBoxWorld) != ContainmentType.Disjoint;
+            var frustum = cam.Frustum ?? _boundingFrustum;
+            if (frustum == null) return false;
+            return frustum.Contains(obj.BoundingBoxWorld) != ContainmentType.Disjoint;
         }
 
         private void OnCameraMoved(object sender, EventArgs e) =>

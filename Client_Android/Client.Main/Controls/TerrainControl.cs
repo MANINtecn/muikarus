@@ -726,11 +726,11 @@ namespace Client.Main.Controls
             _lastCameraPosition = cameraPos;
             _visibleBlocks.Clear();
 
-            float renderDist = Camera.Instance.ViewFar * 1.7f;
+            float renderDist = Camera.Instance.ViewFar * 1.25f;
             float renderDistSq = renderDist * renderDist;
             int cellWorld = (int)(Constants.TERRAIN_SCALE * BlockSize);
 
-            const int EXTRA = 4;
+            const int EXTRA = 1;
 
             int tilesPerAxis = Constants.TERRAIN_SIZE / BlockSize;
 

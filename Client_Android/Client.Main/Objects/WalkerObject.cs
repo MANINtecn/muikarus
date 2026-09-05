@@ -1,4 +1,4 @@
-﻿using Client.Main.Controllers;
+using Client.Main.Controllers;
 using Client.Main.Controls;
 using Client.Main.Models;
 using Client.Main.Objects.Monsters;
@@ -286,11 +286,12 @@ namespace Client.Main.Objects
         {
             if (World == null) return;
 
-            Vector2 startPos = new Vector2((int)Location.X, (int)Location.Y);
+            Vector2 startPos = new Vector2((int)MathF.Round(Location.X), (int)MathF.Round(Location.Y));
+            Vector2 targetTile = new Vector2((int)MathF.Round(targetLocation.X), (int)MathF.Round(targetLocation.Y));
             WorldControl currentWorld = World;
             _ = Task.Run(() =>
             {
-                List<Vector2> path = Pathfinding.FindPath(startPos, targetLocation, currentWorld);
+                List<Vector2> path = Pathfinding.FindPath(startPos, targetTile, currentWorld);
 
                 if (MuGame.Instance.ActiveScene?.World != currentWorld || path == null || path.Count == 0)
                 {

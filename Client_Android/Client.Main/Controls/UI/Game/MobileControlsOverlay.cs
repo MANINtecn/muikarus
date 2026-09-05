@@ -158,9 +158,9 @@ namespace Client.Main.Controls.UI.Game
                 }
 
                 // Check for new touch on joystick base
-                if (!_isJoystickActive && touch.State == TouchLocationState.Pressed)
+                if (!_isJoystickActive && (touch.State == TouchLocationState.Pressed || touch.State == TouchLocationState.Moved))
                 {
-                    if (Vector2.Distance(pos, _joystickCenter) <= JOYSTICK_RADIUS * 1.4f)
+                    if (Vector2.Distance(pos, _joystickCenter) <= JOYSTICK_RADIUS * 2.2f)
                     {
                         _isJoystickActive = true;
                         _joystickTouchId = touch.Id;
@@ -277,7 +277,7 @@ namespace Client.Main.Controls.UI.Game
 
             if (isLeftDown)
             {
-                if (!_isJoystickActive && !wasLeftDown && Vector2.Distance(mPos, _joystickCenter) <= JOYSTICK_RADIUS * 1.3f)
+                if (!_isJoystickActive && Vector2.Distance(mPos, _joystickCenter) <= JOYSTICK_RADIUS * 2.2f)
                 {
                     _isJoystickActive = true;
                 }
@@ -369,7 +369,10 @@ namespace Client.Main.Controls.UI.Game
             // Map Joystick 2D screen vector (X = right, Y = down) to MU isometric 3D space
             Vector3 moveDir = camRight * _joystickDir.X - camFwd * _joystickDir.Y;
 
-            Vector2 targetLocation = _hero.Location + new Vector2(moveDir.X, moveDir.Y) * 2.8f;
+            float stepDist = 3.5f;
+            Vector2 targetLocation = new Vector2(
+                MathF.Round(_hero.Location.X + moveDir.X * stepDist),
+                MathF.Round(_hero.Location.Y + moveDir.Y * stepDist));
 
             if (_hero.World is WalkableWorldControl walkable && walkable.IsWalkable(targetLocation))
             {
@@ -377,7 +380,10 @@ namespace Client.Main.Controls.UI.Game
             }
             else
             {
-                _hero.MoveTo(targetLocation);
+                Vector2 shorterTarget = new Vector2(
+                    MathF.Round(_hero.Location.X + moveDir.X * 1.5f),
+                    MathF.Round(_hero.Location.Y + moveDir.Y * 1.5f));
+                _hero.MoveTo(shorterTarget);
             }
         }
 
@@ -446,9 +452,28 @@ namespace Client.Main.Controls.UI.Game
             }
         }
 
+        private static Texture2D _joystickBaseTex;
+        private static Texture2D _joystickKnobTex;
+        private static Texture2D _btnRingTex;
+
+        private void EnsureTextures(GraphicsDevice gd)
+        {
+            if (_joystickBaseTex != null && !_joystickBaseTex.IsDisposed)
+                return;
+
+            _joystickBaseTex = CreateJoystickBaseTexture(gd, 256);
+            _joystickKnobTex = CreateJoystickKnobTexture(gd, 128);
+            _btnRingTex = CreateButtonRingTexture(gd, 128);
+        }
+
         public override void Draw(GameTime gameTime)
         {
             if (!Visible) return;
+
+            var gd = GraphicsDevice;
+            if (gd == null) return;
+
+            EnsureTextures(gd);
 
             var sb = GraphicsManager.Instance.Sprite;
             var pixel = GraphicsManager.Instance.Pixel;
@@ -458,21 +483,31 @@ namespace Client.Main.Controls.UI.Game
 
             using (new SpriteBatchScope(sb, blend: BlendState.NonPremultiplied))
             {
-                // 1. Draw Virtual Joystick
-                // Outer Ring
-                DrawCircle(sb, pixel, _joystickCenter, JOYSTICK_RADIUS, new Color(15, 20, 30, 140), true);
-                DrawCircle(sb, pixel, _joystickCenter, JOYSTICK_RADIUS, new Color(200, 220, 255, 180), false, 2f);
-                DrawCircle(sb, pixel, _joystickCenter, JOYSTICK_RADIUS * 0.5f, new Color(100, 140, 200, 60), false, 1f);
+                // 1. Draw Virtual Joystick Base (Crisp antialiased textured plate)
+                if (_joystickBaseTex != null)
+                {
+                    Vector2 baseOrigin = new Vector2(_joystickBaseTex.Width * 0.5f, _joystickBaseTex.Height * 0.5f);
+                    float baseScale = (JOYSTICK_RADIUS * 2.0f) / _joystickBaseTex.Width;
+                    sb.Draw(_joystickBaseTex, _joystickCenter, null, Color.White, 0f, baseOrigin, baseScale, SpriteEffects.None, 0f);
+                }
 
-                // Joystick Knob
-                Color knobColor = _isJoystickActive ? new Color(100, 180, 255, 220) : new Color(180, 190, 210, 160);
-                DrawCircle(sb, pixel, _knobPosition, KNOB_RADIUS, knobColor, true);
-                DrawCircle(sb, pixel, _knobPosition, KNOB_RADIUS, Color.White * 0.8f, false, 2f);
+                // 2. Draw Virtual Joystick Knob (3D spherical golden jewel)
+                if (_joystickKnobTex != null)
+                {
+                    Vector2 knobOrigin = new Vector2(_joystickKnobTex.Width * 0.5f, _joystickKnobTex.Height * 0.5f);
+                    float knobScale = (KNOB_RADIUS * 2.2f) / _joystickKnobTex.Width;
+                    Color knobTint = _isJoystickActive ? new Color(255, 235, 150, 255) : Color.White;
+                    sb.Draw(_joystickKnobTex, _knobPosition, null, knobTint, 0f, knobOrigin, knobScale, SpriteEffects.None, 0f);
+                }
 
-                // 2. Draw Attack Button
-                Color atkBg = _atkPressed ? new Color(220, 60, 60, 220) : new Color(160, 30, 30, 180);
-                DrawCircle(sb, pixel, _atkButtonCenter, ATK_RADIUS, atkBg, true);
-                DrawCircle(sb, pixel, _atkButtonCenter, ATK_RADIUS, new Color(255, 200, 100, 230), false, 3f);
+                // 3. Draw Attack Button (Textured)
+                if (_btnRingTex != null)
+                {
+                    Vector2 atkOrigin = new Vector2(_btnRingTex.Width * 0.5f, _btnRingTex.Height * 0.5f);
+                    float atkScale = (ATK_RADIUS * 2.0f) / _btnRingTex.Width;
+                    Color atkTint = _atkPressed ? new Color(255, 120, 100, 255) : new Color(220, 60, 50, 240);
+                    sb.Draw(_btnRingTex, _atkButtonCenter, null, atkTint, 0f, atkOrigin, atkScale, SpriteEffects.None, 0f);
+                }
                 if (font != null)
                 {
                     string atkText = "ATK";
@@ -482,10 +517,14 @@ namespace Client.Main.Controls.UI.Game
                     sb.DrawString(font, atkText, textPos, Color.Gold);
                 }
 
-                // 3. Draw HP Potion Button
-                Color hpBg = _hpPressed ? new Color(255, 80, 80, 220) : new Color(180, 30, 30, 180);
-                DrawCircle(sb, pixel, _hpButtonCenter, POTION_RADIUS, hpBg, true);
-                DrawCircle(sb, pixel, _hpButtonCenter, POTION_RADIUS, Color.Red, false, 2f);
+                // 4. Draw HP Potion Button (Textured)
+                if (_btnRingTex != null)
+                {
+                    Vector2 hpOrigin = new Vector2(_btnRingTex.Width * 0.5f, _btnRingTex.Height * 0.5f);
+                    float hpScale = (POTION_RADIUS * 2.0f) / _btnRingTex.Width;
+                    Color hpTint = _hpPressed ? new Color(255, 140, 140, 255) : new Color(180, 40, 40, 230);
+                    sb.Draw(_btnRingTex, _hpButtonCenter, null, hpTint, 0f, hpOrigin, hpScale, SpriteEffects.None, 0f);
+                }
                 if (font != null)
                 {
                     string hpText = "HP";
@@ -495,10 +534,14 @@ namespace Client.Main.Controls.UI.Game
                     sb.DrawString(font, hpText, textPos, Color.White);
                 }
 
-                // 4. Draw MP Potion Button
-                Color mpBg = _mpPressed ? new Color(80, 140, 255, 220) : new Color(30, 80, 190, 180);
-                DrawCircle(sb, pixel, _mpButtonCenter, POTION_RADIUS, mpBg, true);
-                DrawCircle(sb, pixel, _mpButtonCenter, POTION_RADIUS, Color.DeepSkyBlue, false, 2f);
+                // 5. Draw MP Potion Button (Textured)
+                if (_btnRingTex != null)
+                {
+                    Vector2 mpOrigin = new Vector2(_btnRingTex.Width * 0.5f, _btnRingTex.Height * 0.5f);
+                    float mpScale = (POTION_RADIUS * 2.0f) / _btnRingTex.Width;
+                    Color mpTint = _mpPressed ? new Color(140, 200, 255, 255) : new Color(40, 100, 210, 230);
+                    sb.Draw(_btnRingTex, _mpButtonCenter, null, mpTint, 0f, mpOrigin, mpScale, SpriteEffects.None, 0f);
+                }
                 if (font != null)
                 {
                     string mpText = "MP";
@@ -508,18 +551,18 @@ namespace Client.Main.Controls.UI.Game
                     sb.DrawString(font, mpText, textPos, Color.White);
                 }
 
-                // 5. Draw Top Menu Shortcut Buttons
+                // 6. Draw Top Menu Shortcut Buttons
                 DrawPillButton(sb, pixel, font, _invBtnRect, "INV", _invPressed, new Color(40, 140, 80));
                 DrawPillButton(sb, pixel, font, _statsBtnRect, "STATS", _statsPressed, new Color(180, 120, 30));
                 DrawPillButton(sb, pixel, font, _warpBtnRect, "WARP", _warpPressed, new Color(60, 100, 180));
 
-                // 6. Real-time Diagnostic HUD (requested by user)
+                // 7. Real-time Diagnostic HUD
                 if (font != null)
                 {
                     var world = _scene?.World;
                     var terrain = world?.Terrain;
-                    string diag1 = $"MAP: {world?.Name ?? "None"} (W:{world?.WorldIndex}, St:{world?.Status}) | TER: {terrain?.Status} (Vis:{terrain?.Visible}) | HERO: ({_hero?.Location.X:F0},{_hero?.Location.Y:F0})";
-                    string diag2 = $"CAM: ({Camera.Instance.Position.X:F0},{Camera.Instance.Position.Y:F0},{Camera.Instance.Position.Z:F0}) -> ({Camera.Instance.Target.X:F0},{Camera.Instance.Target.Y:F0})";
+                    string diag1 = $"MAP: {world?.Name ?? "None"} | HERO: ({_hero?.Location.X:F0},{_hero?.Location.Y:F0})";
+                    string diag2 = $"JOY: {(_isJoystickActive ? "DRAGGING" : "IDLE")} ({_joystickDir.X:F2},{_joystickDir.Y:F2})";
 
                     sb.DrawString(font, diag1, new Vector2(11, 11), Color.Black);
                     sb.DrawString(font, diag1, new Vector2(10, 10), Color.Yellow);
@@ -551,50 +594,181 @@ namespace Client.Main.Controls.UI.Game
             }
         }
 
-        private static void DrawCircle(SpriteBatch sb, Texture2D pixel, Vector2 center, float radius, Color color, bool fill, float thickness = 1f)
+        private static Texture2D CreateJoystickBaseTexture(GraphicsDevice gd, int size)
         {
-            int segments = 32;
-            float step = MathHelper.TwoPi / segments;
+            var tex = new Texture2D(gd, size, size);
+            Color[] data = new Color[size * size];
+            float center = size / 2f;
+            float maxR = center - 4f;
 
-            if (fill)
+            for (int y = 0; y < size; y++)
             {
-                // Approximate filled circle with scanlines or triangle fans
-                int r = (int)radius;
-                for (int y = -r; y <= r; y++)
+                for (int x = 0; x < size; x++)
                 {
-                    int halfW = (int)Math.Sqrt(r * r - y * y);
-                    sb.Draw(pixel, new Rectangle((int)(center.X - halfW), (int)(center.Y + y), halfW * 2, 1), color);
+                    float dx = x - center;
+                    float dy = y - center;
+                    float dist = MathF.Sqrt(dx * dx + dy * dy);
+
+                    if (dist > maxR + 2f)
+                    {
+                        data[y * size + x] = Color.Transparent;
+                        continue;
+                    }
+
+                    float edgeAlpha = Math.Clamp(maxR + 2f - dist, 0f, 1f);
+
+                    if (dist >= maxR - 12f)
+                    {
+                        float angle = MathF.Atan2(dy, dx);
+                        float light = 0.8f + 0.35f * MathF.Cos(angle + 2.3f);
+                        byte r = (byte)Math.Clamp(218 * light, 0, 255);
+                        byte g = (byte)Math.Clamp(165 * light, 0, 255);
+                        byte b = (byte)Math.Clamp(32 * light, 0, 255);
+                        data[y * size + x] = new Color((int)r, (int)g, (int)b, (int)(230 * edgeAlpha));
+                    }
+                    else if (dist >= maxR - 18f)
+                    {
+                        data[y * size + x] = new Color(30, 22, 10, (int)(200 * edgeAlpha));
+                    }
+                    else
+                    {
+                        float innerRatio = dist / (maxR - 18f);
+                        byte r = (byte)(15 + 20 * innerRatio);
+                        byte g = (byte)(20 + 25 * innerRatio);
+                        byte b = (byte)(32 + 35 * innerRatio);
+                        byte a = (byte)(130 + 50 * innerRatio);
+
+                        if (MathF.Abs(dist - maxR * 0.5f) < 2f)
+                        {
+                            r = (byte)Math.Min(255, r + 40);
+                            g = (byte)Math.Min(255, g + 50);
+                            b = (byte)Math.Min(255, b + 70);
+                            a = (byte)Math.Min(255, a + 60);
+                        }
+
+                        if (dist > maxR * 0.65f && dist < maxR * 0.85f)
+                        {
+                            if (MathF.Abs(dx) < 3f || MathF.Abs(dy) < 3f)
+                            {
+                                r = 210; g = 175; b = 70; a = 200;
+                            }
+                        }
+
+                        data[y * size + x] = new Color((int)r, (int)g, (int)b, (int)a);
+                    }
                 }
             }
-            else
-            {
-                for (int i = 0; i < segments; i++)
-                {
-                    float a1 = i * step;
-                    float a2 = (i + 1) * step;
 
-                    Vector2 p1 = center + new Vector2((float)Math.Cos(a1), (float)Math.Sin(a1)) * radius;
-                    Vector2 p2 = center + new Vector2((float)Math.Cos(a2), (float)Math.Sin(a2)) * radius;
-
-                    DrawLine(sb, pixel, p1, p2, color, thickness);
-                }
-            }
+            tex.SetData(data);
+            return tex;
         }
 
-        private static void DrawLine(SpriteBatch sb, Texture2D pixel, Vector2 p1, Vector2 p2, Color color, float thickness)
+        private static Texture2D CreateJoystickKnobTexture(GraphicsDevice gd, int size)
         {
-            Vector2 edge = p2 - p1;
-            float angle = (float)Math.Atan2(edge.Y, edge.X);
-            float length = edge.Length();
+            var tex = new Texture2D(gd, size, size);
+            Color[] data = new Color[size * size];
+            float center = size / 2f;
+            float maxR = center - 4f;
 
-            sb.Draw(pixel,
-                new Rectangle((int)p1.X, (int)p1.Y, (int)length, (int)thickness),
-                null,
-                color,
-                angle,
-                Vector2.Zero,
-                SpriteEffects.None,
-                0);
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = x - center;
+                    float dy = y - center;
+                    float dist = MathF.Sqrt(dx * dx + dy * dy);
+
+                    if (dist > maxR + 2f)
+                    {
+                        data[y * size + x] = Color.Transparent;
+                        continue;
+                    }
+
+                    float edgeAlpha = Math.Clamp(maxR + 2f - dist, 0f, 1f);
+
+                    if (dist >= maxR - 8f)
+                    {
+                        float angle = MathF.Atan2(dy, dx);
+                        float light = 0.85f + 0.4f * MathF.Cos(angle + 2.3f);
+                        byte r = (byte)Math.Clamp(235 * light, 0, 255);
+                        byte g = (byte)Math.Clamp(190 * light, 0, 255);
+                        byte b = (byte)Math.Clamp(60 * light, 0, 255);
+                        data[y * size + x] = new Color((int)r, (int)g, (int)b, (int)(240 * edgeAlpha));
+                    }
+                    else
+                    {
+                        float nx = dx / (maxR - 8f);
+                        float ny = dy / (maxR - 8f);
+                        float nz = MathF.Sqrt(MathF.Max(0f, 1f - nx * nx - ny * ny));
+
+                        float lx = -0.5f, ly = -0.6f, lz = 0.7f;
+                        float len = MathF.Sqrt(lx * lx + ly * ly + lz * lz);
+                        lx /= len; ly /= len; lz /= len;
+
+                        float diffuse = MathF.Max(0f, nx * lx + ny * ly + nz * lz);
+                        float vx = 0, vy = 0, vz = 1;
+                        float hx = lx + vx, hy = ly + vy, hz = lz + vz;
+                        float hlen = MathF.Sqrt(hx * hx + hy * hy + hz * hz);
+                        hx /= hlen; hy /= hlen; hz /= hlen;
+                        float spec = MathF.Pow(MathF.Max(0f, nx * hx + ny * hy + nz * hz), 16f);
+
+                        byte r = (byte)Math.Clamp((80 + 130 * diffuse + 80 * spec), 0, 255);
+                        byte g = (byte)Math.Clamp((110 + 130 * diffuse + 80 * spec), 0, 255);
+                        byte b = (byte)Math.Clamp((180 + 75 * diffuse + 80 * spec), 0, 255);
+                        data[y * size + x] = new Color((int)r, (int)g, (int)b, (int)(235 * edgeAlpha));
+                    }
+                }
+            }
+
+            tex.SetData(data);
+            return tex;
+        }
+
+        private static Texture2D CreateButtonRingTexture(GraphicsDevice gd, int size)
+        {
+            var tex = new Texture2D(gd, size, size);
+            Color[] data = new Color[size * size];
+            float center = size / 2f;
+            float maxR = center - 4f;
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = x - center;
+                    float dy = y - center;
+                    float dist = MathF.Sqrt(dx * dx + dy * dy);
+
+                    if (dist > maxR + 2f)
+                    {
+                        data[y * size + x] = Color.Transparent;
+                        continue;
+                    }
+
+                    float edgeAlpha = Math.Clamp(maxR + 2f - dist, 0f, 1f);
+
+                    if (dist >= maxR - 10f)
+                    {
+                        float angle = MathF.Atan2(dy, dx);
+                        float light = 0.85f + 0.35f * MathF.Cos(angle + 2.3f);
+                        byte r = (byte)Math.Clamp(225 * light, 0, 255);
+                        byte g = (byte)Math.Clamp(180 * light, 0, 255);
+                        byte b = (byte)Math.Clamp(50 * light, 0, 255);
+                        data[y * size + x] = new Color((int)r, (int)g, (int)b, (int)(240 * edgeAlpha));
+                    }
+                    else
+                    {
+                        float innerRatio = dist / (maxR - 10f);
+                        byte r = (byte)(25 + 30 * innerRatio);
+                        byte g = (byte)(25 + 30 * innerRatio);
+                        byte b = (byte)(35 + 40 * innerRatio);
+                        data[y * size + x] = new Color((int)r, (int)g, (int)b, (int)(190 * edgeAlpha));
+                    }
+                }
+            }
+
+            tex.SetData(data);
+            return tex;
         }
     }
 }
