@@ -540,13 +540,6 @@ namespace Client.Main
 
             if (PrevTouchState.Count != Touch.Count)
                 UpdateMouseRay();
-
-#if ANDROID || IOS
-            // A finger held still on an NPC/monster can report the same position/count across
-            // frames; keep refreshing the ray so hover/click detection doesn't go stale mid-tap.
-            if (Touch.Count > 0)
-                UpdateMouseRay();
-#endif
         }
 
         private void UpdateMouseRay()

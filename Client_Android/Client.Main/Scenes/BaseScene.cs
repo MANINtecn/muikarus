@@ -218,16 +218,68 @@ namespace Client.Main.Scenes
             }
 
             // handle 3D world object clicks if UI didn't consume input
-            if (!IsMouseInputConsumedThisFrame && MouseHoverObject != null &&
+            if (!IsMouseInputConsumedThisFrame &&
                 MuGame.Instance.PrevMouseState.LeftButton == ButtonState.Pressed &&
                 MuGame.Instance.Mouse.LeftButton == ButtonState.Released)
             {
-                MouseHoverObject.OnClick();
+                WorldObject clicked = MouseHoverObject;
+
+#if ANDROID || IOS
+                // Fingers are far less precise than a mouse cursor: on release, if the exact
+                // raycast missed, do a single cheap screen-space check against nearby walkers
+                // (NPCs/monsters) instead of a per-frame per-object cost.
+                if (clicked == null)
+                {
+                    clicked = FindNearestInteractiveWalkerOnScreen(MuGame.Instance.Mouse.Position.ToVector2());
+                }
+#endif
+
+                clicked?.OnClick();
             }
 
             DebugPanel.BringToFront();
             Cursor.BringToFront();
         }
+
+#if ANDROID || IOS
+        /// <summary>
+        /// One-shot (click-time only, never per-frame) fallback for imprecise mobile taps:
+        /// finds the closest interactive walker (NPC/monster) whose screen projection is
+        /// within a generous radius of the tap position.
+        /// </summary>
+        private WorldObject FindNearestInteractiveWalkerOnScreen(Vector2 touchPos)
+        {
+            if (World is not WalkableWorldControl walkableWorld)
+                return null;
+
+            const float toleranceScreenPx = 60f;
+            var viewport = MuGame.Instance.GraphicsDevice.Viewport;
+            var projection = Camera.Instance.Projection;
+            var view = Camera.Instance.View;
+
+            WorldObject best = null;
+            float bestDistSq = toleranceScreenPx * toleranceScreenPx;
+
+            foreach (var walker in walkableWorld.WalkerObjectsById.Values)
+            {
+                if (walker == null || !walker.Visible || !walker.Interactive || walker.Hidden || walker.OutOfView)
+                    continue;
+
+                Vector3 screenPos = viewport.Project(walker.WorldPosition.Translation, projection, view, Matrix.Identity);
+                if (screenPos.Z < 0f || screenPos.Z > 1f)
+                    continue;
+
+                float distSq = Vector2.DistanceSquared(new Vector2(screenPos.X, screenPos.Y), touchPos);
+                if (distSq <= bestDistSq)
+                {
+                    bestDistSq = distSq;
+                    best = walker;
+                }
+            }
+
+            return best;
+        }
+#endif
 
         public void FocusControlIfInteractive(GameControl control)
         {

@@ -32,8 +32,8 @@ namespace Client.Main.Controls.UI.Game
         // Joystick configuration (Upper-left, enlarged for comfortable thumb reach)
         private const float JOYSTICK_RADIUS = 90f;
         private const float KNOB_RADIUS = 40f;
-        private const float DEAD_ZONE = 0.28f;
-        private const float MOVE_INTERVAL_MS = 260f;
+        private const float DEAD_ZONE = 0.45f;
+        private const float MOVE_INTERVAL_MS = 400f;
 
         private Vector2 _joystickCenter;
         private Vector2 _knobPosition;
@@ -174,10 +174,14 @@ namespace Client.Main.Controls.UI.Game
                 ProcessMouseFallback();
             }
 
-            // Handle Joystick Walking
+            // Handle Joystick Walking: only queue the next single-tile step once the
+            // previous one has fully finished (no pending path, not mid-move). This is
+            // what stops the hero from "walking further than expected" when the joystick
+            // is held - commands never stack up faster than the character can execute them.
             if (_isJoystickActive && _joystickDir.Length() > DEAD_ZONE)
             {
-                if (totalMs - _lastMoveSentTime >= MOVE_INTERVAL_MS && (_hero == null || _hero.RemainingPathSteps <= 1 || !_hero.IsMoving))
+                bool previousStepFinished = _hero == null || (_hero.RemainingPathSteps == 0 && !_hero.IsMoving);
+                if (previousStepFinished && totalMs - _lastMoveSentTime >= MOVE_INTERVAL_MS)
                 {
                     _lastMoveSentTime = totalMs;
                     SendJoystickMovement();

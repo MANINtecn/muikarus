@@ -356,6 +356,20 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
 
 ---
 
+### 06/09/2026 — Versão v1.36: Correção da Regressão Grave Introduzida pela v1.35 (2 FPS, Clique-no-Chão Morto, Joystick Descontrolado)
+- [x] **⚠️ Erro próprio identificado e corrigido:** A tentativa de corrigir o clique em NPC na v1.35 (fallback de tolerância de toque em `WorldObject.Update()`, rodando `viewport.Project()` por objeto interativo TODO FRAME) e o refresh de `UpdateMouseRay()` a cada frame com toque ativo **pioraram drasticamente o desempenho**, derrubando o jogo para 2 FPS com muito travamento — o oposto do pretendido.
+- [x] **Reversão do picking caro por frame (`WorldObject.cs` / `MuGame.cs`):** Removido o fallback de projeção em tela do hover contínuo. A tolerância de toque para NPCs agora só é calculada **uma única vez, no momento exato do clique** (`BaseScene.cs`), e apenas contra a lista pequena de `WalkerObjectsById` (NPCs/monstros próximos), nunca todo objeto do mundo a cada frame. `UpdateMouseRay()` voltou a rodar somente quando a posição do mouse/contagem de toques muda.
+- [x] **Correção real do Clique-no-Chão morto e do Joystick "andando sozinho / 3x mais":**
+  - **Causa raiz:** `WalkerObject.MoveTo()` dispara o pathfinding em uma `Task.Run` assíncrona que só popula `_currentPath` quando termina. Como o joystick da v1.35 diminuiu o intervalo entre comandos (260ms) e o gate de novo comando não exigia o término real do passo anterior, múltiplos `MoveTo` podiam ficar "em voo" ao mesmo tempo — um pathfinding mais lento e antigo podia sobrescrever um resultado mais novo já aplicado, fazendo o personagem seguir uma rota desatualizada/estendida (sensação de "andar sozinho" e "3x mais do que o esperado").
+  - **Solução (`WalkerObject.cs`):** Adicionado contador de geração (`_moveRequestGeneration`); um resultado de pathfinding só é aplicado se ainda for o pedido de movimento mais recente, descartando qualquer resultado obsoleto.
+  - **Solução (`MobileControlsOverlay.cs`):** Intervalo do joystick voltou a subir (400ms), zona morta aumentada para 0.45 (evita disparo com toque leve/impreciso), e o próximo passo do joystick só é enviado quando o passo anterior **realmente terminou** (`RemainingPathSteps == 0 && !IsMoving`), nunca antes.
+- [x] **Lição registrada:** Qualquer verificação de picking/projeção 3D (`viewport.Project`, raycast) deve rodar **apenas no instante do clique**, nunca dentro do loop de hover por frame de cada objeto — isso se soma às Leis de Ouro de Desempenho 3D do topo deste arquivo.
+- [x] **Release e Versionamento v1.36:**
+  - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 36` e `versionName: 1.36`.
+  - Workflow GitHub Actions publicará automaticamente o **`IkarusMU-v1.36.apk`** na release `v1.36`.
+
+---
+
 ## 🛠️ PRÓXIMOS PASSOS (ROADMAP)
 
 1. [x] Instalar .NET 8 / 10 SDK e compilar a solução `OpenMU`.
