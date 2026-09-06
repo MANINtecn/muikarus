@@ -27,7 +27,7 @@ namespace Client.Main.Objects
         /// <summary>
         /// Gets the NPC's display name defined by <see cref="NpcInfoAttribute"/>.
         /// </summary>
-        public override string DisplayName
+        public virtual string DisplayName
         {
             get
             {
@@ -39,7 +39,7 @@ namespace Client.Main.Objects
                         return attr.DisplayName;
                     }
                 }
-                return base.DisplayName;
+                return ObjectName;
             }
         }
 
