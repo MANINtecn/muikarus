@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Client.Main.Objects
 {
-    public abstract class ModelObject : WorldObject
+    public class ModelObject : WorldObject
     {
         private DynamicVertexBuffer[] _boneVertexBuffers;
         private DynamicIndexBuffer[] _boneIndexBuffers;

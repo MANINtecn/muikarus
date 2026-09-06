@@ -98,20 +98,6 @@ namespace Client.Main.Objects
             }
 
             _lastClickTime = now;
-
-            // Track the NPC type for repair mode detection
-            var characterState = MuGame.Network?.GetCharacterState();
-            if (characterState != null)
-            {
-                characterState.LastNpcNetworkId = NetworkId;
-                // Get TypeNumber from NpcInfoAttribute
-                var attr = GetType().GetCustomAttribute<NpcInfoAttribute>();
-                if (attr != null)
-                {
-                    characterState.LastNpcTypeNumber = attr.TypeId;
-                }
-            }
-
             HandleClick();
         }
 

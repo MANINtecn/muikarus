@@ -21,12 +21,6 @@ namespace Client.Main.Objects.NPCS
             Gloves.ItemLevel = 7;
             Boots.ItemLevel = 7;
 
-            // Set item properties for testing
-            Armor.IsAncientItem = true;
-            Helm.IsAncientItem = true;
-            Pants.IsAncientItem = true;
-            Gloves.IsAncientItem = true;
-            Boots.IsAncientItem = true;
 
             await base.Load();
             AnimationSpeed = 25f;

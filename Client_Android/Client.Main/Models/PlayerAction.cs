@@ -1,4 +1,4 @@
-﻿namespace Client.Main.Models
+namespace Client.Main.Models
 {
     public enum PlayerAction
     {
@@ -7,6 +7,11 @@
         StopMale = 1,
         StopFemale = 2,
         StopSummoner = 3,
+
+        PlayerStopMale = StopMale,
+        PlayerStopFemale = StopFemale,
+        PlayerWalkMale = WalkMale,
+        PlayerWalkFemale = WalkFemale,
         StopSword = 9,
         StopTwoHandSword = 10,
         StopSpear = 11,
