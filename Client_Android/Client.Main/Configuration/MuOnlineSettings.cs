@@ -23,6 +23,6 @@ namespace Client.Main.Configuration
         public PacketLoggingSettings PacketLogging { get; set; } = new();
         
         // Graphics Settings
-        public int TargetFPS { get; set; } = 30; // Default to 30 FPS for battery saving
+        public int TargetFPS { get; set; } = 60; // 60 FPS target for fluid mobile gameplay
     }
 }

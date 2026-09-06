@@ -470,22 +470,7 @@ namespace Client.Main.Controls.UI.Game
                 return;
 
             SoundController.Instance.PlayBuffer("Sound/iButtonClick.wav");
-
-            // Look for closest monster
-            var nearestMonster = _hero.World.Objects
-                .OfType<MonsterObject>()
-                .OrderBy(m => Vector2.Distance(_hero.Location, m.Location))
-                .FirstOrDefault();
-
-            if (nearestMonster != null && Vector2.Distance(_hero.Location, nearestMonster.Location) <= 8f)
-            {
-                _hero.Attack(nearestMonster);
-            }
-            else
-            {
-                // Attack in current direction
-                _hero.PlayAction((ushort)_hero.GetAttackAnimation());
-            }
+            _hero.ManualAttack();
         }
 
         private void ExecuteHpPotion()
@@ -506,23 +491,8 @@ namespace Client.Main.Controls.UI.Game
                 return;
 
             SoundController.Instance.PlayBuffer("Sound/iButtonClick.wav");
-
-            // Find nearest monster within skill range
-            var nearestMonster = _hero.World.Objects
-                .OfType<MonsterObject>()
-                .OrderBy(m => Vector2.Distance(_hero.Location, m.Location))
-                .FirstOrDefault();
-
-            if (nearestMonster != null && Vector2.Distance(_hero.Location, nearestMonster.Location) <= 8f)
-            {
-                _hero.UseSkill(skillSlot, nearestMonster);
-                Helpers.OnScreenLogger.Log($"Skill {skillSlot} disparada (Alvo #{nearestMonster.NetworkId})!");
-            }
-            else
-            {
-                _hero.UseSkill(skillSlot);
-                Helpers.OnScreenLogger.Log($"Skill {skillSlot} executada!");
-            }
+            _hero.UseSkill(skillSlot);
+            Helpers.OnScreenLogger.Log($"Skill {skillSlot} disparada!");
         }
 
         private void ToggleInventory()

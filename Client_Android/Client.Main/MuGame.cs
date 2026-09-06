@@ -73,8 +73,8 @@ namespace Client.Main
             _graphics.PreferredBackBufferWidth = 0;
             _graphics.PreferredBackBufferHeight = 0;
             _graphics.SynchronizeWithVerticalRetrace = true;
-            IsFixedTimeStep = true;
-            TargetElapsedTime = TimeSpan.FromMilliseconds(33.33); // 30 FPS para estabilidade, fluidez e menor aquecimento no Android
+            IsFixedTimeStep = false;
+            TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0 / 60.0); // 60 FPS fluido no Android
 #else
             if (Constants.UNLIMITED_FPS)
             {
@@ -237,8 +237,8 @@ namespace Client.Main
             _logger?.LogDebug($"Scale Factor: {_scaleFactor}");
 
 #if ANDROID || IOS
-            // Apply Target FPS from settings (30 FPS for mobile stability)
-            int fps = AppSettings?.TargetFPS > 0 ? AppSettings.TargetFPS : 30;
+            // Apply Target FPS from settings (60 FPS for fluid mobile gameplay)
+            int fps = AppSettings?.TargetFPS > 0 ? AppSettings.TargetFPS : 60;
             TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0 / fps);
             _logger?.LogInformation($"✅ Android/iOS FPS Target set to: {fps}");
 
@@ -347,6 +347,42 @@ namespace Client.Main
 
         protected override void Draw(GameTime gameTime)
         {
+#if ANDROID
+            try
+            {
+                FPSCounter.Instance.CalcFPS(gameTime);
+                GraphicsDevice.SetRenderTarget(null);
+                GraphicsDevice.Clear(Color.Black);
+
+                GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
+                GraphicsDevice.DepthStencilState = DepthStencilState.Default;
+                GraphicsDevice.BlendState = BlendState.AlphaBlend;
+
+                try
+                {
+                    ActiveScene?.Draw(gameTime);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogError(ex, "Error drawing ActiveScene on Android.");
+                }
+
+                try
+                {
+                    ActiveScene?.DrawAfter(gameTime);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogError(ex, "Error in ActiveScene.DrawAfter on Android.");
+                }
+
+                base.Draw(gameTime);
+            }
+            catch (Exception e)
+            {
+                _logger?.LogDebug(e, "Exception in MuGame Draw");
+            }
+#else
             try
             {
                 FPSCounter.Instance.CalcFPS(gameTime);
@@ -363,6 +399,7 @@ namespace Client.Main
                 // Ensure that no render target is active to avoid the Present error
                 GraphicsDevice.SetRenderTarget(null);
             }
+#endif
         }
 
         protected override void Dispose(bool disposing)

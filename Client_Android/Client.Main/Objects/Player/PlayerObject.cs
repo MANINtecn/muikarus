@@ -434,6 +434,30 @@ namespace Client.Main.Objects.Player
                 serverLookingDirection); // Send the server-mapped direction
         }
 
+        public void ManualAttack()
+        {
+            if (World == null) return;
+
+            PlayAction((ushort)GetAttackAnimation());
+
+            byte clientDirEnumByte = (byte)this.Direction;
+            byte serverLookingDirection = clientDirEnumByte;
+
+            if (_networkManager != null)
+            {
+                var directionMap = _networkManager.GetDirectionMap();
+                if (directionMap != null && directionMap.TryGetValue(clientDirEnumByte, out byte mappedDir))
+                {
+                    serverLookingDirection = mappedDir;
+                }
+            }
+
+            _characterService?.SendHitRequestAsync(
+                0xFFFF,
+                (byte)GetAttackAnimation(),
+                serverLookingDirection);
+        }
+
         public void UseSkill(int skillSlot, MonsterObject target = null)
         {
             if (World == null) return;
@@ -463,29 +487,26 @@ namespace Client.Main.Objects.Player
                 {
                     Direction = DirectionExtensions.GetDirectionFromMovementDelta(dx, dy);
                 }
-
-                PlayAction((ushort)action);
-
-                byte clientDirEnumByte = (byte)Direction;
-                byte serverLookingDirection = clientDirEnumByte;
-                if (_networkManager != null)
-                {
-                    var directionMap = _networkManager.GetDirectionMap();
-                    if (directionMap != null && directionMap.TryGetValue(clientDirEnumByte, out byte mappedDir))
-                    {
-                        serverLookingDirection = mappedDir;
-                    }
-                }
-
-                _characterService?.SendHitRequestAsync(
-                    target.NetworkId,
-                    (byte)action,
-                    serverLookingDirection);
             }
-            else
+
+            PlayAction((ushort)action);
+
+            byte clientDirEnumByte = (byte)Direction;
+            byte serverLookingDirection = clientDirEnumByte;
+            if (_networkManager != null)
             {
-                PlayAction((ushort)action);
+                var directionMap = _networkManager.GetDirectionMap();
+                if (directionMap != null && directionMap.TryGetValue(clientDirEnumByte, out byte mappedDir))
+                {
+                    serverLookingDirection = mappedDir;
+                }
             }
+
+            ushort targetId = target?.NetworkId ?? 0xFFFF;
+            _characterService?.SendHitRequestAsync(
+                targetId,
+                (byte)action,
+                serverLookingDirection);
         }
 
         public float GetAttackRangeTiles() => GetAttackRangeForAction(GetAttackAnimation());

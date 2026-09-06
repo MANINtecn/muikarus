@@ -124,12 +124,12 @@ namespace Client.Main.Objects
 
         private bool _isStaticInitialized = false;
 
-        public bool IsStatic => Model?.Actions == null || Model.Actions.Length == 0 || (Model.Actions.Length == 1 && Model.Actions[0].NumAnimationKeys <= 1);
+        public bool IsStatic => this is not WalkerObject;
 
         public override void Update(GameTime gameTime)
         {
             if (World == null) return;
-            if (_isStaticInitialized) return;
+            if (IsStatic && _isStaticInitialized) return;
 
             base.Update(gameTime);
 
@@ -149,7 +149,19 @@ namespace Client.Main.Objects
 
         public override void Draw(GameTime gameTime)
         {
-            if (!Visible || _boneIndexBuffers == null) return;
+            if (!Visible) return;
+
+            if (_boneIndexBuffers == null)
+            {
+                if (_contentLoaded)
+                {
+                    GenerateBoneMatrix(0, 0, 0, 0);
+                    SetDynamicBuffers();
+                    if (_boneIndexBuffers == null) return;
+                    if (IsStatic) _isStaticInitialized = true;
+                }
+                else return;
+            }
 
             var gd = GraphicsDevice;
             var prevCull = gd.RasterizerState;                      // zapisz
