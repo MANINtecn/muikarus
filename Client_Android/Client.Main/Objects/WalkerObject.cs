@@ -78,7 +78,7 @@ namespace Client.Main.Objects
             {
                 var x = Location.X * Constants.TERRAIN_SCALE + 0.5f * Constants.TERRAIN_SCALE;
                 var y = Location.Y * Constants.TERRAIN_SCALE + 0.5f * Constants.TERRAIN_SCALE;
-                var z = World.Terrain.RequestTerrainHeight(x, y);
+                var z = World?.Terrain?.RequestTerrainHeight(x, y) ?? 0f;
                 return new Vector3(x, y, z);
             }
         }
@@ -86,6 +86,7 @@ namespace Client.Main.Objects
         public Vector3 MoveTargetPosition { get; set; }
         public float MoveSpeed { get; set; } = Constants.MOVE_SPEED;
         public bool IsMoving => Vector3.Distance(MoveTargetPosition, TargetPosition) > 0f;
+        public int RemainingPathSteps => _currentPath?.Count ?? 0;
         public ushort NetworkId { get; set; }
 
         public ushort idanim = 0;
@@ -434,13 +435,18 @@ namespace Client.Main.Objects
                     Angle = new Vector3(Angle.X, Angle.Y, _targetAngle.Z);
             }
 
-            float heightScaleFactor = 0.5f;
-            float terrainHeightAtMoveTarget = MoveTargetPosition.Z + worldExtraHeight + ExtraHeight;
-            float desiredHeightOffset = heightScaleFactor * terrainHeightAtMoveTarget;
-            float targetHeight = terrainHeightAtMoveTarget + desiredHeightOffset;
-
-            float interpolationFactor = 15f * deltaTime;
-            float newZ = MathHelper.Lerp(Position.Z, targetHeight, interpolationFactor);
+            float targetHeight = MoveTargetPosition.Z + worldExtraHeight + ExtraHeight;
+            float newZ;
+            if (!IsMoving || deltaTime <= 0f)
+            {
+                newZ = targetHeight;
+            }
+            else
+            {
+                // Stable frame-rate independent interpolation (never overshoots or oscillates at low FPS)
+                float t = 1f - MathF.Exp(-15f * deltaTime);
+                newZ = MathHelper.Lerp(Position.Z, targetHeight, t);
+            }
 
             Position = new Vector3(MoveTargetPosition.X, MoveTargetPosition.Y, newZ);
         }

@@ -518,6 +518,7 @@ namespace Client.Main.Objects
 
             Model = null;
             BoneTransform = null;
+            _boundingsCalculated = false;
             _invalidatedBuffers = true;
         }
 
@@ -535,15 +536,17 @@ namespace Client.Main.Objects
             _invalidatedBuffers = true;
         }
 
+        private bool _boundingsCalculated = false;
+
         private void UpdateBoundings()
         {
-            if (Model == null) return;
-            if (Model.Meshes.Length == 0) return;
+            if (_boundingsCalculated || Model == null || Model.Meshes.Length == 0) return;
+
+            Matrix[] boneTransforms = BoneTransform;
+            if (boneTransforms == null) return;
 
             Vector3 min = new(float.MaxValue);
             Vector3 max = new(float.MinValue);
-
-            Matrix[] boneTransforms = BoneTransform; // Cache BoneTransform
 
             foreach (var mesh in Model.Meshes)
             {
@@ -567,7 +570,12 @@ namespace Client.Main.Objects
                 }
             }
 
+            // Generous margin for skeletal animations prevents culling edges while eliminating per-frame transforms
+            min -= new Vector3(40f, 40f, 40f);
+            max += new Vector3(40f, 40f, 40f);
+
             BoundingBoxLocal = new BoundingBox(min, max);
+            _boundingsCalculated = true;
         }
 
         private void Animation(GameTime gameTime)

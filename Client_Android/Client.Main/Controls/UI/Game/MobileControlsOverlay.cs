@@ -23,6 +23,7 @@ namespace Client.Main.Controls.UI.Game
         private readonly InventoryControl _inventory;
         private readonly CharacterInfoWindowControl _charInfo;
         private readonly MoveCommandWindow _warpWindow;
+        private readonly CommandWindowControl _commandWindow;
 
         // Contextual action (Attack vs NPC Talk)
         private NPCObject _nearbyNpc = null;
@@ -32,7 +33,7 @@ namespace Client.Main.Controls.UI.Game
         private const float JOYSTICK_RADIUS = 75f;
         private const float KNOB_RADIUS = 32f;
         private const float DEAD_ZONE = 0.15f;
-        private const float MOVE_INTERVAL_MS = 180f;
+        private const float MOVE_INTERVAL_MS = 380f;
 
         private Vector2 _joystickCenter;
         private Vector2 _knobPosition;
@@ -69,9 +70,11 @@ namespace Client.Main.Controls.UI.Game
         private Rectangle _invBtnRect;
         private Rectangle _statsBtnRect;
         private Rectangle _warpBtnRect;
+        private Rectangle _cmdBtnRect;
         private bool _invPressed = false;
         private bool _statsPressed = false;
         private bool _warpPressed = false;
+        private bool _cmdPressed = false;
 
         public bool IsTouchOverControls(Vector2 pos)
         {
@@ -83,6 +86,7 @@ namespace Client.Main.Controls.UI.Game
                 || Vector2.Distance(pos, _skill1ButtonCenter) <= SKILL_RADIUS
                 || Vector2.Distance(pos, _skill2ButtonCenter) <= SKILL_RADIUS
                 || Vector2.Distance(pos, _skill3ButtonCenter) <= SKILL_RADIUS
+                || _cmdBtnRect.Contains(pt)
                 || _invBtnRect.Contains(pt)
                 || _statsBtnRect.Contains(pt)
                 || _warpBtnRect.Contains(pt);
@@ -93,13 +97,15 @@ namespace Client.Main.Controls.UI.Game
             PlayerObject hero,
             InventoryControl inventory,
             CharacterInfoWindowControl charInfo,
-            MoveCommandWindow warpWindow)
+            MoveCommandWindow warpWindow,
+            CommandWindowControl commandWindow = null)
         {
             _scene = scene;
             _hero = hero;
             _inventory = inventory;
             _charInfo = charInfo;
             _warpWindow = warpWindow;
+            _commandWindow = commandWindow;
 
             AutoViewSize = false;
             ViewSize = new Point(MuGame.Instance.Width, MuGame.Instance.Height);
@@ -130,13 +136,14 @@ namespace Client.Main.Controls.UI.Game
             _hpButtonCenter = new Vector2(w - 45f, h - 195f);
             _mpButtonCenter = new Vector2(w - 45f, h - 260f);
 
-            // Menu shortcuts at top-right
-            int btnW = 60;
-            int btnH = 32;
+            // Menu shortcuts at top-right (comfortably sized for mobile finger touch)
+            int btnW = 68;
+            int btnH = 36;
             int topY = 48;
-            _warpBtnRect = new Rectangle(w - 70, topY, btnW, btnH);
-            _statsBtnRect = new Rectangle(w - 140, topY, btnW, btnH);
-            _invBtnRect = new Rectangle(w - 210, topY, btnW, btnH);
+            _warpBtnRect = new Rectangle(w - 74, topY, btnW, btnH);
+            _statsBtnRect = new Rectangle(w - 148, topY, btnW, btnH);
+            _invBtnRect = new Rectangle(w - 222, topY, btnW, btnH);
+            _cmdBtnRect = new Rectangle(w - 296, topY, btnW, btnH);
         }
 
         public override void Update(GameTime gameTime)
@@ -164,7 +171,7 @@ namespace Client.Main.Controls.UI.Game
             // Handle Joystick Walking
             if (_isJoystickActive && _joystickDir.Length() > DEAD_ZONE)
             {
-                if (totalMs - _lastMoveSentTime >= MOVE_INTERVAL_MS)
+                if (totalMs - _lastMoveSentTime >= MOVE_INTERVAL_MS && (_hero == null || _hero.RemainingPathSteps <= 1 || !_hero.IsMoving))
                 {
                     _lastMoveSentTime = totalMs;
                     SendJoystickMovement();
@@ -333,8 +340,20 @@ namespace Client.Main.Controls.UI.Game
                     continue;
                 }
 
-                // 8. Top Menu Shortcuts
-                Point pt = pos.ToPoint();
+                if (_cmdBtnRect.Contains(pt))
+                {
+                    if (touch.State == TouchLocationState.Pressed && !_cmdPressed)
+                    {
+                        _cmdPressed = true;
+                        ToggleCommand();
+                    }
+                    else if (touch.State == TouchLocationState.Released)
+                    {
+                        _cmdPressed = false;
+                    }
+                    continue;
+                }
+
                 if (_invBtnRect.Contains(pt))
                 {
                     if (touch.State == TouchLocationState.Pressed && !_invPressed)
@@ -442,6 +461,11 @@ namespace Client.Main.Controls.UI.Game
                         _skill3Pressed = true;
                         ExecuteSkill(3);
                     }
+                    else if (_cmdBtnRect.Contains(mouse.Position))
+                    {
+                        _cmdPressed = true;
+                        ToggleCommand();
+                    }
                     else if (_invBtnRect.Contains(mouse.Position))
                     {
                         _invPressed = true;
@@ -470,6 +494,7 @@ namespace Client.Main.Controls.UI.Game
                 _skill1Pressed = false;
                 _skill2Pressed = false;
                 _skill3Pressed = false;
+                _cmdPressed = false;
                 _invPressed = false;
                 _statsPressed = false;
                 _warpPressed = false;
@@ -659,6 +684,19 @@ namespace Client.Main.Controls.UI.Game
                 // Select this skill!
                 _selectedSkillSlot = skillSlot;
                 Helpers.OnScreenLogger.Log($"Skill selecionada: {name}!");
+            }
+        }
+
+        private void ToggleCommand()
+        {
+            SoundController.Instance.PlayBuffer("Sound/iButtonClick.wav");
+            if (_commandWindow != null)
+            {
+                _commandWindow.Toggle();
+            }
+            else
+            {
+                CommandWindowControl.Instance?.Toggle();
             }
         }
 
@@ -912,7 +950,8 @@ namespace Client.Main.Controls.UI.Game
                 }
 
                 // 9. Draw Top Menu Shortcut Buttons
-                DrawPillButton(sb, pixel, font, _invBtnRect, "INV", _invPressed, new Color(40, 140, 80));
+                DrawPillButton(sb, pixel, font, _cmdBtnRect, "CMD (D)", _cmdPressed, new Color(140, 60, 180));
+                DrawPillButton(sb, pixel, font, _invBtnRect, "INVEN", _invPressed, new Color(40, 140, 80));
                 DrawPillButton(sb, pixel, font, _statsBtnRect, "STATS", _statsPressed, new Color(180, 120, 30));
                 DrawPillButton(sb, pixel, font, _warpBtnRect, "WARP", _warpPressed, new Color(60, 100, 180));
 

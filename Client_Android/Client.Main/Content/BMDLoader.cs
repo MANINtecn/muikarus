@@ -127,10 +127,14 @@ namespace Client.Main.Content
                     IndexElementSize.ThirtyTwoBits,
                     totalIndices,
                     BufferUsage.None);
+
+                var initIndices = ArrayPool<int>.Shared.Rent(totalIndices);
+                for (int i = 0; i < totalIndices; i++) initIndices[i] = i;
+                indexBuffer.SetData(initIndices, 0, totalIndices);
+                ArrayPool<int>.Shared.Return(initIndices);
             }
 
             var vertices = ArrayPool<VertexPositionColorNormalTexture>.Shared.Rent(totalVertices);
-            var indices = ArrayPool<int>.Shared.Rent(totalIndices);
 
             int v = 0;
             foreach (var tri in mesh.Triangles)
@@ -153,17 +157,12 @@ namespace Client.Main.Content
                         color,
                         normal,
                         new Vector2(uv.U, uv.V));
-
-                    indices[v] = v;
                     v++;
                 }
             }
 
             vertexBuffer.SetData(vertices, 0, totalVertices, SetDataOptions.Discard);
-            indexBuffer.SetData(indices, 0, totalIndices, SetDataOptions.Discard);
-
             ArrayPool<VertexPositionColorNormalTexture>.Shared.Return(vertices);
-            ArrayPool<int>.Shared.Return(indices, clearArray: true);
         }
 
         public string GetTexturePath(BMD bmd, string texturePath)

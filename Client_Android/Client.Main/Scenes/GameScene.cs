@@ -42,6 +42,7 @@ namespace Client.Main.Scenes
         private bool _isChangingWorld = false;
         private readonly List<(ServerMessage.MessageType Type, string Message)> _pendingNotifications = new();
         private CharacterInfoWindowControl _characterInfoWindow;
+        private CommandWindowControl _commandWindow;
         private MobileControlsOverlay _mobileControls;
         private ILogger _logger = MuGame.AppLoggerFactory?.CreateLogger<GameScene>();
         private MapNameControl _currentMapNameControl; // Track active map name display
@@ -146,7 +147,10 @@ namespace Client.Main.Scenes
             _characterInfoWindow = new CharacterInfoWindowControl { X = 20, Y = 50, Visible = false };
             Controls.Add(_characterInfoWindow);
 
-            _mobileControls = new MobileControlsOverlay(this, _hero, _inventoryControl, _characterInfoWindow, _moveCommandWindow);
+            _commandWindow = new CommandWindowControl();
+            Controls.Add(_commandWindow);
+
+            _mobileControls = new MobileControlsOverlay(this, _hero, _inventoryControl, _characterInfoWindow, _moveCommandWindow, _commandWindow);
             Controls.Add(_mobileControls);
 
             _chatInput.BringToFront();
@@ -805,6 +809,11 @@ namespace Client.Main.Scenes
 
                     SoundController.Instance.PlayBuffer("Sound/iButtonClick.wav");
                 }
+            }
+
+            if (currentKeyboardState.IsKeyDown(Keys.D) && !_previousKeyboardState.IsKeyDown(Keys.D))
+            {
+                _commandWindow?.Toggle();
             }
 
             _notificationManager?.Update(gameTime);

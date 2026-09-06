@@ -96,8 +96,10 @@ namespace Client.Main.Controls
         // Dynamic Terrain Batches (Massive Draw Call Reduction: 800+ draw calls -> ~4-8 draw calls)
         private readonly VertexPositionColorTexture[][] _opaqueBatches = new VertexPositionColorTexture[256][];
         private readonly int[] _opaqueBatchCounts = new int[256];
+        private readonly List<int> _usedOpaqueIndices = new List<int>(16);
         private readonly VertexPositionColorTexture[][] _alphaBatches = new VertexPositionColorTexture[256][];
         private readonly int[] _alphaBatchCounts = new int[256];
+        private readonly List<int> _usedAlphaIndices = new List<int>(16);
 
         // Wind Data
         private float _lastWindSpeed = float.MinValue;
@@ -557,9 +559,14 @@ namespace Client.Main.Controls
             UpdateVisibleBlocks(new Vector2(Camera.Instance.Position.X,
                                             Camera.Instance.Position.Y));
 
-            // Reset batch counts for new frame
-            Array.Clear(_opaqueBatchCounts, 0, _opaqueBatchCounts.Length);
-            Array.Clear(_alphaBatchCounts, 0, _alphaBatchCounts.Length);
+            // Reset batch counts and active indices for new frame
+            for (int i = 0; i < _usedOpaqueIndices.Count; i++)
+                _opaqueBatchCounts[_usedOpaqueIndices[i]] = 0;
+            _usedOpaqueIndices.Clear();
+
+            for (int i = 0; i < _usedAlphaIndices.Count; i++)
+                _alphaBatchCounts[_usedAlphaIndices[i]] = 0;
+            _usedAlphaIndices.Clear();
 
             foreach (var block in _visibleBlocks)
             {
@@ -581,8 +588,9 @@ namespace Client.Main.Controls
             GraphicsDevice.BlendState = BlendState.Opaque;
             GraphicsDevice.DepthStencilState = DepthStencilState.Default;
 
-            for (int t = 0; t < _opaqueBatchCounts.Length; t++)
+            for (int i = 0; i < _usedOpaqueIndices.Count; i++)
             {
+                int t = _usedOpaqueIndices[i];
                 int count = _opaqueBatchCounts[t];
                 if (count <= 0) continue;
 
@@ -600,8 +608,9 @@ namespace Client.Main.Controls
             // 2. Alpha Blend Pass (draw transition layer tiles batched by texture)
             GraphicsDevice.BlendState = BlendState.AlphaBlend;
 
-            for (int t = 0; t < _alphaBatchCounts.Length; t++)
+            for (int i = 0; i < _usedAlphaIndices.Count; i++)
             {
+                int t = _usedAlphaIndices[i];
                 int count = _alphaBatchCounts[t];
                 if (count <= 0) continue;
 
@@ -1186,9 +1195,17 @@ namespace Client.Main.Controls
             arr[currentCount + 5] = new VertexPositionColorTexture(_tempTerrainVertex[0], _tempTerrainLights[0], uv0);
 
             if (isAlpha)
+            {
+                if (_alphaBatchCounts[textureIndex] == 0)
+                    _usedAlphaIndices.Add(textureIndex);
                 _alphaBatchCounts[textureIndex] += 6;
+            }
             else
+            {
+                if (_opaqueBatchCounts[textureIndex] == 0)
+                    _usedOpaqueIndices.Add(textureIndex);
                 _opaqueBatchCounts[textureIndex] += 6;
+            }
         }
 
         private void RenderTexture(int textureIndex, float xf, float yf, float lodScale = 1.0f)
