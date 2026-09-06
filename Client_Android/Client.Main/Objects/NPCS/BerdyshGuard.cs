@@ -25,8 +25,7 @@ namespace Client.Main.Objects.NPCS
         {
             Model = await BMDLoader.Instance.Prepare("Player/Player.bmd");
             await SetBodyPartsAsync("Player/", "HelmMale", "ArmorMale", "PantMale", "GloveMale", "BootMale", 10); // Plate Set
-            var item = ItemDatabase.GetItemDefinition(3, 7); // Berdysh
-            _leftHandWeapon.Model = await BMDLoader.Instance.Prepare(item.TexturePath);
+            _leftHandWeapon.Model = await BMDLoader.Instance.Prepare("Item/Spear08.bmd");
             await base.Load();
             AnimationSpeed = 25f;
             CurrentAction = (int)PlayerAction.PlayerStopSpear; // Appropriate idle animation for spear

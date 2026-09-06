@@ -33,10 +33,8 @@ namespace Client.Main.Objects.NPCS
         {
             Model = await BMDLoader.Instance.Prepare("Player/Player.bmd");
             await SetBodyPartsAsync("Player/", "HelmMale", "ArmorMale", "PantMale", "GloveMale", "BootMale", 10); // Plate Set
-            var crossbowItem = ItemDatabase.GetItemDefinition(4, 10); // Light Crossbow
-            var boltItem = ItemDatabase.GetItemDefinition(4, 7); // Bolt
-            _leftHandWeapon.Model = await BMDLoader.Instance.Prepare(crossbowItem.TexturePath);
-            _backWeapon.Model = await BMDLoader.Instance.Prepare(boltItem.TexturePath);
+            _leftHandWeapon.Model = await BMDLoader.Instance.Prepare("Item/Bow11.bmd");
+            _backWeapon.Model = await BMDLoader.Instance.Prepare("Item/Bow07.bmd");
             // Set bolt position and rotation on back, similar to weapon holster
             _backWeapon.Position = new Vector3(-10f, 8f, 0f); // Left side holster offset
             _backWeapon.Angle = new Vector3(MathHelper.ToRadians(80f), 0f, MathHelper.ToRadians(90f)); // Left side holster rotation
