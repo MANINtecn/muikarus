@@ -470,7 +470,7 @@ namespace Client.Main.Objects.Player
                 action = skillSlot switch
                 {
                     1 => PlayerAction.PlayerSkillHand1,
-                    2 => PlayerAction.PlayerSkillWheel,
+                    2 => PlayerAction.EvilSpiritSkill,
                     3 => PlayerAction.PlayerSkillHand2,
                     _ => PlayerAction.PlayerSkillHand1
                 };

@@ -530,7 +530,7 @@ namespace Client.Main.Controls.UI.Game
 
         public (ushort skillId, string name) GetSkillForSlot(int slot)
         {
-            var skills = _scene?.CharacterState?.GetSkills()?.ToList();
+            var skills = MuGame.Network?.GetCharacterState()?.GetSkills()?.ToList();
             if (skills != null && skills.Count >= slot)
             {
                 var skillEntry = skills[slot - 1];
