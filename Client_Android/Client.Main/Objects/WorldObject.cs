@@ -1,4 +1,4 @@
-﻿using Client.Main.Controllers;
+using Client.Main.Controllers;
 using Client.Main.Controls;
 using Client.Main.Helpers;
 using Client.Main.Models;
@@ -140,8 +140,8 @@ namespace Client.Main.Objects
         {
             if (Status == GameControlStatus.NonInitialized)
             {
-                // Use ConfigureAwait(false) to avoid context switching
-                Load().ConfigureAwait(false);
+                _ = Load();
+                return;
             }
 
             if (Status != GameControlStatus.Ready) return;

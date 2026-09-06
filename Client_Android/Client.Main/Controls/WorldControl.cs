@@ -97,8 +97,6 @@ namespace Client.Main.Controls
 
             var worldFolder = $"World{WorldIndex}";
             var dataPath = Constants.DataPath;
-            var tasks = new List<Task>();
-
             // Load terrain OBJ
             var rawObjPath = Path.Combine(dataPath, worldFolder, $"EncTerrain{WorldIndex}.obj");
             var objPath = Utils.GetActualPath(rawObjPath);
@@ -108,38 +106,32 @@ namespace Client.Main.Controls
                 {
                     var reader = new OBJReader();
                     OBJ obj = await reader.Load(objPath);
+                    var instances = new List<WorldObject>(obj.Objects.Length);
+
                     foreach (var mapObj in obj.Objects)
                     {
                         var instance = WorldObjectFactory.CreateMapTileObject(this, mapObj);
                         if (instance != null)
-                        {
-                            tasks.Add(Task.Run(async () =>
-                            {
-                                try
-                                {
-                                    await instance.Load();
-                                }
-                                catch (Exception ex)
-                                {
-                                    OnScreenLogger.Log($"Obj {instance.Type} load err: {ex.Message}", LogLevel.Warning);
-                                }
-                            }));
-                        }
+                            instances.Add(instance);
                     }
+
+                    // Controlled parallelism prevents Android flash I/O lockup and thread pool starvation
+                    await Parallel.ForEachAsync(instances, new ParallelOptions { MaxDegreeOfParallelism = 8 }, async (instance, ct) =>
+                    {
+                        try
+                        {
+                            await instance.Load();
+                        }
+                        catch (Exception ex)
+                        {
+                            OnScreenLogger.Log($"Obj {instance.Type} load err: {ex.Message}", LogLevel.Warning);
+                        }
+                    });
                 }
                 catch (Exception ex)
                 {
                     OnScreenLogger.Log($"Falha lendo OBJ mapa {WorldIndex}: {ex.Message}", LogLevel.Warning);
                 }
-            }
-
-            try
-            {
-                await Task.WhenAll(tasks);
-            }
-            catch (Exception ex)
-            {
-                OnScreenLogger.Log($"World objects batch err: {ex.Message}", LogLevel.Warning);
             }
 
             // Load camera settings

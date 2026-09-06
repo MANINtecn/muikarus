@@ -48,6 +48,15 @@ namespace Client.Main.Controls.UI.Game
         private Vector2 _mpButtonCenter;
         private bool _mpPressed = false;
 
+        // Skill button configurations
+        private Vector2 _skill1ButtonCenter;
+        private Vector2 _skill2ButtonCenter;
+        private Vector2 _skill3ButtonCenter;
+        private const float SKILL_RADIUS = 30f;
+        private bool _skill1Pressed = false;
+        private bool _skill2Pressed = false;
+        private bool _skill3Pressed = false;
+
         // Menu shortcut buttons (top-right)
         private Rectangle _invBtnRect;
         private Rectangle _statsBtnRect;
@@ -89,9 +98,14 @@ namespace Client.Main.Controls.UI.Game
                 _knobPosition = _joystickCenter;
 
             // Action buttons at bottom-right
-            _atkButtonCenter = new Vector2(w - 110f, h - 125f);
-            _hpButtonCenter = new Vector2(w - 60f, h - 215f);
-            _mpButtonCenter = new Vector2(w - 135f, h - 215f);
+            _atkButtonCenter = new Vector2(w - 105f, h - 105f);
+            _skill1ButtonCenter = new Vector2(w - 190f, h - 75f);
+            _skill2ButtonCenter = new Vector2(w - 185f, h - 150f);
+            _skill3ButtonCenter = new Vector2(w - 115f, h - 195f);
+
+            // Potions positioned higher up on the right
+            _hpButtonCenter = new Vector2(w - 45f, h - 195f);
+            _mpButtonCenter = new Vector2(w - 45f, h - 260f);
 
             // Menu shortcuts at top-right
             int btnW = 60;
@@ -215,7 +229,52 @@ namespace Client.Main.Controls.UI.Game
                     continue;
                 }
 
-                // 5. Top Menu Shortcuts
+                // 5. Skill 1 Button
+                if (Vector2.Distance(pos, _skill1ButtonCenter) <= SKILL_RADIUS)
+                {
+                    if (touch.State == TouchLocationState.Pressed)
+                    {
+                        _skill1Pressed = true;
+                        ExecuteSkill(1);
+                    }
+                    else if (touch.State == TouchLocationState.Released)
+                    {
+                        _skill1Pressed = false;
+                    }
+                    continue;
+                }
+
+                // 6. Skill 2 Button
+                if (Vector2.Distance(pos, _skill2ButtonCenter) <= SKILL_RADIUS)
+                {
+                    if (touch.State == TouchLocationState.Pressed)
+                    {
+                        _skill2Pressed = true;
+                        ExecuteSkill(2);
+                    }
+                    else if (touch.State == TouchLocationState.Released)
+                    {
+                        _skill2Pressed = false;
+                    }
+                    continue;
+                }
+
+                // 7. Skill 3 Button
+                if (Vector2.Distance(pos, _skill3ButtonCenter) <= SKILL_RADIUS)
+                {
+                    if (touch.State == TouchLocationState.Pressed)
+                    {
+                        _skill3Pressed = true;
+                        ExecuteSkill(3);
+                    }
+                    else if (touch.State == TouchLocationState.Released)
+                    {
+                        _skill3Pressed = false;
+                    }
+                    continue;
+                }
+
+                // 8. Top Menu Shortcuts
                 Point pt = pos.ToPoint();
                 if (_invBtnRect.Contains(pt))
                 {
@@ -304,6 +363,21 @@ namespace Client.Main.Controls.UI.Game
                         _mpPressed = true;
                         ExecuteMpPotion();
                     }
+                    else if (Vector2.Distance(mPos, _skill1ButtonCenter) <= SKILL_RADIUS)
+                    {
+                        _skill1Pressed = true;
+                        ExecuteSkill(1);
+                    }
+                    else if (Vector2.Distance(mPos, _skill2ButtonCenter) <= SKILL_RADIUS)
+                    {
+                        _skill2Pressed = true;
+                        ExecuteSkill(2);
+                    }
+                    else if (Vector2.Distance(mPos, _skill3ButtonCenter) <= SKILL_RADIUS)
+                    {
+                        _skill3Pressed = true;
+                        ExecuteSkill(3);
+                    }
                     else if (_invBtnRect.Contains(mouse.Position))
                     {
                         _invPressed = true;
@@ -329,6 +403,9 @@ namespace Client.Main.Controls.UI.Game
                 _atkPressed = false;
                 _hpPressed = false;
                 _mpPressed = false;
+                _skill1Pressed = false;
+                _skill2Pressed = false;
+                _skill3Pressed = false;
                 _invPressed = false;
                 _statsPressed = false;
                 _warpPressed = false;
@@ -421,6 +498,31 @@ namespace Client.Main.Controls.UI.Game
         {
             SoundController.Instance.PlayBuffer("Sound/pDrink.wav");
             Helpers.OnScreenLogger.Log("MP Potion consumida!");
+        }
+
+        private void ExecuteSkill(int skillSlot)
+        {
+            if (_hero == null || _hero.World == null)
+                return;
+
+            SoundController.Instance.PlayBuffer("Sound/iButtonClick.wav");
+
+            // Find nearest monster within skill range
+            var nearestMonster = _hero.World.Objects
+                .OfType<MonsterObject>()
+                .OrderBy(m => Vector2.Distance(_hero.Location, m.Location))
+                .FirstOrDefault();
+
+            if (nearestMonster != null && Vector2.Distance(_hero.Location, nearestMonster.Location) <= 8f)
+            {
+                _hero.UseSkill(skillSlot, nearestMonster);
+                Helpers.OnScreenLogger.Log($"Skill {skillSlot} disparada (Alvo #{nearestMonster.NetworkId})!");
+            }
+            else
+            {
+                _hero.UseSkill(skillSlot);
+                Helpers.OnScreenLogger.Log($"Skill {skillSlot} executada!");
+            }
         }
 
         private void ToggleInventory()
@@ -551,7 +653,58 @@ namespace Client.Main.Controls.UI.Game
                     sb.DrawString(font, mpText, textPos, Color.White);
                 }
 
-                // 6. Draw Top Menu Shortcut Buttons
+                // 6. Draw Skill 1 Button (Amber/Gold)
+                if (_btnRingTex != null)
+                {
+                    Vector2 s1Origin = new Vector2(_btnRingTex.Width * 0.5f, _btnRingTex.Height * 0.5f);
+                    float s1Scale = (SKILL_RADIUS * 2.0f) / _btnRingTex.Width;
+                    Color s1Tint = _skill1Pressed ? new Color(255, 220, 120, 255) : new Color(230, 150, 30, 240);
+                    sb.Draw(_btnRingTex, _skill1ButtonCenter, null, s1Tint, 0f, s1Origin, s1Scale, SpriteEffects.None, 0f);
+                }
+                if (font != null)
+                {
+                    string s1Text = "SK1";
+                    Vector2 s1Size = font.MeasureString(s1Text);
+                    Vector2 s1Pos = _skill1ButtonCenter - s1Size * 0.5f;
+                    sb.DrawString(font, s1Text, s1Pos + new Vector2(1, 1), Color.Black);
+                    sb.DrawString(font, s1Text, s1Pos, Color.Gold);
+                }
+
+                // 7. Draw Skill 2 Button (Purple/Violet)
+                if (_btnRingTex != null)
+                {
+                    Vector2 s2Origin = new Vector2(_btnRingTex.Width * 0.5f, _btnRingTex.Height * 0.5f);
+                    float s2Scale = (SKILL_RADIUS * 2.0f) / _btnRingTex.Width;
+                    Color s2Tint = _skill2Pressed ? new Color(230, 150, 255, 255) : new Color(170, 70, 230, 240);
+                    sb.Draw(_btnRingTex, _skill2ButtonCenter, null, s2Tint, 0f, s2Origin, s2Scale, SpriteEffects.None, 0f);
+                }
+                if (font != null)
+                {
+                    string s2Text = "SK2";
+                    Vector2 s2Size = font.MeasureString(s2Text);
+                    Vector2 s2Pos = _skill2ButtonCenter - s2Size * 0.5f;
+                    sb.DrawString(font, s2Text, s2Pos + new Vector2(1, 1), Color.Black);
+                    sb.DrawString(font, s2Text, s2Pos, Color.Violet);
+                }
+
+                // 8. Draw Skill 3 Button (Cyan/Teal)
+                if (_btnRingTex != null)
+                {
+                    Vector2 s3Origin = new Vector2(_btnRingTex.Width * 0.5f, _btnRingTex.Height * 0.5f);
+                    float s3Scale = (SKILL_RADIUS * 2.0f) / _btnRingTex.Width;
+                    Color s3Tint = _skill3Pressed ? new Color(150, 240, 255, 255) : new Color(30, 180, 210, 240);
+                    sb.Draw(_btnRingTex, _skill3ButtonCenter, null, s3Tint, 0f, s3Origin, s3Scale, SpriteEffects.None, 0f);
+                }
+                if (font != null)
+                {
+                    string s3Text = "SK3";
+                    Vector2 s3Size = font.MeasureString(s3Text);
+                    Vector2 s3Pos = _skill3ButtonCenter - s3Size * 0.5f;
+                    sb.DrawString(font, s3Text, s3Pos + new Vector2(1, 1), Color.Black);
+                    sb.DrawString(font, s3Text, s3Pos, Color.Cyan);
+                }
+
+                // 9. Draw Top Menu Shortcut Buttons
                 DrawPillButton(sb, pixel, font, _invBtnRect, "INV", _invPressed, new Color(40, 140, 80));
                 DrawPillButton(sb, pixel, font, _statsBtnRect, "STATS", _statsPressed, new Color(180, 120, 30));
                 DrawPillButton(sb, pixel, font, _warpBtnRect, "WARP", _warpPressed, new Color(60, 100, 180));

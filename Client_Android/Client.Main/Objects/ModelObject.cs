@@ -122,9 +122,15 @@ namespace Client.Main.Objects
             GenerateBoneMatrix(0, 0, 0, 0);
         }
 
+        private bool _isStaticInitialized = false;
+
+        public bool IsStatic => Model?.Actions == null || Model.Actions.Length == 0 || (Model.Actions.Length == 1 && Model.Actions[0].NumAnimationKeys <= 1);
+
         public override void Update(GameTime gameTime)
         {
             if (World == null) return;
+            if (_isStaticInitialized) return;
+
             base.Update(gameTime);
 
             if (!Visible || OutOfView) return;
@@ -132,7 +138,13 @@ namespace Client.Main.Objects
             Animation(gameTime);
 
             if (_contentLoaded)
+            {
                 SetDynamicBuffers();
+                if (IsStatic && _boneVertexBuffers != null)
+                {
+                    _isStaticInitialized = true;
+                }
+            }
         }
 
         public override void Draw(GameTime gameTime)

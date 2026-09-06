@@ -1,4 +1,4 @@
-﻿using Client.Main.Content;
+using Client.Main.Content;
 using Client.Main.Controls;
 using Client.Main.Models;
 using Client.Main.Objects.Wings;
@@ -432,6 +432,60 @@ namespace Client.Main.Objects.Player
                 target.NetworkId,
                 (byte)GetAttackAnimation(),
                 serverLookingDirection); // Send the server-mapped direction
+        }
+
+        public void UseSkill(int skillSlot, MonsterObject target = null)
+        {
+            if (World == null) return;
+
+            PlayerAction action = skillSlot switch
+            {
+                1 => PlayerAction.PlayerAttackSkillSword1,
+                2 => PlayerAction.PlayerAttackSkillWheel,
+                3 => PlayerAction.PlayerAttackSkillFuryStrike,
+                _ => PlayerAction.PlayerAttackSkillSword1
+            };
+
+            if (target != null)
+            {
+                float rangeTiles = 6f;
+                if (Vector2.Distance(Location, target.Location) > rangeTiles)
+                {
+                    MoveTo(target.Location);
+                    return;
+                }
+
+                _currentPath?.Clear();
+
+                int dx = (int)(target.Location.X - Location.X);
+                int dy = (int)(target.Location.Y - Location.Y);
+                if (dx != 0 || dy != 0)
+                {
+                    Direction = DirectionExtensions.GetDirectionFromMovementDelta(dx, dy);
+                }
+
+                PlayAction((ushort)action);
+
+                byte clientDirEnumByte = (byte)Direction;
+                byte serverLookingDirection = clientDirEnumByte;
+                if (_networkManager != null)
+                {
+                    var directionMap = _networkManager.GetDirectionMap();
+                    if (directionMap != null && directionMap.TryGetValue(clientDirEnumByte, out byte mappedDir))
+                    {
+                        serverLookingDirection = mappedDir;
+                    }
+                }
+
+                _characterService?.SendHitRequestAsync(
+                    target.NetworkId,
+                    (byte)action,
+                    serverLookingDirection);
+            }
+            else
+            {
+                PlayAction((ushort)action);
+            }
         }
 
         public float GetAttackRangeTiles() => GetAttackRangeForAction(GetAttackAnimation());
