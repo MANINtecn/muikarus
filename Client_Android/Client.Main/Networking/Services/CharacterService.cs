@@ -234,6 +234,33 @@ namespace Client.Main.Networking.Services
         }
 
         /// <summary>
+        /// Sends a skill usage request packet to the server.
+        /// </summary>
+        public async Task SendSkillRequestAsync(ushort skillId, ushort targetId)
+        {
+            if (!_connectionManager.IsConnected)
+            {
+                _logger.LogError("Not connected — cannot send skill request.");
+                return;
+            }
+
+            _logger.LogInformation(
+                "Sending skill request: SkillID={SkillId}, TargetID={TargetId}...",
+                skillId, targetId);
+
+            try
+            {
+                await _connectionManager.Connection.SendAsync(() =>
+                    PacketBuilder.BuildSkillRequestPacket(_connectionManager.Connection.Output, skillId, targetId));
+                _logger.LogInformation("Skill request sent: SkillID={SkillId}, TargetID={TargetId}.", skillId, targetId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending skill request for skill {SkillId} on target {TargetId}.", skillId, targetId);
+            }
+        }
+
+        /// <summary>
         /// Sends a request to increase a specific character stat attribute.
         /// </summary>
         /// <param name="attribute">The attribute to be increased.</param>

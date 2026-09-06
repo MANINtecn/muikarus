@@ -458,17 +458,45 @@ namespace Client.Main.Objects.Player
                 serverLookingDirection);
         }
 
-        public void UseSkill(int skillSlot, MonsterObject target = null)
+        public void UseSkill(int skillSlot, ushort skillId = 0, MonsterObject target = null)
         {
             if (World == null) return;
 
-            PlayerAction action = skillSlot switch
+            PlayerAction action;
+            if (CharacterClass == CharacterClassNumber.DarkWizard || 
+                CharacterClass == CharacterClassNumber.SoulMaster || 
+                CharacterClass == CharacterClassNumber.GrandMaster)
             {
-                1 => PlayerAction.PlayerAttackSkillSword1,
-                2 => PlayerAction.PlayerAttackSkillWheel,
-                3 => PlayerAction.PlayerAttackSkillFuryStrike,
-                _ => PlayerAction.PlayerAttackSkillSword1
-            };
+                action = skillSlot switch
+                {
+                    1 => PlayerAction.PlayerSkillHand1,
+                    2 => PlayerAction.PlayerSkillWheel,
+                    3 => PlayerAction.PlayerSkillHand2,
+                    _ => PlayerAction.PlayerSkillHand1
+                };
+            }
+            else if (CharacterClass == CharacterClassNumber.FairyElf || 
+                     CharacterClass == CharacterClassNumber.MuseElf || 
+                     CharacterClass == CharacterClassNumber.HighElf)
+            {
+                action = skillSlot switch
+                {
+                    1 => PlayerAction.PlayerAttackBow,
+                    2 => PlayerAction.PlayerSkillSummon,
+                    3 => PlayerAction.PlayerSkillHand1,
+                    _ => PlayerAction.PlayerAttackBow
+                };
+            }
+            else
+            {
+                action = skillSlot switch
+                {
+                    1 => PlayerAction.PlayerAttackSkillSword1,
+                    2 => PlayerAction.PlayerAttackSkillWheel,
+                    3 => PlayerAction.PlayerAttackSkillFuryStrike,
+                    _ => PlayerAction.PlayerAttackSkillSword1
+                };
+            }
 
             if (target != null)
             {
@@ -503,10 +531,17 @@ namespace Client.Main.Objects.Player
             }
 
             ushort targetId = target?.NetworkId ?? 0xFFFF;
-            _characterService?.SendHitRequestAsync(
-                targetId,
-                (byte)action,
-                serverLookingDirection);
+            if (skillId > 0)
+            {
+                _characterService?.SendSkillRequestAsync(skillId, targetId);
+            }
+            else
+            {
+                _characterService?.SendHitRequestAsync(
+                    targetId,
+                    (byte)action,
+                    serverLookingDirection);
+            }
         }
 
         public float GetAttackRangeTiles() => GetAttackRangeForAction(GetAttackAnimation());

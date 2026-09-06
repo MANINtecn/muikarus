@@ -62,6 +62,9 @@ namespace Client.Main.Controls.UI.Game
         private bool _skill2Pressed = false;
         private bool _skill3Pressed = false;
 
+        // Selected skill slot (0 = none/regular attack, 1 = Skill 1, 2 = Skill 2, 3 = Skill 3)
+        private int _selectedSkillSlot = 0;
+
         // Menu shortcut buttons (top-right)
         private Rectangle _invBtnRect;
         private Rectangle _statsBtnRect;
@@ -69,6 +72,21 @@ namespace Client.Main.Controls.UI.Game
         private bool _invPressed = false;
         private bool _statsPressed = false;
         private bool _warpPressed = false;
+
+        public bool IsTouchOverControls(Vector2 pos)
+        {
+            Point pt = pos.ToPoint();
+            return Vector2.Distance(pos, _joystickCenter) <= JOYSTICK_RADIUS * 2.2f
+                || Vector2.Distance(pos, _atkButtonCenter) <= ATK_RADIUS
+                || Vector2.Distance(pos, _hpButtonCenter) <= POTION_RADIUS
+                || Vector2.Distance(pos, _mpButtonCenter) <= POTION_RADIUS
+                || Vector2.Distance(pos, _skill1ButtonCenter) <= SKILL_RADIUS
+                || Vector2.Distance(pos, _skill2ButtonCenter) <= SKILL_RADIUS
+                || Vector2.Distance(pos, _skill3ButtonCenter) <= SKILL_RADIUS
+                || _invBtnRect.Contains(pt)
+                || _statsBtnRect.Contains(pt)
+                || _warpBtnRect.Contains(pt);
+        }
 
         public MobileControlsOverlay(
             GameScene scene,
@@ -191,6 +209,11 @@ namespace Client.Main.Controls.UI.Game
             foreach (var touch in touches)
             {
                 Vector2 pos = touch.Position;
+
+                if (IsTouchOverControls(pos))
+                {
+                    _scene?.SetMouseInputConsumed();
+                }
 
                 // 1. Joystick touch tracking
                 if (_isJoystickActive && touch.Id == _joystickTouchId)
@@ -370,6 +393,11 @@ namespace Client.Main.Controls.UI.Game
             bool isLeftDown = mouse.LeftButton == ButtonState.Pressed;
             bool wasLeftDown = prevMouse.LeftButton == ButtonState.Pressed;
 
+            if (isLeftDown && IsTouchOverControls(mPos))
+            {
+                _scene?.SetMouseInputConsumed();
+            }
+
             if (isLeftDown)
             {
                 if (!_isJoystickActive && Vector2.Distance(mPos, _joystickCenter) <= JOYSTICK_RADIUS * 2.2f)
@@ -500,6 +528,81 @@ namespace Client.Main.Controls.UI.Game
             }
         }
 
+        public (ushort skillId, string name) GetSkillForSlot(int slot)
+        {
+            var skills = _scene?.CharacterState?.GetSkills()?.ToList();
+            if (skills != null && skills.Count >= slot)
+            {
+                var skillEntry = skills[slot - 1];
+                string name = GetSkillNameById(skillEntry.SkillId);
+                return (skillEntry.SkillId, name);
+            }
+
+            // Default fallback based on character class
+            var cls = _hero?.CharacterClass ?? MUnique.OpenMU.Network.Packets.CharacterClassNumber.DarkKnight;
+            if (cls == MUnique.OpenMU.Network.Packets.CharacterClassNumber.DarkWizard ||
+                cls == MUnique.OpenMU.Network.Packets.CharacterClassNumber.SoulMaster ||
+                cls == MUnique.OpenMU.Network.Packets.CharacterClassNumber.GrandMaster)
+            {
+                return slot switch
+                {
+                    1 => (4, "FIRE"),
+                    2 => (9, "EVIL"),
+                    3 => (10, "HELL"),
+                    _ => (0, "SKILL")
+                };
+            }
+            if (cls == MUnique.OpenMU.Network.Packets.CharacterClassNumber.FairyElf ||
+                cls == MUnique.OpenMU.Network.Packets.CharacterClassNumber.MuseElf ||
+                cls == MUnique.OpenMU.Network.Packets.CharacterClassNumber.HighElf)
+            {
+                return slot switch
+                {
+                    1 => (24, "TRIPLE"),
+                    2 => (26, "HEAL"),
+                    3 => (27, "BUFF"),
+                    _ => (0, "SKILL")
+                };
+            }
+
+            // Dark Knight default
+            return slot switch
+            {
+                1 => (19, "SLASH"),
+                2 => (41, "TWIST"),
+                3 => (42, "RAGE"),
+                _ => (0, "SKILL")
+            };
+        }
+
+        private static string GetSkillNameById(ushort id) => id switch
+        {
+            1 => "POISON",
+            2 => "METEOR",
+            3 => "LIGHTN",
+            4 => "FIRE",
+            5 => "FLAME",
+            6 => "TELE",
+            7 => "ICE",
+            8 => "TWIST",
+            9 => "EVIL",
+            10 => "HELL",
+            14 => "INFERN",
+            19 => "SLASH",
+            22 => "CYCLONE",
+            24 => "TRIPLE",
+            26 => "HEAL",
+            27 => "DEF+",
+            28 => "DMG+",
+            41 => "TWIST",
+            42 => "RAGE",
+            43 => "STAB",
+            48 => "SWELL",
+            55 => "F.SLASH",
+            61 => "F.BURST",
+            _ => $"SKL {id}"
+        };
+
         private void ExecuteAttack()
         {
             if (_hero == null || _hero.World == null)
@@ -511,6 +614,12 @@ namespace Client.Main.Controls.UI.Game
             {
                 _nearbyNpc.OnClick();
                 Helpers.OnScreenLogger.Log($"Falando com {_nearbyNpc.DisplayName}!");
+            }
+            else if (_selectedSkillSlot > 0)
+            {
+                var (skillId, name) = GetSkillForSlot(_selectedSkillSlot);
+                _hero.UseSkill(_selectedSkillSlot, skillId);
+                Helpers.OnScreenLogger.Log($"Usando {name}!");
             }
             else
             {
@@ -536,8 +645,21 @@ namespace Client.Main.Controls.UI.Game
                 return;
 
             SoundController.Instance.PlayBuffer("Sound/iButtonClick.wav");
-            _hero.UseSkill(skillSlot);
-            Helpers.OnScreenLogger.Log($"Skill {skillSlot} disparada!");
+
+            var (skillId, name) = GetSkillForSlot(skillSlot);
+
+            if (_selectedSkillSlot == skillSlot)
+            {
+                // Already selected: fire it directly!
+                _hero.UseSkill(skillSlot, skillId);
+                Helpers.OnScreenLogger.Log($"Disparando {name}!");
+            }
+            else
+            {
+                // Select this skill!
+                _selectedSkillSlot = skillSlot;
+                Helpers.OnScreenLogger.Log($"Skill selecionada: {name}!");
+            }
         }
 
         private void ToggleInventory()
@@ -628,6 +750,17 @@ namespace Client.Main.Controls.UI.Game
                         // Emerald green interaction button
                         atkTint = _atkPressed ? new Color(130, 255, 180, 255) : new Color(35, 205, 125, 240);
                     }
+                    else if (_selectedSkillSlot > 0)
+                    {
+                        Color skillColor = _selectedSkillSlot switch
+                        {
+                            1 => new Color(240, 160, 30, 240),
+                            2 => new Color(170, 70, 230, 240),
+                            3 => new Color(30, 180, 210, 240),
+                            _ => new Color(220, 60, 50, 240)
+                        };
+                        atkTint = _atkPressed ? Color.Lerp(skillColor, Color.White, 0.4f) : skillColor;
+                    }
                     else
                     {
                         // Red attack button
@@ -637,8 +770,24 @@ namespace Client.Main.Controls.UI.Game
                 }
                 if (font != null)
                 {
-                    string btnText = _nearbyNpc != null ? "TALK" : "ATK";
-                    Color textColor = _nearbyNpc != null ? Color.White : Color.Gold;
+                    string btnText;
+                    Color textColor;
+                    if (_nearbyNpc != null)
+                    {
+                        btnText = "TALK";
+                        textColor = Color.White;
+                    }
+                    else if (_selectedSkillSlot > 0)
+                    {
+                        btnText = GetSkillForSlot(_selectedSkillSlot).name;
+                        textColor = Color.White;
+                    }
+                    else
+                    {
+                        btnText = "ATK";
+                        textColor = Color.Gold;
+                    }
+
                     Vector2 textSize = font.MeasureString(btnText);
                     Vector2 textPos = _atkButtonCenter - textSize * 0.5f;
                     sb.DrawString(font, btnText, textPos + new Vector2(1, 1), Color.Black);
@@ -651,6 +800,14 @@ namespace Client.Main.Controls.UI.Game
                         Vector2 namePos = new Vector2(_atkButtonCenter.X - nameSize.X * 0.5f, _atkButtonCenter.Y - ATK_RADIUS - nameSize.Y - 6f);
                         sb.DrawString(font, npcName, namePos + new Vector2(1, 1), Color.Black);
                         sb.DrawString(font, npcName, namePos, Color.Cyan);
+                    }
+                    else if (_selectedSkillSlot > 0)
+                    {
+                        string activeLabel = $"[SKL {_selectedSkillSlot}]";
+                        Vector2 labelSize = font.MeasureString(activeLabel);
+                        Vector2 labelPos = new Vector2(_atkButtonCenter.X - labelSize.X * 0.5f, _atkButtonCenter.Y - ATK_RADIUS - labelSize.Y - 4f);
+                        sb.DrawString(font, activeLabel, labelPos + new Vector2(1, 1), Color.Black);
+                        sb.DrawString(font, activeLabel, labelPos, Color.Yellow);
                     }
                 }
 
@@ -689,54 +846,69 @@ namespace Client.Main.Controls.UI.Game
                 }
 
                 // 6. Draw Skill 1 Button (Amber/Gold)
+                var (s1Id, s1Name) = GetSkillForSlot(1);
                 if (_btnRingTex != null)
                 {
                     Vector2 s1Origin = new Vector2(_btnRingTex.Width * 0.5f, _btnRingTex.Height * 0.5f);
                     float s1Scale = (SKILL_RADIUS * 2.0f) / _btnRingTex.Width;
-                    Color s1Tint = _skill1Pressed ? new Color(255, 220, 120, 255) : new Color(230, 150, 30, 240);
+                    if (_selectedSkillSlot == 1)
+                    {
+                        // Glowing outer halo for selected skill
+                        sb.Draw(_btnRingTex, _skill1ButtonCenter, null, new Color(255, 230, 80, 200), 0f, s1Origin, s1Scale * 1.3f, SpriteEffects.None, 0f);
+                    }
+                    Color s1Tint = _skill1Pressed ? new Color(255, 220, 120, 255) : (_selectedSkillSlot == 1 ? new Color(255, 200, 50, 255) : new Color(230, 150, 30, 240));
                     sb.Draw(_btnRingTex, _skill1ButtonCenter, null, s1Tint, 0f, s1Origin, s1Scale, SpriteEffects.None, 0f);
                 }
                 if (font != null)
                 {
-                    string s1Text = "SK1";
-                    Vector2 s1Size = font.MeasureString(s1Text);
+                    Vector2 s1Size = font.MeasureString(s1Name);
                     Vector2 s1Pos = _skill1ButtonCenter - s1Size * 0.5f;
-                    sb.DrawString(font, s1Text, s1Pos + new Vector2(1, 1), Color.Black);
-                    sb.DrawString(font, s1Text, s1Pos, Color.Gold);
+                    sb.DrawString(font, s1Name, s1Pos + new Vector2(1, 1), Color.Black);
+                    sb.DrawString(font, s1Name, s1Pos, _selectedSkillSlot == 1 ? Color.White : Color.Gold);
                 }
 
                 // 7. Draw Skill 2 Button (Purple/Violet)
+                var (s2Id, s2Name) = GetSkillForSlot(2);
                 if (_btnRingTex != null)
                 {
                     Vector2 s2Origin = new Vector2(_btnRingTex.Width * 0.5f, _btnRingTex.Height * 0.5f);
                     float s2Scale = (SKILL_RADIUS * 2.0f) / _btnRingTex.Width;
-                    Color s2Tint = _skill2Pressed ? new Color(230, 150, 255, 255) : new Color(170, 70, 230, 240);
+                    if (_selectedSkillSlot == 2)
+                    {
+                        // Glowing outer halo for selected skill
+                        sb.Draw(_btnRingTex, _skill2ButtonCenter, null, new Color(255, 120, 255, 200), 0f, s2Origin, s2Scale * 1.3f, SpriteEffects.None, 0f);
+                    }
+                    Color s2Tint = _skill2Pressed ? new Color(230, 150, 255, 255) : (_selectedSkillSlot == 2 ? new Color(220, 110, 255, 255) : new Color(170, 70, 230, 240));
                     sb.Draw(_btnRingTex, _skill2ButtonCenter, null, s2Tint, 0f, s2Origin, s2Scale, SpriteEffects.None, 0f);
                 }
                 if (font != null)
                 {
-                    string s2Text = "SK2";
-                    Vector2 s2Size = font.MeasureString(s2Text);
+                    Vector2 s2Size = font.MeasureString(s2Name);
                     Vector2 s2Pos = _skill2ButtonCenter - s2Size * 0.5f;
-                    sb.DrawString(font, s2Text, s2Pos + new Vector2(1, 1), Color.Black);
-                    sb.DrawString(font, s2Text, s2Pos, Color.Violet);
+                    sb.DrawString(font, s2Name, s2Pos + new Vector2(1, 1), Color.Black);
+                    sb.DrawString(font, s2Name, s2Pos, _selectedSkillSlot == 2 ? Color.White : Color.Violet);
                 }
 
                 // 8. Draw Skill 3 Button (Cyan/Teal)
+                var (s3Id, s3Name) = GetSkillForSlot(3);
                 if (_btnRingTex != null)
                 {
                     Vector2 s3Origin = new Vector2(_btnRingTex.Width * 0.5f, _btnRingTex.Height * 0.5f);
                     float s3Scale = (SKILL_RADIUS * 2.0f) / _btnRingTex.Width;
-                    Color s3Tint = _skill3Pressed ? new Color(150, 240, 255, 255) : new Color(30, 180, 210, 240);
+                    if (_selectedSkillSlot == 3)
+                    {
+                        // Glowing outer halo for selected skill
+                        sb.Draw(_btnRingTex, _skill3ButtonCenter, null, new Color(100, 240, 255, 200), 0f, s3Origin, s3Scale * 1.3f, SpriteEffects.None, 0f);
+                    }
+                    Color s3Tint = _skill3Pressed ? new Color(150, 240, 255, 255) : (_selectedSkillSlot == 3 ? new Color(60, 220, 255, 255) : new Color(30, 180, 210, 240));
                     sb.Draw(_btnRingTex, _skill3ButtonCenter, null, s3Tint, 0f, s3Origin, s3Scale, SpriteEffects.None, 0f);
                 }
                 if (font != null)
                 {
-                    string s3Text = "SK3";
-                    Vector2 s3Size = font.MeasureString(s3Text);
+                    Vector2 s3Size = font.MeasureString(s3Name);
                     Vector2 s3Pos = _skill3ButtonCenter - s3Size * 0.5f;
-                    sb.DrawString(font, s3Text, s3Pos + new Vector2(1, 1), Color.Black);
-                    sb.DrawString(font, s3Text, s3Pos, Color.Cyan);
+                    sb.DrawString(font, s3Name, s3Pos + new Vector2(1, 1), Color.Black);
+                    sb.DrawString(font, s3Name, s3Pos, _selectedSkillSlot == 3 ? Color.White : Color.Cyan);
                 }
 
                 // 9. Draw Top Menu Shortcut Buttons

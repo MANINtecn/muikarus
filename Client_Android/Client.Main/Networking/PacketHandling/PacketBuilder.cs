@@ -283,6 +283,24 @@ namespace Client.Main.Networking.PacketHandling
             return length;
         }
 
+        /// <summary>
+        /// Builds a skill usage request packet using TargetedSkill.
+        /// </summary>
+        public static int BuildSkillRequestPacket(
+            IBufferWriter<byte> writer,
+            ushort skillId,
+            ushort targetId)
+        {
+            int length = TargetedSkill.Length;
+            var memory = writer.GetMemory(length).Slice(0, length);
+            var packet = new TargetedSkill(memory);
+
+            packet.SkillId = skillId;
+            packet.TargetId = targetId;
+
+            return length;
+        }
+
         // ──────────────────────────── Helpers ─────────────────────────────
 
         /// <summary>

@@ -126,19 +126,20 @@ namespace Client.Main.Objects
         private bool _isStaticInitialized = false;
         private bool _hasBlendOrRgbaMeshes = false;
 
-        public bool IsStatic => this is not WalkerObject;
+        public bool IsStatic => this is not WalkerObject && Parent == null;
 
         public override void Update(GameTime gameTime)
         {
-            if (World == null || IsStatic) return;
-
             base.Update(gameTime);
 
             if (!Visible || OutOfView) return;
 
-            Animation(gameTime);
+            if (Parent != null || this is WalkerObject || LinkParentAnimation)
+            {
+                Animation(gameTime);
+            }
 
-            if (_contentLoaded)
+            if (_contentLoaded && _invalidatedBuffers)
             {
                 SetDynamicBuffers();
             }
@@ -491,21 +492,24 @@ namespace Client.Main.Objects
 
         public override void DrawAfter(GameTime gameTime)
         {
-            if (!Visible || !_hasBlendOrRgbaMeshes) return;
+            if (!Visible) return;
 
-            var gd = GraphicsDevice;
-            var prevCull = gd.RasterizerState;
-            // ZMIANA: Użyj CullCounterClockwise
-            gd.RasterizerState = RasterizerState.CullCounterClockwise;
+            if (_hasBlendOrRgbaMeshes)
+            {
+                var gd = GraphicsDevice;
+                var prevCull = gd.RasterizerState;
+                gd.RasterizerState = RasterizerState.CullCounterClockwise;
 
-            GraphicsManager.Instance.AlphaTestEffect3D.View = Camera.Instance.View;
-            GraphicsManager.Instance.AlphaTestEffect3D.Projection = Camera.Instance.Projection;
-            GraphicsManager.Instance.AlphaTestEffect3D.World = WorldPosition;
+                GraphicsManager.Instance.AlphaTestEffect3D.View = Camera.Instance.View;
+                GraphicsManager.Instance.AlphaTestEffect3D.Projection = Camera.Instance.Projection;
+                GraphicsManager.Instance.AlphaTestEffect3D.World = WorldPosition;
 
-            DrawModel(true);    // RGBA / blend mesh
+                DrawModel(true);    // RGBA / blend mesh
+
+                gd.RasterizerState = prevCull;
+            }
+
             base.DrawAfter(gameTime);
-
-            gd.RasterizerState = prevCull;
         }
 
         public override void Dispose()
