@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Client.Main.Controllers;
 using Client.Main.Controls.UI.Game.Inventory;
+using Client.Main.Objects;
 using Client.Main.Objects.Monsters;
 using Client.Main.Objects.Player;
 using Client.Main.Scenes;
@@ -22,6 +23,10 @@ namespace Client.Main.Controls.UI.Game
         private readonly InventoryControl _inventory;
         private readonly CharacterInfoWindowControl _charInfo;
         private readonly MoveCommandWindow _warpWindow;
+
+        // Contextual action (Attack vs NPC Talk)
+        private NPCObject _nearbyNpc = null;
+        private const float NPC_INTERACT_DISTANCE = 250f;
 
         // Joystick configuration
         private const float JOYSTICK_RADIUS = 75f;
@@ -121,6 +126,7 @@ namespace Client.Main.Controls.UI.Game
             base.Update(gameTime);
 
             UpdateLayoutPositions();
+            UpdateNearbyNpc();
 
             float totalMs = (float)gameTime.TotalGameTime.TotalMilliseconds;
 
@@ -146,6 +152,36 @@ namespace Client.Main.Controls.UI.Game
                     SendJoystickMovement();
                 }
             }
+        }
+
+        private void UpdateNearbyNpc()
+        {
+            _nearbyNpc = null;
+            if (_hero == null || _scene?.World == null)
+                return;
+
+            var walkers = _scene.World.WalkerObjectsById;
+            if (walkers == null || walkers.Count == 0)
+                return;
+
+            var heroPos = _hero.Position;
+            float closestDistSq = NPC_INTERACT_DISTANCE * NPC_INTERACT_DISTANCE;
+            NPCObject closest = null;
+
+            foreach (var walker in walkers.Values)
+            {
+                if (walker is NPCObject npc && npc.Visible && !npc.Hidden)
+                {
+                    float distSq = Vector3.DistanceSquared(heroPos, npc.Position);
+                    if (distSq < closestDistSq)
+                    {
+                        closestDistSq = distSq;
+                        closest = npc;
+                    }
+                }
+            }
+
+            _nearbyNpc = closest;
         }
 
         private void ProcessTouchInput(TouchCollection touches)
@@ -470,7 +506,16 @@ namespace Client.Main.Controls.UI.Game
                 return;
 
             SoundController.Instance.PlayBuffer("Sound/iButtonClick.wav");
-            _hero.ManualAttack();
+
+            if (_nearbyNpc != null)
+            {
+                _nearbyNpc.OnClick();
+                Helpers.OnScreenLogger.Log($"Falando com {_nearbyNpc.DisplayName}!");
+            }
+            else
+            {
+                _hero.ManualAttack();
+            }
         }
 
         private void ExecuteHpPotion()
@@ -572,21 +617,41 @@ namespace Client.Main.Controls.UI.Game
                     sb.Draw(_joystickKnobTex, _knobPosition, null, knobTint, 0f, knobOrigin, knobScale, SpriteEffects.None, 0f);
                 }
 
-                // 3. Draw Attack Button (Textured)
+                // 3. Draw Attack / Interaction Button (Contextual)
                 if (_btnRingTex != null)
                 {
                     Vector2 atkOrigin = new Vector2(_btnRingTex.Width * 0.5f, _btnRingTex.Height * 0.5f);
                     float atkScale = (ATK_RADIUS * 2.0f) / _btnRingTex.Width;
-                    Color atkTint = _atkPressed ? new Color(255, 120, 100, 255) : new Color(220, 60, 50, 240);
+                    Color atkTint;
+                    if (_nearbyNpc != null)
+                    {
+                        // Emerald green interaction button
+                        atkTint = _atkPressed ? new Color(130, 255, 180, 255) : new Color(35, 205, 125, 240);
+                    }
+                    else
+                    {
+                        // Red attack button
+                        atkTint = _atkPressed ? new Color(255, 120, 100, 255) : new Color(220, 60, 50, 240);
+                    }
                     sb.Draw(_btnRingTex, _atkButtonCenter, null, atkTint, 0f, atkOrigin, atkScale, SpriteEffects.None, 0f);
                 }
                 if (font != null)
                 {
-                    string atkText = "ATK";
-                    Vector2 textSize = font.MeasureString(atkText);
+                    string btnText = _nearbyNpc != null ? "TALK" : "ATK";
+                    Color textColor = _nearbyNpc != null ? Color.White : Color.Gold;
+                    Vector2 textSize = font.MeasureString(btnText);
                     Vector2 textPos = _atkButtonCenter - textSize * 0.5f;
-                    sb.DrawString(font, atkText, textPos + new Vector2(1, 1), Color.Black);
-                    sb.DrawString(font, atkText, textPos, Color.Gold);
+                    sb.DrawString(font, btnText, textPos + new Vector2(1, 1), Color.Black);
+                    sb.DrawString(font, btnText, textPos, textColor);
+
+                    if (_nearbyNpc != null && !string.IsNullOrEmpty(_nearbyNpc.DisplayName))
+                    {
+                        string npcName = _nearbyNpc.DisplayName;
+                        Vector2 nameSize = font.MeasureString(npcName);
+                        Vector2 namePos = new Vector2(_atkButtonCenter.X - nameSize.X * 0.5f, _atkButtonCenter.Y - ATK_RADIUS - nameSize.Y - 6f);
+                        sb.DrawString(font, npcName, namePos + new Vector2(1, 1), Color.Black);
+                        sb.DrawString(font, npcName, namePos, Color.Cyan);
+                    }
                 }
 
                 // 4. Draw HP Potion Button (Textured)
