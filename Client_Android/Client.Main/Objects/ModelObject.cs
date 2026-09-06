@@ -123,13 +123,13 @@ namespace Client.Main.Objects
         }
 
         private bool _isStaticInitialized = false;
+        private bool _hasBlendOrRgbaMeshes = false;
 
         public bool IsStatic => this is not WalkerObject;
 
         public override void Update(GameTime gameTime)
         {
-            if (World == null) return;
-            if (IsStatic && _isStaticInitialized) return;
+            if (World == null || IsStatic) return;
 
             base.Update(gameTime);
 
@@ -140,10 +140,6 @@ namespace Client.Main.Objects
             if (_contentLoaded)
             {
                 SetDynamicBuffers();
-                if (IsStatic && _boneVertexBuffers != null)
-                {
-                    _isStaticInitialized = true;
-                }
             }
         }
 
@@ -206,15 +202,6 @@ namespace Client.Main.Objects
                     _blendMeshIndicesScratch[blendCount++] = i;
 
             if (blendCount == 0) return;
-
-            Vector3 camPos = Camera.Instance.Position;
-            Array.Sort(_blendMeshIndicesScratch, 0, blendCount,
-                Comparer<int>.Create((a, b) =>
-                {
-                    float da = Vector3.DistanceSquared(camPos, WorldPosition.Translation);
-                    float db = da;
-                    return 0;
-                }));
 
             for (int n = 0; n < blendCount; n++)
             {
@@ -503,7 +490,7 @@ namespace Client.Main.Objects
 
         public override void DrawAfter(GameTime gameTime)
         {
-            if (!Visible) return;
+            if (!Visible || !_hasBlendOrRgbaMeshes) return;
 
             var gd = GraphicsDevice;
             var prevCull = gd.RasterizerState;
@@ -778,6 +765,16 @@ namespace Client.Main.Objects
                     catch (Exception exMesh)
                     {
                         _logger?.LogDebug($"SetDynamicBuffers – mesh {meshIndex}: {exMesh.Message}");
+                    }
+                }
+
+                _hasBlendOrRgbaMeshes = false;
+                for (int m = 0; m < meshCount; m++)
+                {
+                    if (_meshIsRGBA[m] || IsBlendMesh(m))
+                    {
+                        _hasBlendOrRgbaMeshes = true;
+                        break;
                     }
                 }
 

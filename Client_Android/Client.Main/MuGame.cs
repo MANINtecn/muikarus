@@ -367,15 +367,6 @@ namespace Client.Main
                     _logger?.LogError(ex, "Error drawing ActiveScene on Android.");
                 }
 
-                try
-                {
-                    ActiveScene?.DrawAfter(gameTime);
-                }
-                catch (Exception ex)
-                {
-                    _logger?.LogError(ex, "Error in ActiveScene.DrawAfter on Android.");
-                }
-
                 base.Draw(gameTime);
             }
             catch (Exception e)

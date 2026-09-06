@@ -350,13 +350,12 @@ namespace Client.Main.Controls
                     _solidInFront.Add(obj);
             }
 
-            // Draw solid behind objects
-            if (_solidBehind.Count > 1) _solidBehind.Sort(_cmpAsc);
+            // Draw solid behind objects (hardware depth test handles ordering)
             SetDepthState(DepthStateDefault);
             foreach (var obj in _solidBehind)
                 DrawObject(obj, time, DepthStateDefault);
 
-            // Draw transparent objects
+            // Draw transparent objects (back-to-front sorting required for alpha blending)
             if (_transparentObjects.Count > 1) _transparentObjects.Sort(_cmpDesc);
             if (_transparentObjects.Count > 0)
                 SetDepthState(DepthStateDepthRead);
@@ -364,7 +363,6 @@ namespace Client.Main.Controls
                 DrawObject(obj, time, DepthStateDepthRead);
 
             // Draw solid in front objects
-            if (_solidInFront.Count > 1) _solidInFront.Sort(_cmpAsc);
             if (_solidInFront.Count > 0)
                 SetDepthState(DepthStateDefault);
             foreach (var obj in _solidInFront)

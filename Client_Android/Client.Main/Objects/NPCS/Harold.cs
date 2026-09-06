@@ -1,14 +1,15 @@
-﻿using Client.Main.Content;
+using Client.Main.Content;
 using System.Threading.Tasks;
 
 namespace Client.Main.Objects.NPCS
 {
-    [NpcInfo(243, "Eo the Craftsman")]
-    public class EoTheCraftsman : NPCObject
+    [NpcInfo(250, "Wandering Merchant Harold")]
+    public class Harold : NPCObject
     {
         public override async Task Load()
         {
-            Model = await BMDLoader.Instance.Prepare($"NPC/ElfMerchant01.bmd");
+            Model = await BMDLoader.Instance.Prepare($"NPC/Man01.bmd");
+            await SetBodyPartsAsync("Npc/", "ManHead", "ManUpper", "ManPant", "ManGlove", "ManBoots", 1);
             await base.Load();
         }
         protected override void HandleClick()

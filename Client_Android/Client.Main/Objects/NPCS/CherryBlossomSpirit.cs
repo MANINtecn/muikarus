@@ -1,16 +1,20 @@
-﻿using Client.Main.Content;
+using Client.Main.Content;
 using System.Threading.Tasks;
 
 namespace Client.Main.Objects.NPCS
 {
-    [NpcInfo(243, "Eo the Craftsman")]
-    public class EoTheCraftsman : NPCObject
+    /// <summary>
+    /// Cherry Blossom Spirit NPC.
+    /// </summary>
+    [NpcInfo(450, "Cherry Blossom Spirit")]
+    public class CherryBlossomSpirit : NPCObject
     {
         public override async Task Load()
         {
-            Model = await BMDLoader.Instance.Prepare($"NPC/ElfMerchant01.bmd");
+            Model = await BMDLoader.Instance.Prepare($"NPC/cherryblossom/cherry_blossom.bmd");
             await base.Load();
         }
+
         protected override void HandleClick()
         {
             var svc = MuGame.Network?.GetCharacterService();

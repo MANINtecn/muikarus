@@ -1,16 +1,20 @@
-﻿using Client.Main.Content;
+using Client.Main.Content;
 using System.Threading.Tasks;
 
 namespace Client.Main.Objects.NPCS
 {
-    [NpcInfo(243, "Eo the Craftsman")]
-    public class EoTheCraftsman : NPCObject
+    /// <summary>
+    /// Lugard NPC - Quest/merchant NPC.
+    /// </summary>
+    [NpcInfo(540, "Lugard")]
+    public class Lugard : NPCObject
     {
         public override async Task Load()
         {
-            Model = await BMDLoader.Instance.Prepare($"NPC/ElfMerchant01.bmd");
+            Model = await BMDLoader.Instance.Prepare($"NPC/Lugard.bmd");
             await base.Load();
         }
+
         protected override void HandleClick()
         {
             var svc = MuGame.Network?.GetCharacterService();

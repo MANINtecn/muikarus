@@ -89,9 +89,7 @@ namespace Client.Main.Controls
                 return;
             }
 
-            CalculateMouseTilePos();
-
-            MonsterObject hoveredMonster = Scene.MouseHoverObject as MonsterObject;
+            MonsterObject hoveredMonster = Scene?.MouseHoverObject as MonsterObject;
 
             // Handle click‐to‐move with a simple cooldown
             if (!Scene.IsMouseInputConsumedThisFrame && // check if UI already handled the click
@@ -99,6 +97,7 @@ namespace Client.Main.Controls
                 MuGame.Instance.Mouse.LeftButton == ButtonState.Pressed &&
                 _cursorNextMoveTime <= 0f)
             {
+                CalculateMouseTilePos();
                 if (Walker is PlayerObject player)
                 {
                     MonsterObject monster = hoveredMonster ?? FindMonsterAtTile(MouseTileX, MouseTileY);

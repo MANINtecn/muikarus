@@ -1,4 +1,5 @@
 ﻿using Client.Main.Content;
+using Client.Main.Controllers;
 using Client.Main.Objects.Effects;
 using Microsoft.Xna.Framework;
 using System;
@@ -6,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace Client.Main.Objects.NPCS
 {
+    [NpcInfo(237, "Charon")]
     public class Charon : NPCObject
     {
         private readonly Lightning2Effect _ligh1;
@@ -42,10 +44,40 @@ namespace Client.Main.Objects.NPCS
             _ligh1.Angle = new Vector3(rotation1, rotation1, rotation1);
             _ligh2.Angle = new Vector3(rotation2, rotation2, rotation2);
         }
-          protected override void HandleClick()
+        public override void Draw(GameTime gameTime)
         {
-            // Handle the click event specific to this NPC
-            Console.WriteLine("Specific NPC clicked!");
+            var ligh1Hidden = _ligh1.Hidden;
+            var ligh2Hidden = _ligh2.Hidden;
+            _ligh1.Hidden = true;
+            _ligh2.Hidden = true;
+
+            try
+            {
+                base.Draw(gameTime);
+            }
+            finally
+            {
+                _ligh1.Hidden = ligh1Hidden;
+                _ligh2.Hidden = ligh2Hidden;
+            }
+        }
+
+        public override void DrawAfter(GameTime gameTime)
+        {
+            if (!Visible) return;
+
+            base.DrawAfter(gameTime);
+            _ligh1.Draw(gameTime);
+            _ligh2.Draw(gameTime);
+        }
+
+        protected override void HandleClick()
+        {
+            var svc = MuGame.Network?.GetCharacterService();
+            if (svc != null)
+            {
+                _ = svc.SendTalkToNpcRequestAsync(NetworkId);
+            }
         }
     }
 }

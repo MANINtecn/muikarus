@@ -1,14 +1,15 @@
-﻿using Client.Main.Content;
+using Client.Main.Content;
+using Client.Main.Networking;
 using System.Threading.Tasks;
 
 namespace Client.Main.Objects.NPCS
 {
-    [NpcInfo(243, "Eo the Craftsman")]
-    public class EoTheCraftsman : NPCObject
+    [NpcInfo(240, "Baz The Vault Keeper")]
+    public class Baz : NPCObject
     {
         public override async Task Load()
         {
-            Model = await BMDLoader.Instance.Prepare($"NPC/ElfMerchant01.bmd");
+            Model = await BMDLoader.Instance.Prepare($"NPC/Storage01.bmd");
             await base.Load();
         }
         protected override void HandleClick()

@@ -1,16 +1,20 @@
-﻿using Client.Main.Content;
+using Client.Main.Content;
 using System.Threading.Tasks;
 
 namespace Client.Main.Objects.NPCS
 {
-    [NpcInfo(243, "Eo the Craftsman")]
-    public class EoTheCraftsman : NPCObject
+    /// <summary>
+    /// Cherry Blossom Tree NPC - decorative or quest NPC.
+    /// </summary>
+    [NpcInfo(451, "Cherry Blossom Tree")]
+    public class CherryBlossomTree : NPCObject
     {
         public override async Task Load()
         {
-            Model = await BMDLoader.Instance.Prepare($"NPC/ElfMerchant01.bmd");
+            Model = await BMDLoader.Instance.Prepare($"NPC/cherryblossom/sakuratree.bmd");
             await base.Load();
         }
+
         protected override void HandleClick()
         {
             var svc = MuGame.Network?.GetCharacterService();

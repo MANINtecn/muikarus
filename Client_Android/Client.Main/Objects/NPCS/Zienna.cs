@@ -1,14 +1,16 @@
-﻿using Client.Main.Content;
+using Client.Main.Content;
+using Client.Main.Objects;
+using Microsoft.Xna.Framework;
 using System.Threading.Tasks;
 
 namespace Client.Main.Objects.NPCS
 {
-    [NpcInfo(243, "Eo the Craftsman")]
-    public class EoTheCraftsman : NPCObject
+    [NpcInfo(246, "Zienna, the Weapons Merchant")]
+    public class Zienna : NPCObject
     {
         public override async Task Load()
         {
-            Model = await BMDLoader.Instance.Prepare($"NPC/ElfMerchant01.bmd");
+            Model = await BMDLoader.Instance.Prepare("NPC/SnowSmith01.bmd");
             await base.Load();
         }
         protected override void HandleClick()
