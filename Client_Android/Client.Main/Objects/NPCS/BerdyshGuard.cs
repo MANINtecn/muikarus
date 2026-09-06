@@ -10,11 +10,11 @@ namespace Client.Main.Objects.NPCS
     [NpcInfo(249, "Berdysh Guard")]
     public class BerdyshGuard : NPCObject
     {
-        private WeaponObject _leftHandWeapon;
+        private ModelObject _leftHandWeapon;
 
         public BerdyshGuard()
         {
-            _leftHandWeapon = new WeaponObject
+            _leftHandWeapon = new ModelObject
             {
                 LinkParentAnimation = false,
                 ParentBoneLink = 33 // Left hand bone

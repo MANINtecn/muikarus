@@ -10,17 +10,17 @@ namespace Client.Main.Objects.NPCS
     [NpcInfo(247, "Crossbow Guard")]
     public class CrossbowGuard : NPCObject
     {
-        private WeaponObject _backWeapon; // For bolt on back
-        private WeaponObject _leftHandWeapon; // For crossbow
+        private ModelObject _backWeapon; // For bolt on back
+        private ModelObject _leftHandWeapon; // For crossbow
 
         public CrossbowGuard()
         {
-            _backWeapon = new WeaponObject
+            _backWeapon = new ModelObject
             {
                 LinkParentAnimation = false,
                 ParentBoneLink = 47 // Back bone for bolt
             };
-            _leftHandWeapon = new WeaponObject
+            _leftHandWeapon = new ModelObject
             {
                 LinkParentAnimation = false,
                 ParentBoneLink = 33

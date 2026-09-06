@@ -41,6 +41,7 @@ namespace Client.Main.Objects
         public int CurrentAction { get; set; }
         public int ParentBoneLink { get; set; } = -1;
         public BMD Model { get; set; }
+        public int ItemLevel { get; set; }
 
         public Matrix ParentBodyOrigin => ParentBoneLink >= 0
             && Parent != null

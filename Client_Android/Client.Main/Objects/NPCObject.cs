@@ -49,8 +49,8 @@ namespace Client.Main.Objects
         public PlayerPantObject Pants { get; private set; }
         public PlayerGloveObject Gloves { get; private set; }
         public PlayerBootObject Boots { get; private set; }
-        public WeaponObject Weapon1 { get; private set; }
-        public WeaponObject Weapon2 { get; private set; }
+        public ModelObject Weapon1 { get; private set; }
+        public ModelObject Weapon2 { get; private set; }
         public WingObject Wings { get; private set; }
 
         public NPCObject()
@@ -59,18 +59,25 @@ namespace Client.Main.Objects
             Interactive = true;
             AnimationSpeed = 6f;
 
-            // Initialize body part objects and link their animations to this parent object
-            var equipmentVisuals = new EquipmentVisualSet();
-            HelmMask = equipmentVisuals.HelmMask;
-            Helm = equipmentVisuals.Helm;
-            Armor = equipmentVisuals.Armor;
-            Pants = equipmentVisuals.Pants;
-            Gloves = equipmentVisuals.Gloves;
-            Boots = equipmentVisuals.Boots;
-            Weapon1 = equipmentVisuals.Weapon1;
-            Weapon2 = equipmentVisuals.Weapon2;
-            Wings = equipmentVisuals.Wings;
-            equipmentVisuals.AddTo(Children);
+            HelmMask = new PlayerMaskHelmObject();
+            Helm = new PlayerHelmObject();
+            Armor = new PlayerArmorObject();
+            Pants = new PlayerPantObject();
+            Gloves = new PlayerGloveObject();
+            Boots = new PlayerBootObject();
+            Weapon1 = new ModelObject { LinkParentAnimation = false };
+            Weapon2 = new ModelObject { LinkParentAnimation = false };
+            Wings = new WingObject { LinkParentAnimation = false };
+
+            Children.Add(HelmMask);
+            Children.Add(Helm);
+            Children.Add(Armor);
+            Children.Add(Pants);
+            Children.Add(Gloves);
+            Children.Add(Boots);
+            Children.Add(Weapon1);
+            Children.Add(Weapon2);
+            Children.Add(Wings);
         }
 
         public override void OnClick()
@@ -105,9 +112,6 @@ namespace Client.Main.Objects
                 }
             }
 
-            if (TryQueueInteraction())
-                return;
-
             HandleClick();
         }
 
@@ -116,16 +120,6 @@ namespace Client.Main.Objects
             HandleClick();
         }
 
-        private bool TryQueueInteraction()
-        {
-            if (MuGame.Instance?.ActiveScene?.World is not WalkableWorldControl world)
-                return false;
-
-            if (world.Walker is not PlayerObject player)
-                return false;
-
-            return player.TryQueueNpcInteraction(this);
-        }
         protected abstract void HandleClick();
 
 

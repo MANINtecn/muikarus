@@ -2,7 +2,6 @@ using Client.Main.Content;
 using Client.Main.Core.Utilities;
 using Client.Main.Models;
 using Client.Main.Objects.Monsters;
-using Client.Main.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -53,8 +52,6 @@ namespace Client.Main.Objects.NPCS
 
             await base.Load();
             CurrentAction = (int)PlayerAction.PlayerStopMale;
-
-            this.SetGoldGlow(0.8f);
         }
         // protected override void HandleClick() { }
 

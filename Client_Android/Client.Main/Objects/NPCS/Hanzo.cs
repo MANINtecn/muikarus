@@ -2,7 +2,6 @@ using Client.Main.Content;
 using Client.Main.Controllers;
 using Client.Main.Controls;
 using Client.Main.Core.Utilities;
-using Client.Main.Objects.Effects;
 using Microsoft.Xna.Framework;
 using System;
 using System.Threading.Tasks;
@@ -20,20 +19,15 @@ namespace Client.Main.Objects.NPCS
 
         private static readonly ushort[] Sequence = { 0, 1, 2 };
 
-        private readonly BlacksmithForgeEffect _forgeEffect;
         private int _loopsTarget;
         private float _idleSecondsRemaining;
         private double _lastIdleAnimationFrame = -1.0;
         private bool _forgeTriggeredThisCycle;
-        private float _lastAppliedForgeLuminosity = -1f;
 
         public Hanzo()
         {
             BlendMesh = 4;
             BlendMeshLight = 0f;
-
-            _forgeEffect = new BlacksmithForgeEffect();
-            Children.Add(_forgeEffect);
         }
 
         public override async Task Load()
@@ -59,9 +53,7 @@ namespace Client.Main.Objects.NPCS
                 return;
 
             Vector3 forgePosition = GetForgeWorldPosition();
-            _forgeEffect.SetForgeOrigin(forgePosition);
             UpdateForgeTrigger(forgePosition);
-            UpdateForgeLighting();
 
             if (CurrentAction == 0 && !IsOneShotPlaying)
             {
@@ -97,8 +89,6 @@ namespace Client.Main.Objects.NPCS
 
             if (!_forgeTriggeredThisCycle && crossedTrigger)
             {
-                Vector3 strikePosition = GetHammerBoneWorldPosition(forgePosition);
-                _forgeEffect.EmitBurst(strikePosition, Angle);
                 PlayForgeSound();
                 _forgeTriggeredThisCycle = true;
             }
@@ -142,16 +132,6 @@ namespace Client.Main.Objects.NPCS
                 loop: false);
         }
 
-        private void UpdateForgeLighting()
-        {
-            float luminosity = _forgeEffect.CurrentLuminosity;
-            if (MathF.Abs(luminosity - _lastAppliedForgeLuminosity) <= 0.001f)
-                return;
-
-            _lastAppliedForgeLuminosity = luminosity;
-            BlendMeshLight = luminosity;
-            Light = luminosity * new Vector3(1f, 0.4f, 0f);
-        }
 
         private void ResetSequence()
         {
