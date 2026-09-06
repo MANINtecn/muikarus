@@ -72,9 +72,10 @@ namespace Client.Main
             _graphics.IsFullScreen = true;
             _graphics.PreferredBackBufferWidth = 0;
             _graphics.PreferredBackBufferHeight = 0;
-            _graphics.SynchronizeWithVerticalRetrace = false; // Desativa VSync para evitar quantização/throttle de 7-8 FPS
-            IsFixedTimeStep = false;
-            TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0 / 60.0); // 60 FPS fluido no Android
+            // LEI DE OURO: NUNCA desativar IsFixedTimeStep no mobile (thread starvation -> 2-7 FPS, ver MUIKARUS.MD 30/08).
+            _graphics.SynchronizeWithVerticalRetrace = true;
+            IsFixedTimeStep = true;
+            TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0 / 30.0); // 30 FPS estável no Android (bateria/térmico)
 #else
             if (Constants.UNLIMITED_FPS)
             {
@@ -237,8 +238,10 @@ namespace Client.Main
             _logger?.LogDebug($"Scale Factor: {_scaleFactor}");
 
 #if ANDROID || IOS
-            // Apply Target FPS from settings (60 FPS for fluid mobile gameplay)
-            int fps = AppSettings?.TargetFPS > 0 ? AppSettings.TargetFPS : 60;
+            // Apply Target FPS from settings. LEI DE OURO: manter IsFixedTimeStep=true + VSync ligado no mobile.
+            int fps = AppSettings?.TargetFPS > 0 ? AppSettings.TargetFPS : 30;
+            IsFixedTimeStep = true;
+            _graphics.SynchronizeWithVerticalRetrace = true;
             TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0 / fps);
             _logger?.LogInformation($"✅ Android/iOS FPS Target set to: {fps}");
 
@@ -487,10 +490,25 @@ namespace Client.Main
             PrevTouchState = Touch;
 
 #if ANDROID || IOS
-            // Synthesize MouseState from TouchPanel for 100% reliable UI touch clicking on mobile
+            // Synthesize MouseState from TouchPanel for 100% reliable UI touch clicking on mobile.
+            // Prefer a finger that is NOT over the joystick/action buttons, so tapping the ground
+            // or an NPC works even while the other hand is holding the joystick down (multi-touch).
             if (touchState.Count > 0)
             {
+                var overlay = (ActiveScene as GameScene)?.MobileControls;
                 var touch = touchState[0];
+                if (overlay != null && touchState.Count > 1)
+                {
+                    foreach (var t in touchState)
+                    {
+                        if (!overlay.IsTouchOverControls(t.Position))
+                        {
+                            touch = t;
+                            break;
+                        }
+                    }
+                }
+
                 _lastTouchPos = new Point((int)touch.Position.X, (int)touch.Position.Y);
                 ButtonState btn = (touch.State == TouchLocationState.Pressed || touch.State == TouchLocationState.Moved)
                     ? ButtonState.Pressed
@@ -522,6 +540,13 @@ namespace Client.Main
 
             if (PrevTouchState.Count != Touch.Count)
                 UpdateMouseRay();
+
+#if ANDROID || IOS
+            // A finger held still on an NPC/monster can report the same position/count across
+            // frames; keep refreshing the ray so hover/click detection doesn't go stale mid-tap.
+            if (Touch.Count > 0)
+                UpdateMouseRay();
+#endif
         }
 
         private void UpdateMouseRay()

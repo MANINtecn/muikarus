@@ -32,8 +32,8 @@ namespace Client.Main.Controls.UI.Game
         // Joystick configuration (Upper-left, enlarged for comfortable thumb reach)
         private const float JOYSTICK_RADIUS = 90f;
         private const float KNOB_RADIUS = 40f;
-        private const float DEAD_ZONE = 0.15f;
-        private const float MOVE_INTERVAL_MS = 380f;
+        private const float DEAD_ZONE = 0.28f;
+        private const float MOVE_INTERVAL_MS = 260f;
 
         private Vector2 _joystickCenter;
         private Vector2 _knobPosition;
@@ -574,22 +574,20 @@ namespace Client.Main.Controls.UI.Game
             // Map Joystick 2D screen vector (X = right, Y = down) to MU isometric 3D space
             Vector3 moveDir = camRight * _joystickDir.X - camFwd * _joystickDir.Y;
 
-            float stepDist = 3.5f;
+            // Single-tile step per tick: keeps the joystick feeling precise and 1:1 with the
+            // held direction instead of launching a multi-tile pathfind that overshoots.
+            const float stepDist = 1f;
             Vector2 targetLocation = new Vector2(
                 MathF.Round(_hero.Location.X + moveDir.X * stepDist),
                 MathF.Round(_hero.Location.Y + moveDir.Y * stepDist));
 
-            if (_hero.World is WalkableWorldControl walkable && walkable.IsWalkable(targetLocation))
-            {
-                _hero.MoveTo(targetLocation);
-            }
-            else
-            {
-                Vector2 shorterTarget = new Vector2(
-                    MathF.Round(_hero.Location.X + moveDir.X * 1.5f),
-                    MathF.Round(_hero.Location.Y + moveDir.Y * 1.5f));
-                _hero.MoveTo(shorterTarget);
-            }
+            if (targetLocation == _hero.Location)
+                return;
+
+            if (_hero.World is WalkableWorldControl walkable && !walkable.IsWalkable(targetLocation))
+                return;
+
+            _hero.MoveTo(targetLocation);
         }
 
         public (ushort skillId, string name) GetSkillForSlot(int slot)

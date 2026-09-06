@@ -338,6 +338,24 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
 
 ---
 
+### 06/09/2026 — Versão v1.35: Correção Pós-v1.34 (FPS, Conversa com NPC e Joystick)
+- [x] **Diagnóstico de Regressão de FPS (7 FPS após v1.34):**
+  - **Causa raiz:** A v1.34 desativou `SynchronizeWithVerticalRetrace` (VSync) e setou `IsFixedTimeStep = false` no Android para tentar destravar 60 FPS. Essa é exatamente a combinação já documentada como **"A Otimização Assassina"** (30/08/2026) — sem o freio do VSync/FixedTimeStep, o loop de render satura a GPU/CPU do celular e gera thermal throttling, derrubando o framerate real para ~7 FPS.
+  - **Solução:** Restaurado `IsFixedTimeStep = true` e `SynchronizeWithVerticalRetrace = true` no Android/iOS (`MuGame.cs`), e o `TargetFPS` do `appsettings.json` voltou de 60 para **30 FPS** (padrão estável documentado). O bloco de `Initialize()` que reaplicava o FPS das configurações também foi corrigido para não reabrir o VSync.
+- [x] **Correção: Clique/Toque em NPC não abria diálogo:**
+  - **Diagnóstico:** O picking 3D (`WorldObject.Update`) faz um raycast exato contra a `BoundingBoxWorld` do NPC. Dedos são muito menos precisos que um cursor de mouse, então um toque a poucos pixels da malha do NPC nunca intersectava a caixa, e o clique nunca chegava a `NPCObject.OnClick()`. Além disso, `MuGame.UpdateMouseRay()` só recalculava o raio quando a posição do mouse ou a contagem de toques mudavam — um dedo parado sobre o NPC podia deixar o raio desatualizado no exato frame do clique.
+  - **Solução (`WorldObject.cs`):** Adicionado fallback de tolerância em tela (60px) exclusivo para mobile: se o raycast 3D falhar, o objeto interativo (NPC, monstro) ainda é considerado "hover" caso a projeção 2D de sua posição esteja próxima o suficiente do toque.
+  - **Solução (`MuGame.cs`):** `UpdateMouseRay()` agora também é chamado a cada frame enquanto houver qualquer toque ativo, evitando raio desatualizado durante um toque parado.
+- [x] **Correção: Joystick "puxa e anda 2x o esperado" + Restauração do Clique-no-Chão:**
+  - **Diagnóstico:** `SendJoystickMovement()` calculava um alvo de pathfinding a **3.5 tiles de distância** a cada 260-380ms de joystick segurado, fazendo o personagem percorrer uma rota de múltiplos passos por comando (movimento "explosivo" e impreciso). Além disso, a síntese de `MouseState` a partir do touch (`MuGame.UpdateInputInfo`) sempre usava o **primeiro dedo** da lista (`touchState[0]`), então seguravar o joystick com um dedo podia "sequestrar" o mouse sintetizado e impedir que um segundo toque no chão dispare o clique-para-andar.
+  - **Solução (`MobileControlsOverlay.cs`):** Reduzido o passo do joystick para **1 tile por tick** (movimento granular e responsível ao toque), aumentada a zona morta (`DEAD_ZONE`) de 0.15 para 0.28 para evitar disparo residual ao soltar o dedo perto do centro, e removido o fallback de "passo curto" redundante.
+  - **Solução (`MuGame.cs`):** Ao sintetizar o mouse a partir de múltiplos toques simultâneos, o motor agora prioriza um dedo que **não** esteja sobre o joystick/botões do overlay, permitindo tocar no chão para andar (clique clássico) mesmo com o outro polegar segurando o joystick — as duas formas de controle (joystick e clique no chão) funcionam de forma independente e simultânea.
+- [x] **Release e Versionamento v1.35:**
+  - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 35` e `versionName: 1.35`.
+  - Workflow GitHub Actions publicará automaticamente o **`IkarusMU-v1.35.apk`** na release `v1.35`.
+
+---
+
 ## 🛠️ PRÓXIMOS PASSOS (ROADMAP)
 
 1. [x] Instalar .NET 8 / 10 SDK e compilar a solução `OpenMU`.
