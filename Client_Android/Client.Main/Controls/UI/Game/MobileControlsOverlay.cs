@@ -27,11 +27,11 @@ namespace Client.Main.Controls.UI.Game
 
         // Contextual action (Attack vs NPC Talk)
         private NPCObject _nearbyNpc = null;
-        private const float NPC_INTERACT_DISTANCE = 250f;
+        private const float NPC_INTERACT_TILES = 3.5f;
 
-        // Joystick configuration
-        private const float JOYSTICK_RADIUS = 75f;
-        private const float KNOB_RADIUS = 32f;
+        // Joystick configuration (Upper-left, enlarged for comfortable thumb reach)
+        private const float JOYSTICK_RADIUS = 90f;
+        private const float KNOB_RADIUS = 40f;
         private const float DEAD_ZONE = 0.15f;
         private const float MOVE_INTERVAL_MS = 380f;
 
@@ -42,13 +42,17 @@ namespace Client.Main.Controls.UI.Game
         private Vector2 _joystickDir = Vector2.Zero;
         private float _lastMoveSentTime = 0f;
 
-        // Button configurations
+        // Pinch-to-zoom multi-touch gesture
+        private bool _isPinching = false;
+        private float _prevPinchDist = 0f;
+
+        // Button configurations (doubled attack/talk button, enlarged skills in arc)
         private Vector2 _atkButtonCenter;
-        private const float ATK_RADIUS = 46f;
+        private const float ATK_RADIUS = 68f;
         private bool _atkPressed = false;
 
         private Vector2 _hpButtonCenter;
-        private const float POTION_RADIUS = 28f;
+        private const float POTION_RADIUS = 32f;
         private bool _hpPressed = false;
 
         private Vector2 _mpButtonCenter;
@@ -58,7 +62,7 @@ namespace Client.Main.Controls.UI.Game
         private Vector2 _skill1ButtonCenter;
         private Vector2 _skill2ButtonCenter;
         private Vector2 _skill3ButtonCenter;
-        private const float SKILL_RADIUS = 30f;
+        private const float SKILL_RADIUS = 42f;
         private bool _skill1Pressed = false;
         private bool _skill2Pressed = false;
         private bool _skill3Pressed = false;
@@ -121,25 +125,27 @@ namespace Client.Main.Controls.UI.Game
             int w = GraphicsDevice?.Viewport.Width ?? MuGame.Instance.Width;
             int h = GraphicsDevice?.Viewport.Height ?? MuGame.Instance.Height;
 
-            // Joystick at bottom-left
-            _joystickCenter = new Vector2(140f, h - 140f);
+            // Joystick in upper-left corner
+            _joystickCenter = new Vector2(150f, 160f);
             if (!_isJoystickActive)
                 _knobPosition = _joystickCenter;
 
-            // Action buttons at bottom-right
-            _atkButtonCenter = new Vector2(w - 105f, h - 105f);
-            _skill1ButtonCenter = new Vector2(w - 190f, h - 75f);
-            _skill2ButtonCenter = new Vector2(w - 185f, h - 150f);
-            _skill3ButtonCenter = new Vector2(w - 115f, h - 195f);
+            // Large Action/Attack/Talk button at bottom-right
+            _atkButtonCenter = new Vector2(w - 120f, h - 120f);
 
-            // Potions positioned higher up on the right
-            _hpButtonCenter = new Vector2(w - 45f, h - 195f);
-            _mpButtonCenter = new Vector2(w - 45f, h - 260f);
+            // Skills arrayed in generous arc around the attack button (radius 145px)
+            _skill1ButtonCenter = new Vector2(_atkButtonCenter.X - 145f, _atkButtonCenter.Y);
+            _skill2ButtonCenter = new Vector2(_atkButtonCenter.X - 105f, _atkButtonCenter.Y - 105f);
+            _skill3ButtonCenter = new Vector2(_atkButtonCenter.X, _atkButtonCenter.Y - 145f);
 
-            // Menu shortcuts at top-right (comfortably sized for mobile finger touch)
+            // Potions placed comfortably above skill arc
+            _hpButtonCenter = new Vector2(_atkButtonCenter.X - 185f, _atkButtonCenter.Y - 95f);
+            _mpButtonCenter = new Vector2(_atkButtonCenter.X - 95f, _atkButtonCenter.Y - 185f);
+
+            // Menu shortcuts at top-right
             int btnW = 68;
             int btnH = 36;
-            int topY = 48;
+            int topY = 24;
             _warpBtnRect = new Rectangle(w - 74, topY, btnW, btnH);
             _statsBtnRect = new Rectangle(w - 148, topY, btnW, btnH);
             _invBtnRect = new Rectangle(w - 222, topY, btnW, btnH);
@@ -189,18 +195,17 @@ namespace Client.Main.Controls.UI.Game
             if (walkers == null || walkers.Count == 0)
                 return;
 
-            var heroPos = _hero.Position;
-            float closestDistSq = NPC_INTERACT_DISTANCE * NPC_INTERACT_DISTANCE;
+            float closestTileDist = NPC_INTERACT_TILES;
             NPCObject closest = null;
 
             foreach (var walker in walkers.Values)
             {
                 if (walker is NPCObject npc && npc.Visible && !npc.Hidden)
                 {
-                    float distSq = Vector3.DistanceSquared(heroPos, npc.Position);
-                    if (distSq < closestDistSq)
+                    float dist = Vector2.Distance(_hero.Location, npc.Location);
+                    if (dist < closestTileDist)
                     {
-                        closestDistSq = distSq;
+                        closestTileDist = dist;
                         closest = npc;
                     }
                 }
@@ -212,6 +217,40 @@ namespace Client.Main.Controls.UI.Game
         private void ProcessTouchInput(TouchCollection touches)
         {
             bool joystickTouchFound = false;
+
+            // Pinch-to-zoom multi-touch handling
+            if (touches.Count >= 2)
+            {
+                var t1 = touches[0];
+                var t2 = touches[1];
+                bool t1Over = IsTouchOverControls(t1.Position);
+                bool t2Over = IsTouchOverControls(t2.Position);
+
+                if (!t1Over && !t2Over &&
+                    (t1.State == TouchLocationState.Moved || t2.State == TouchLocationState.Moved))
+                {
+                    float currentDist = Vector2.Distance(t1.Position, t2.Position);
+                    if (_isPinching)
+                    {
+                        float delta = currentDist - _prevPinchDist;
+                        if (MathF.Abs(delta) > 1.5f)
+                        {
+                            _hero?.ZoomCamera(delta * 2.5f);
+                            _scene?.SetMouseInputConsumed();
+                        }
+                    }
+                    _prevPinchDist = currentDist;
+                    _isPinching = true;
+                }
+                else if (t1Over || t2Over)
+                {
+                    _isPinching = false;
+                }
+            }
+            else
+            {
+                _isPinching = false;
+            }
 
             foreach (var touch in touches)
             {

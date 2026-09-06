@@ -352,10 +352,10 @@ namespace Client.Main.Controls
             int index3 = y2 * Constants.TERRAIN_SIZE + x2;
             int index4 = y2 * Constants.TERRAIN_SIZE + x1;
 
-            float h1 = _backTerrainHeight[index1].B;
-            float h2 = _backTerrainHeight[index2].B;
-            float h3 = _backTerrainHeight[index3].B;
-            float h4 = _backTerrainHeight[index4].B;
+            float h1 = _backTerrainHeight[index1].B * 1.5f;
+            float h2 = _backTerrainHeight[index2].B * 1.5f;
+            float h3 = _backTerrainHeight[index3].B * 1.5f;
+            float h4 = _backTerrainHeight[index4].B * 1.5f;
 
             // Bilinear interpolation in one go
             return (1 - xd) * (1 - yd) * h1 +

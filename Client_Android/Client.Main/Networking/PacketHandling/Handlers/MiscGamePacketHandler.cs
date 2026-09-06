@@ -323,6 +323,70 @@ namespace Client.Main.Networking.PacketHandling.Handlers
             return Task.CompletedTask;
         }
 
+        [PacketHandler(0x30, PacketRouter.NoSubCode)]  // NpcWindowResponse
+        public Task HandleNpcWindowResponseAsync(Memory<byte> packet)
+        {
+            try
+            {
+                var response = new NpcWindowResponse(packet);
+                _logger.LogInformation("🏛️ NpcWindowResponse received: {Window}", response.Window);
+
+                MuGame.ScheduleOnMainThread(() =>
+                {
+                    Helpers.OnScreenLogger.Log($"Janela NPC: {response.Window}");
+                    switch (response.Window)
+                    {
+                        case NpcWindowResponse.NpcWindow.Merchant:
+                        case NpcWindowResponse.NpcWindow.Merchant1:
+                            if (Controls.UI.Game.NpcShopControl.Instance != null)
+                            {
+                                Controls.UI.Game.NpcShopControl.Instance.Visible = true;
+                                Controls.UI.Game.NpcShopControl.Instance.BringToFront();
+                            }
+                            break;
+
+                        case NpcWindowResponse.NpcWindow.VaultStorage:
+                            Helpers.OnScreenLogger.Log("Baú do Vault Aberto!");
+                            break;
+
+                        default:
+                            Helpers.OnScreenLogger.Log($"NPC Aberto: {response.Window}");
+                            break;
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing NpcWindowResponse (0x30).");
+            }
+            return Task.CompletedTask;
+        }
+
+        [PacketHandler(0x31, PacketRouter.NoSubCode)]  // StoreItemList
+        public Task HandleStoreItemListAsync(Memory<byte> packet)
+        {
+            try
+            {
+                var list = new StoreItemList(packet);
+                _logger.LogInformation("📦 StoreItemList received: {Count} items.", list.ItemCount);
+
+                MuGame.ScheduleOnMainThread(() =>
+                {
+                    Helpers.OnScreenLogger.Log($"Loja: {list.ItemCount} itens disponíveis!");
+                    if (Controls.UI.Game.NpcShopControl.Instance != null)
+                    {
+                        Controls.UI.Game.NpcShopControl.Instance.Visible = true;
+                        Controls.UI.Game.NpcShopControl.Instance.BringToFront();
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing StoreItemList (0x31).");
+            }
+            return Task.CompletedTask;
+        }
+
         // ────────────────────────── Helpers ────────────────────────────
 
         /// <summary>

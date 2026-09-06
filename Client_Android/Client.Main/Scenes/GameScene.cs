@@ -670,6 +670,11 @@ namespace Client.Main.Scenes
                     npcMonster.NetworkId = s.Id;
                     npcMonster.Location = new Vector2(s.PositionX, s.PositionY);
                     w.Objects.Add(npcMonster);
+                    if (w.Terrain != null)
+                    {
+                        npcMonster.Position = npcMonster.TargetPosition;
+                        npcMonster.MoveTargetPosition = npcMonster.Position;
+                    }
                     await npcMonster.Load();
                 }
             }

@@ -72,7 +72,7 @@ namespace Client.Main
             _graphics.IsFullScreen = true;
             _graphics.PreferredBackBufferWidth = 0;
             _graphics.PreferredBackBufferHeight = 0;
-            _graphics.SynchronizeWithVerticalRetrace = true;
+            _graphics.SynchronizeWithVerticalRetrace = false; // Desativa VSync para evitar quantização/throttle de 7-8 FPS
             IsFixedTimeStep = false;
             TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0 / 60.0); // 60 FPS fluido no Android
 #else

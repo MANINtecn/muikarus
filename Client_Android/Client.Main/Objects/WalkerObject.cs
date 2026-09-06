@@ -114,6 +114,14 @@ namespace Client.Main.Objects
             MoveTargetPosition = Vector3.Zero;
         }
 
+        public void ZoomCamera(float delta)
+        {
+            _targetCameraDistance = MathHelper.Clamp(
+                _targetCameraDistance - delta,
+                _minCameraDistance,
+                _maxCameraDistance);
+        }
+
         public void OnDirectionChanged()
         {
             if (World is WalkableWorldControl)

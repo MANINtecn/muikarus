@@ -63,8 +63,8 @@ namespace Client.Main
 #endif
 
                 // Camera control constants
-                public const float MIN_CAMERA_DISTANCE = 800f;
-                public const float MAX_CAMERA_DISTANCE = 1800f;
+                public const float MIN_CAMERA_DISTANCE = 400f;
+                public const float MAX_CAMERA_DISTANCE = 2200f;
                 public const float ZOOM_SPEED = 4f;
 
                 // Camera rotation constants
