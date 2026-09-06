@@ -3,6 +3,7 @@ using Client.Main.Controllers;
 using Client.Main.Helpers;
 using Client.Main.Models;
 using Client.Main.Networking;
+using Microsoft.Extensions.Logging;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;

@@ -340,7 +340,7 @@ namespace Client.Main.Controls.UI.Game
                     continue;
                 }
 
-                if (_cmdBtnRect.Contains(pt))
+                if (_cmdBtnRect.Contains((int)pos.X, (int)pos.Y))
                 {
                     if (touch.State == TouchLocationState.Pressed && !_cmdPressed)
                     {
@@ -354,7 +354,7 @@ namespace Client.Main.Controls.UI.Game
                     continue;
                 }
 
-                if (_invBtnRect.Contains(pt))
+                if (_invBtnRect.Contains((int)pos.X, (int)pos.Y))
                 {
                     if (touch.State == TouchLocationState.Pressed && !_invPressed)
                     {
@@ -368,7 +368,7 @@ namespace Client.Main.Controls.UI.Game
                     continue;
                 }
 
-                if (_statsBtnRect.Contains(pt))
+                if (_statsBtnRect.Contains((int)pos.X, (int)pos.Y))
                 {
                     if (touch.State == TouchLocationState.Pressed && !_statsPressed)
                     {
@@ -382,7 +382,7 @@ namespace Client.Main.Controls.UI.Game
                     continue;
                 }
 
-                if (_warpBtnRect.Contains(pt))
+                if (_warpBtnRect.Contains((int)pos.X, (int)pos.Y))
                 {
                     if (touch.State == TouchLocationState.Pressed && !_warpPressed)
                     {
