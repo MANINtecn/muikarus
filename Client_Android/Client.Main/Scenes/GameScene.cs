@@ -49,6 +49,7 @@ namespace Client.Main.Scenes
 
         // ───────────────────────── Properties ─────────────────────────
         public PlayerObject Hero => _hero;
+        public MobileControlsOverlay MobileControls => _mobileControls;
 
         public static readonly IReadOnlyDictionary<byte, Type> MapWorldRegistry = new Dictionary<byte, Type>
         {

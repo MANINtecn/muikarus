@@ -173,6 +173,28 @@ namespace Client.Main.Objects
                 float? intersectionDistance = MuGame.Instance.MouseRay.Intersects(BoundingBoxWorld);
                 ContainmentType contains = BoundingBoxWorld.Contains(MuGame.Instance.MouseRay.Position);
                 wouldBeMouseHover = intersectionDistance.HasValue || contains == ContainmentType.Contains;
+
+#if ANDROID || IOS
+                // Fingers are far less precise than a mouse cursor: fall back to a generous
+                // screen-space radius around interactive objects (NPCs, monsters) so a tap
+                // near the model still registers as a hover/click on mobile.
+                if (!wouldBeMouseHover && Interactive)
+                {
+                    var viewport = MuGame.Instance.GraphicsDevice.Viewport;
+                    Vector3 screenPos = viewport.Project(WorldPosition.Translation,
+                        Camera.Instance.Projection, Camera.Instance.View, Matrix.Identity);
+                    if (screenPos.Z >= 0f && screenPos.Z <= 1f)
+                    {
+                        Vector2 touchPos = MuGame.Instance.Mouse.Position.ToVector2();
+                        const float touchToleranceScreenPx = 60f;
+                        if (Vector2.DistanceSquared(new Vector2(screenPos.X, screenPos.Y), touchPos)
+                            <= touchToleranceScreenPx * touchToleranceScreenPx)
+                        {
+                            wouldBeMouseHover = true;
+                        }
+                    }
+                }
+#endif
             }
 
             IsMouseHover = wouldBeMouseHover;
