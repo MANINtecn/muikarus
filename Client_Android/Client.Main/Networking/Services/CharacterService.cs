@@ -290,5 +290,112 @@ namespace Client.Main.Networking.Services
                 _logger.LogError(ex, "Error sending pickup item request for itemId {ItemId}.", itemIdMasked);
             }
         }
+
+        /// <summary>
+        /// Sends a talk-to-NPC request to the server for the specified NPC network id (masked).
+        /// </summary>
+        public async Task SendTalkToNpcRequestAsync(ushort npcNetworkId)
+        {
+            if (!_connectionManager.IsConnected)
+            {
+                _logger.LogError("Not connected - cannot send talk to NPC request.");
+                return;
+            }
+
+            ushort masked = (ushort)(npcNetworkId & 0x7FFF);
+            _logger.LogInformation("Sending TalkToNpcRequest for NPC {NpcId:X4}...", masked);
+            try
+            {
+                await _connectionManager.Connection.SendAsync(() =>
+                {
+                    var len = TalkToNpcRequest.Length;
+                    var packet = new TalkToNpcRequest(_connectionManager.Connection.Output.GetMemory(len).Slice(0, len));
+                    packet.NpcId = masked;
+                    return len;
+                });
+                _logger.LogInformation("TalkToNpcRequest sent for NPC {NpcId:X4}.", masked);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending TalkToNpcRequest for NPC {NpcId:X4}.", masked);
+            }
+        }
+
+        /// <summary>
+        /// Sends a close-NPC dialog request to the server.
+        /// </summary>
+        public async Task SendCloseNpcRequestAsync()
+        {
+            if (!_connectionManager.IsConnected)
+            {
+                _logger.LogError("Not connected - cannot send close NPC request.");
+                return;
+            }
+
+            _logger.LogInformation("Sending CloseNpcRequest (0x31) ...");
+            try
+            {
+                await _connectionManager.Connection.SendAsync(() =>
+                {
+                    var len = CloseNpcRequest.Length;
+                    var packet = new CloseNpcRequest(_connectionManager.Connection.Output.GetMemory(len).Slice(0, len));
+                    return len;
+                });
+                _logger.LogInformation("CloseNpcRequest sent.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending CloseNpcRequest.");
+            }
+        }
+
+        /// <summary>
+        /// Sends a request to an NPC to receive a buff.
+        /// </summary>
+        public async Task SendNpcBuffRequestAsync()
+        {
+            if (!_connectionManager.IsConnected)
+            {
+                _logger.LogError("Not connected - cannot send NPC buff request.");
+                return;
+            }
+
+            _logger.LogInformation("Sending NPC buff request...");
+            try
+            {
+                await _connectionManager.Connection.SendAsync(() =>
+                {
+                    var len = NpcBuffRequest.Length;
+                    var packet = new NpcBuffRequest(_connectionManager.Connection.Output.GetMemory(len).Slice(0, len));
+                    return len;
+                });
+                _logger.LogInformation("NPC buff request sent.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending NPC buff request.");
+            }
+        }
+
+        /// <summary>
+        /// Sends a complete sequence to get buff from Elf Soldier NPC:
+        /// 1. Opens dialog with NPC (TalkToNpcRequest)
+        /// 2. Requests buff (NpcBuffRequest)
+        /// </summary>
+        public async Task SendElfSoldierBuffSequenceAsync(ushort npcId)
+        {
+            if (!_connectionManager.IsConnected)
+            {
+                _logger.LogError("Not connected - cannot send Elf Soldier buff sequence.");
+                return;
+            }
+
+            _logger.LogInformation("Sending Elf Soldier buff sequence for NPC ID {NpcId}...", npcId);
+            await SendTalkToNpcRequestAsync(npcId);
+            await Task.Delay(100);
+            await SendNpcBuffRequestAsync();
+            await SendCloseNpcRequestAsync();
+            _logger.LogInformation("Elf Soldier buff sequence completed for NPC ID {NpcId}.", npcId);
+        }
     }
 }
