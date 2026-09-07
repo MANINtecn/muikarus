@@ -295,8 +295,6 @@ namespace Client.Main.Objects
             PlayAction(actionIndex, false);
         }
 
-        private int _moveRequestGeneration = 0;
-
         public void MoveTo(Vector2 targetLocation, bool sendToServer = true)
         {
             if (World == null) return;
@@ -306,12 +304,6 @@ namespace Client.Main.Objects
             Vector2 startPos = new Vector2((int)MathF.Round(Location.X), (int)MathF.Round(Location.Y));
             Vector2 targetTile = new Vector2((int)MathF.Round(targetLocation.X), (int)MathF.Round(targetLocation.Y));
             WorldControl currentWorld = World;
-
-            // Bump the generation so a slower, stale pathfind result from a previous call
-            // can never overwrite the path from a newer call that already resolved (this is
-            // what caused the character to "walk further than expected" / run off on its own
-            // when commands were sent in quick succession, e.g. from the mobile joystick).
-            int myGeneration = ++_moveRequestGeneration;
 
             _ = Task.Run(() =>
             {
