@@ -93,15 +93,29 @@ internal class PlayerContext : CachingEntityFrameworkContext, IPlayerContext
 
     /// <inheritdoc />
     public async ValueTask<IEnumerable<DataModel.Entities.Account>> GetAccountsOrderedByLoginNameAsync(int skip, int count, CancellationToken cancellationToken = default)
+        => await this.GetAccountsOrderedByLoginNameAsync(skip, count, null, cancellationToken).ConfigureAwait(false);
+
+    /// <inheritdoc />
+    public async ValueTask<IEnumerable<DataModel.Entities.Account>> GetAccountsOrderedByLoginNameAsync(int skip, int count, DataModel.Entities.AccountState? stateFilter, CancellationToken cancellationToken = default)
     {
         using (this.RepositoryProvider.ContextStack.UseContext(this))
         {
-            return await this.Context.Set<Account>().AsNoTracking().OrderBy(a => a.LoginName).Skip(skip).Take(count).ToListAsync(cancellationToken).ConfigureAwait(false);
+            var query = this.Context.Set<Account>().AsNoTracking().AsQueryable();
+            if (stateFilter is { } state)
+            {
+                query = query.Where(a => a.State == state);
+            }
+
+            return await query.OrderBy(a => a.LoginName).Skip(skip).Take(count).ToListAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
     /// <inheritdoc />
     public async ValueTask<IEnumerable<DataModel.Entities.Account>> SearchAccountsAsync(string searchTerm, int skip, int count, CancellationToken cancellationToken = default)
+        => await this.SearchAccountsAsync(searchTerm, skip, count, null, cancellationToken).ConfigureAwait(false);
+
+    /// <inheritdoc />
+    public async ValueTask<IEnumerable<DataModel.Entities.Account>> SearchAccountsAsync(string searchTerm, int skip, int count, DataModel.Entities.AccountState? stateFilter, CancellationToken cancellationToken = default)
     {
         using (this.RepositoryProvider.ContextStack.UseContext(this))
         {
@@ -110,9 +124,15 @@ internal class PlayerContext : CachingEntityFrameworkContext, IPlayerContext
             // ToLower() calls inside the query below are a different matter: they are translated to
             // the database's own lower(), which is why they cannot take a culture.
             var term = searchTerm.ToLowerInvariant();
-            return await this.Context.Set<Account>().AsNoTracking()
+            var query = this.Context.Set<Account>().AsNoTracking()
                 .Where(a => a.LoginName.ToLower().Contains(term)
-                            || a.RawCharacters.Any(c => c.Name.ToLower().Contains(term)))
+                            || a.RawCharacters.Any(c => c.Name.ToLower().Contains(term)));
+            if (stateFilter is { } state)
+            {
+                query = query.Where(a => a.State == state);
+            }
+
+            return await query
                 .OrderBy(a => a.LoginName)
                 .Skip(skip)
                 .Take(count)

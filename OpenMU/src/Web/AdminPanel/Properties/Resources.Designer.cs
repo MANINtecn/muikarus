@@ -349,6 +349,69 @@ namespace MUnique.OpenMU.Web.AdminPanel.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Players Online.
+        /// </summary>
+        public static string PlayersOnline {
+            get {
+                return ResourceManager.GetString("PlayersOnline", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to All states.
+        /// </summary>
+        public static string AllStates {
+            get {
+                return ResourceManager.GetString("AllStates", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Servers Running.
+        /// </summary>
+        public static string ServersRunning {
+            get {
+                return ResourceManager.GetString("ServersRunning", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} server(s) are not running. Check the.
+        /// </summary>
+        public static string ServersNotRunningWarning {
+            get {
+                return ResourceManager.GetString("ServersNotRunningWarning", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Manage game and connect servers, send a message to all players, or restart the network..
+        /// </summary>
+        public static string QuickLinkServersDescription {
+            get {
+                return ResourceManager.GetString("QuickLinkServersDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Search accounts, create new ones, ban or unban players..
+        /// </summary>
+        public static string QuickLinkAccountsDescription {
+            get {
+                return ResourceManager.GetString("QuickLinkAccountsDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to See who is currently logged in and disconnect a session if needed..
+        /// </summary>
+        public static string QuickLinkOnlineAccountsDescription {
+            get {
+                return ResourceManager.GetString("QuickLinkOnlineAccountsDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Unban.
         /// </summary>
         public static string Unban {

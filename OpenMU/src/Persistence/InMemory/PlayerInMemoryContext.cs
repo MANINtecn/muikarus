@@ -52,18 +52,38 @@ public class PlayerInMemoryContext : InMemoryContext, IPlayerContext
 
     /// <inheritdoc/>
     public async ValueTask<IEnumerable<MUnique.OpenMU.DataModel.Entities.Account>> GetAccountsOrderedByLoginNameAsync(int skip, int count, CancellationToken cancellationToken = default)
+        => await this.GetAccountsOrderedByLoginNameAsync(skip, count, null, cancellationToken).ConfigureAwait(false);
+
+    /// <inheritdoc/>
+    public async ValueTask<IEnumerable<MUnique.OpenMU.DataModel.Entities.Account>> GetAccountsOrderedByLoginNameAsync(int skip, int count, MUnique.OpenMU.DataModel.Entities.AccountState? stateFilter, CancellationToken cancellationToken = default)
     {
         var allAccounts = await this.Provider.GetRepository<Account>().GetAllAsync(cancellationToken).ConfigureAwait(false);
-        return allAccounts.OrderBy(a => a.LoginName).Skip(skip).Take(count);
+        var query = allAccounts.AsEnumerable();
+        if (stateFilter is { } state)
+        {
+            query = query.Where(a => a.State == state);
+        }
+
+        return query.OrderBy(a => a.LoginName).Skip(skip).Take(count);
     }
 
     /// <inheritdoc/>
     public async ValueTask<IEnumerable<MUnique.OpenMU.DataModel.Entities.Account>> SearchAccountsAsync(string searchTerm, int skip, int count, CancellationToken cancellationToken = default)
+        => await this.SearchAccountsAsync(searchTerm, skip, count, null, cancellationToken).ConfigureAwait(false);
+
+    /// <inheritdoc/>
+    public async ValueTask<IEnumerable<MUnique.OpenMU.DataModel.Entities.Account>> SearchAccountsAsync(string searchTerm, int skip, int count, MUnique.OpenMU.DataModel.Entities.AccountState? stateFilter, CancellationToken cancellationToken = default)
     {
         var allAccounts = await this.Provider.GetRepository<Account>().GetAllAsync(cancellationToken).ConfigureAwait(false);
-        return allAccounts
+        var query = allAccounts
             .Where(a => a.LoginName.Contains(searchTerm, StringComparison.InvariantCultureIgnoreCase)
-                        || a.Characters.Any(c => c.Name.Contains(searchTerm, StringComparison.InvariantCultureIgnoreCase)))
+                        || a.Characters.Any(c => c.Name.Contains(searchTerm, StringComparison.InvariantCultureIgnoreCase)));
+        if (stateFilter is { } state)
+        {
+            query = query.Where(a => a.State == state);
+        }
+
+        return query
             .OrderBy(a => a.LoginName)
             .Skip(skip)
             .Take(count);

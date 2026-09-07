@@ -123,6 +123,27 @@
   <data name="Ban" xml:space="preserve">
     <value>Ban</value>
   </data>
+  <data name="PlayersOnline" xml:space="preserve">
+    <value>Players Online</value>
+  </data>
+  <data name="AllStates" xml:space="preserve">
+    <value>All states</value>
+  </data>
+  <data name="ServersRunning" xml:space="preserve">
+    <value>Servers Running</value>
+  </data>
+  <data name="ServersNotRunningWarning" xml:space="preserve">
+    <value>{0} server(s) are not running. Check the</value>
+  </data>
+  <data name="QuickLinkServersDescription" xml:space="preserve">
+    <value>Manage game and connect servers, send a message to all players, or restart the network.</value>
+  </data>
+  <data name="QuickLinkAccountsDescription" xml:space="preserve">
+    <value>Search accounts, create new ones, ban or unban players.</value>
+  </data>
+  <data name="QuickLinkOnlineAccountsDescription" xml:space="preserve">
+    <value>See who is currently logged in and disconnect a session if needed.</value>
+  </data>
   <data name="Unban" xml:space="preserve">
     <value>Unban</value>
   </data>

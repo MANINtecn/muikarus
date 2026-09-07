@@ -79,6 +79,18 @@ public interface IPlayerContext : IContext
     ValueTask<IEnumerable<Account>> GetAccountsOrderedByLoginNameAsync(int skip, int count, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the accounts ordered by login name, optionally filtered by their <see cref="AccountState"/>.
+    /// </summary>
+    /// <param name="skip">The skip count.</param>
+    /// <param name="count">The count.</param>
+    /// <param name="stateFilter">If not <see langword="null" />, only accounts with this exact state are returned.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>
+    /// The account objects, without dependent data.
+    /// </returns>
+    ValueTask<IEnumerable<Account>> GetAccountsOrderedByLoginNameAsync(int skip, int count, AccountState? stateFilter, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets the accounts which contain the search term in their login name or in one of
     /// their character names, ordered by login name.
     /// </summary>
@@ -90,6 +102,20 @@ public interface IPlayerContext : IContext
     /// The account objects, without dependent data.
     /// </returns>
     ValueTask<IEnumerable<Account>> SearchAccountsAsync(string searchTerm, int skip, int count, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the accounts which contain the search term in their login name or in one of
+    /// their character names, ordered by login name, optionally filtered by their <see cref="AccountState"/>.
+    /// </summary>
+    /// <param name="searchTerm">The search term.</param>
+    /// <param name="skip">The skip count.</param>
+    /// <param name="count">The count.</param>
+    /// <param name="stateFilter">If not <see langword="null" />, only accounts with this exact state are returned.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>
+    /// The account objects, without dependent data.
+    /// </returns>
+    ValueTask<IEnumerable<Account>> SearchAccountsAsync(string searchTerm, int skip, int count, AccountState? stateFilter, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the account by character name.

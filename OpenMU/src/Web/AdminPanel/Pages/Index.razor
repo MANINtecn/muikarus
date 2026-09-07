@@ -1,9 +1,135 @@
-﻿@page "/"
+@page "/"
 
+@using System.ComponentModel
+@using MUnique.OpenMU.Interfaces
 @using MUnique.OpenMU.Web.AdminPanel.Properties
 
-<h1>@Resources.OpenMUAdminPanel</h1>
+@implements IDisposable
+
 <PageTitle>@Resources.OpenMUAdminPanel</PageTitle>
 <Breadcrumb IsFirstFromRoot="true" Caption="Home"/>
 
-@Resources.WelcomeMessage
+<h1>@Resources.OpenMUAdminPanel</h1>
+<p>@Resources.WelcomeMessage</p>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-success h-100">
+            <div class="card-body">
+                <h6 class="card-title">@Resources.PlayersOnline</h6>
+                <p class="card-text display-6 mb-0">@this.GetTotalPlayerCount()</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white @(this.GetStoppedServerCount() == 0 ? "bg-success" : "bg-warning") h-100">
+            <div class="card-body">
+                <h6 class="card-title">@Resources.ServersRunning</h6>
+                <p class="card-text display-6 mb-0">@this.GetRunningServerCount() / @this._servers.Count</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-primary h-100">
+            <div class="card-body">
+                <h6 class="card-title">@Resources.GameServerCount</h6>
+                <p class="card-text display-6 mb-0">@this.GetGameServerCount()</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-secondary h-100">
+            <div class="card-body">
+                <h6 class="card-title">@Resources.ConnectServer</h6>
+                <p class="card-text display-6 mb-0">@this.GetConnectServerCount()</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (this.GetStoppedServerCount() > 0)
+{
+    <div class="alert alert-warning" role="alert">
+        <span class="oi oi-warning" aria-hidden="true"></span>
+        @string.Format(Resources.ServersNotRunningWarning, this.GetStoppedServerCount())
+        <NavLink href="servers" class="alert-link">@Resources.Servers</NavLink>
+    </div>
+}
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title"><span class="oi oi-project" aria-hidden="true"></span> @Resources.Servers</h5>
+                <p class="card-text">@Resources.QuickLinkServersDescription</p>
+                <NavLink href="servers" class="btn btn-primary">@Resources.Servers</NavLink>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title"><span class="oi oi-list" aria-hidden="true"></span> @Resources.Accounts</h5>
+                <p class="card-text">@Resources.QuickLinkAccountsDescription</p>
+                <NavLink href="accounts" class="btn btn-primary">@Resources.Accounts</NavLink>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title"><span class="oi oi-people" aria-hidden="true"></span> @Resources.OnlineAccounts</h5>
+                <p class="card-text">@Resources.QuickLinkOnlineAccountsDescription</p>
+                <NavLink href="logged-in" class="btn btn-primary">@Resources.OnlineAccounts</NavLink>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private IList<IManageableServer> _servers = new List<IManageableServer>();
+
+    /// <summary>
+    /// Gets or sets the <see cref="IServerProvider"/>.
+    /// </summary>
+    [Inject]
+    public IServerProvider ServerProvider { get; set; } = null!;
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        this.ServerProvider.PropertyChanged -= this.OnServersChanged;
+    }
+
+    /// <inheritdoc />
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        this._servers = this.ServerProvider.Servers;
+        this.ServerProvider.PropertyChanged += this.OnServersChanged;
+    }
+
+    private void OnServersChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(IServerProvider.Servers))
+        {
+            this._servers = this.ServerProvider.Servers;
+            this.InvokeAsync(this.StateHasChanged);
+        }
+    }
+
+    private int GetTotalPlayerCount()
+    {
+        return this._servers
+            .Where(s => s.Id < 0x10000 && s.ServerState != ServerState.Timeout)
+            .Sum(s => s.CurrentConnections);
+    }
+
+    private int GetRunningServerCount() => this._servers.Count(s => s.ServerState == ServerState.Started);
+
+    private int GetStoppedServerCount() => this._servers.Count(s => s.ServerState != ServerState.Started);
+
+    private int GetGameServerCount() => this._servers.Count(s => s.Type == ServerType.GameServer);
+
+    private int GetConnectServerCount() => this._servers.Count(s => s.Type == ServerType.ConnectServer);
+}

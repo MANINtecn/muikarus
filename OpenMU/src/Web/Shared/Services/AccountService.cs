@@ -27,6 +27,8 @@ public class AccountService : IDataService<Account>, ISupportDataChangedNotifica
 
     private string _searchFilter = string.Empty;
 
+    private AccountState? _stateFilter;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="AccountService"/> class.
     /// </summary>
@@ -71,6 +73,22 @@ public class AccountService : IDataService<Account>, ISupportDataChangedNotifica
     }
 
     /// <summary>
+    /// Gets or sets the account state to filter the list by. <see langword="null" /> means no filter (all states).
+    /// </summary>
+    public AccountState? StateFilter
+    {
+        get => this._stateFilter;
+        set
+        {
+            if (this._stateFilter != value)
+            {
+                this._stateFilter = value;
+                this.DataChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+    }
+
+    /// <summary>
     /// Returns a slice of the account list, defined by an offset and a count.
     /// </summary>
     /// <param name="offset">The offset.</param>
@@ -84,14 +102,14 @@ public class AccountService : IDataService<Account>, ISupportDataChangedNotifica
             var filter = this.SearchFilter.Trim();
             if (string.IsNullOrWhiteSpace(filter))
             {
-                return (await playerContext.GetAccountsOrderedByLoginNameAsync(offset, count).ConfigureAwait(false)).ToList();
+                return (await playerContext.GetAccountsOrderedByLoginNameAsync(offset, count, this.StateFilter).ConfigureAwait(false)).ToList();
             }
 
-            var results = (await playerContext.SearchAccountsAsync(filter, offset, count).ConfigureAwait(false)).ToList();
+            var results = (await playerContext.SearchAccountsAsync(filter, offset, count, this.StateFilter).ConfigureAwait(false)).ToList();
             if (results.Count == 0 && offset > 0)
             {
                 // The filter narrowed the result set down to less entries than the current page offset - show the first page instead.
-                results = (await playerContext.SearchAccountsAsync(filter, 0, count).ConfigureAwait(false)).ToList();
+                results = (await playerContext.SearchAccountsAsync(filter, 0, count, this.StateFilter).ConfigureAwait(false)).ToList();
             }
 
             return results;

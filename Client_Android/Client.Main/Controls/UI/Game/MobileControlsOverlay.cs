@@ -38,7 +38,7 @@ namespace Client.Main.Controls.UI.Game
             
             AutoViewSize = false;
             ViewSize = new Point(MuGame.Instance.Width, MuGame.Instance.Height);
-            Interactive = true;
+            Interactive = false;
             Status = GameControlStatus.Ready;
             Visible = true;
         }

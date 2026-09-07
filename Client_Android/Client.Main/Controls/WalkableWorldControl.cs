@@ -93,7 +93,7 @@ namespace Client.Main.Controls
 
             // Handle click‐to‐move with a simple cooldown
             if (!Scene.IsMouseInputConsumedThisFrame && // check if UI already handled the click
-                (Scene.MouseControl == this || Scene.MouseControl == World) && // ensure this world or its base is the target
+                (Scene.MouseControl == this || Scene.MouseControl == World || Scene.MouseControl == null) && // ensure this world or its base is the target or no one captured it
                 MuGame.Instance.Mouse.LeftButton == ButtonState.Pressed &&
                 _cursorNextMoveTime <= 0f)
             {
