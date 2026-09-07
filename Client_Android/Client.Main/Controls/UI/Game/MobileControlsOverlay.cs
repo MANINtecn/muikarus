@@ -32,8 +32,8 @@ namespace Client.Main.Controls.UI.Game
         // Joystick configuration (Upper-left, enlarged for comfortable thumb reach)
         private const float JOYSTICK_RADIUS = 90f;
         private const float KNOB_RADIUS = 40f;
-        private const float DEAD_ZONE = 0.45f;
-        private const float MOVE_INTERVAL_MS = 400f;
+        private const float DEAD_ZONE = 0.2f;
+        private const float MOVE_INTERVAL_MS = 500f; // Menos spam de comandos, deixando o Generation ID descartar corretamente
 
         private Vector2 _joystickCenter;
         private Vector2 _knobPosition;

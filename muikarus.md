@@ -403,8 +403,29 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
 15. [ ] **DEPLOY VPS:** Garantir portas `44405` e `55901` totalmente abertas no firewall da VPS Windows (`192.99.110.164`).
 16. [ ] **SISTEMA DE AUTO-UPDATE (PATCHER LEVE):** Criar lógica no `LoadScene.cs` para checar `patch_version.txt`. Se houver atualizações pontuais, baixar apenas um `Patch.zip` de poucos megabytes em vez de pacotes completos.
 
+---
 
+## 🤝 PROTOCOLO DE HANDOFF (IA ➔ USUÁRIO ➔ IA)
 
+> **REGRAS PARA TRANSIÇÃO ENTRE GEMINI E CLAUDE:**
+> Sempre que houver uma troca de assistentes (ou finalização do dia de trabalho), a IA atual DEVE preencher este bloco para não deixar a próxima IA "cega".
 
+### 🗂️ DIVISÃO DE RESPONSABILIDADES (definida com o usuário em 06/09/2026)
+Para trabalhar os três (usuário + Gemini + Claude) juntos sem atrito de merge/regressão cruzada, o projeto foi dividido por **área fixa**, não por tarefa avulsa:
 
+- **🕹️ Gemini → Cliente Mobile/Android (`Client_Android/`):** FPS, rendering 3D, touch/joystick, UI mobile, otimizações MonoGame. Ele já é quem está com contexto de campo mais recente aqui (reverteu para v1.34 e validou no aparelho).
+- **🖥️ Claude → Servidor (`OpenMU/`) e infraestrutura:** Configuração de VPS, portas/firewall, Web Admin Panel, rates, banco de dados, deploy. Área que não colide com arquivos do cliente mobile.
+- **Regra de exceção:** se uma IA precisar mexer fora da própria área (ex.: Claude precisar tocar em algo do `Client_Android`), isso deve ser combinado com o usuário antes, e registrado aqui no handoff — nunca silenciosamente.
+- **Regra de git:** cada IA trabalha a partir do estado que o usuário confirmar como "atual" (hoje: `b5b2cc3` / v1.34 no cliente). Não fazer `push --force` sem avisar o usuário; se o histórico remoto divergir do local, perguntar antes de sincronizar.
+- **Commits:** neste repositório, por pedido explícito do usuário, commits/PRs **não** levam linha de coautoria de IA (`Co-Authored-By`), independente da orientação padrão do sistema.
 
+### 📋 ESTADO ATUAL (Deixado por: Gemini)
+- **O que está funcionando:** Código revertido limpo para a versão v1.34 (Commit `b5b2cc3`). Controles e joystick funcionais, porém rodando a ~7 FPS devido à tentativa de destravar FPS sem VSync no mobile.
+- **Última tentativa falha (O que NÃO fazer):** Não devemos implementar raycast 3D por frame no `Update` para NPCs, e não devemos usar o `IsFixedTimeStep = false` no Android sem limitar a CPU, pois gera estrangulamento térmico. (Esses foram os erros das v1.35 e v1.36 descartadas).
+- **Tarefa Imediata para a Próxima IA (Gemini):** Retomar a otimização de FPS no `Client_Android` a partir da v1.34 (7 FPS, mas jogável), aplicando as lições documentadas: nunca desligar `IsFixedTimeStep`/VSync no Android sem alternativa de limitação de CPU, e nunca fazer picking 3D (`viewport.Project`/raycast) por objeto a cada frame — apenas no instante do clique.
+
+### 📋 ESTADO ATUAL (Deixado por: Claude)
+- **Área assumida:** Servidor OpenMU e infraestrutura (VPS, portas, Web Admin Panel, rates).
+- **Tarefa Imediata para Claude:** Ainda não iniciada — próximo passo é revisar o item 15 do roadmap ("Garantir portas 44405 e 55901 totalmente abertas no firewall da VPS") e o item 14 ("Aprender a usar o Web Admin Panel"), conforme o usuário confirmar prioridade.
+
+---

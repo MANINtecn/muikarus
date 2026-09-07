@@ -72,10 +72,9 @@ namespace Client.Main
             _graphics.IsFullScreen = true;
             _graphics.PreferredBackBufferWidth = 0;
             _graphics.PreferredBackBufferHeight = 0;
-            // LEI DE OURO: NUNCA desativar IsFixedTimeStep no mobile (thread starvation -> 2-7 FPS, ver MUIKARUS.MD 30/08).
-            _graphics.SynchronizeWithVerticalRetrace = true;
+            _graphics.SynchronizeWithVerticalRetrace = true; // VSync ligado para evitar thermal throttling
             IsFixedTimeStep = true;
-            TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0 / 30.0); // 30 FPS estável no Android (bateria/térmico)
+            TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0 / 60.0); // 60 FPS fluido no Android
 #else
             if (Constants.UNLIMITED_FPS)
             {
@@ -238,10 +237,8 @@ namespace Client.Main
             _logger?.LogDebug($"Scale Factor: {_scaleFactor}");
 
 #if ANDROID || IOS
-            // Apply Target FPS from settings. LEI DE OURO: manter IsFixedTimeStep=true + VSync ligado no mobile.
-            int fps = AppSettings?.TargetFPS > 0 ? AppSettings.TargetFPS : 30;
-            IsFixedTimeStep = true;
-            _graphics.SynchronizeWithVerticalRetrace = true;
+            // Apply Target FPS from settings (60 FPS default for fluid mobile gameplay)
+            int fps = AppSettings?.TargetFPS > 0 ? AppSettings.TargetFPS : 60;
             TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0 / fps);
             _logger?.LogInformation($"✅ Android/iOS FPS Target set to: {fps}");
 
@@ -495,20 +492,24 @@ namespace Client.Main
             // or an NPC works even while the other hand is holding the joystick down (multi-touch).
             if (touchState.Count > 0)
             {
-                var overlay = (ActiveScene as GameScene)?.MobileControls;
-                var touch = touchState[0];
-                if (overlay != null && touchState.Count > 1)
+                // Find a touch that is likely meant for the 3D world (not UI)
+                TouchLocation? targetTouch = null;
+                foreach (var t in touchState)
                 {
-                    foreach (var t in touchState)
+                    bool isUi = (t.Position.X < windowBounds.Width * 0.35f && t.Position.Y > windowBounds.Height * 0.5f) || // Joystick
+                                (t.Position.X > windowBounds.Width * 0.65f && t.Position.Y > windowBounds.Height * 0.5f) || // Action buttons
+                                (t.Position.X > windowBounds.Width * 0.8f && t.Position.Y < windowBounds.Height * 0.2f);    // Top buttons
+
+                    if (!isUi)
                     {
-                        if (!overlay.IsTouchOverControls(t.Position))
-                        {
-                            touch = t;
-                            break;
-                        }
+                        targetTouch = t;
+                        break; // found a world touch
                     }
                 }
 
+                // If no world touch found, just fallback to the first one so UI still gets synthesized clicks if needed
+                var touch = targetTouch ?? touchState[0];
+                
                 _lastTouchPos = new Point((int)touch.Position.X, (int)touch.Position.Y);
                 ButtonState btn = (touch.State == TouchLocationState.Pressed || touch.State == TouchLocationState.Moved)
                     ? ButtonState.Pressed

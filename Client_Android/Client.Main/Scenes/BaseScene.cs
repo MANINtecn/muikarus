@@ -218,23 +218,41 @@ namespace Client.Main.Scenes
             }
 
             // handle 3D world object clicks if UI didn't consume input
-            if (!IsMouseInputConsumedThisFrame &&
+            if (!IsMouseInputConsumedThisFrame && 
                 MuGame.Instance.PrevMouseState.LeftButton == ButtonState.Pressed &&
                 MuGame.Instance.Mouse.LeftButton == ButtonState.Released)
             {
-                WorldObject clicked = MouseHoverObject;
-
-#if ANDROID || IOS
-                // Fingers are far less precise than a mouse cursor: on release, if the exact
-                // raycast missed, do a single cheap screen-space check against nearby walkers
-                // (NPCs/monsters) instead of a per-frame per-object cost.
-                if (clicked == null)
+                if (MouseHoverObject != null)
                 {
-                    clicked = FindNearestInteractiveWalkerOnScreen(MuGame.Instance.Mouse.Position.ToVector2());
+                    MouseHoverObject.OnClick();
+                }
+#if ANDROID || IOS
+                else if (World != null)
+                {
+                    // Touch tolerance fallback: search for nearby NPC/Monster on screen
+                    Client.Main.Objects.WalkerObject closestObj = null;
+                    float minSqDist = 60f * 60f; // 60 pixels tolerance radius
+                    var viewport = GraphicsManager.Instance.GraphicsDevice.Viewport;
+                    var mousePos = new Vector2(MuGame.Instance.Mouse.Position.X, MuGame.Instance.Mouse.Position.Y);
+                    
+                    foreach (var walker in World.WalkerObjectsById.Values)
+                    {
+                        if (!walker.Interactive || walker.OutOfView) continue;
+                        
+                        var proj = viewport.Project(walker.WorldPosition.Translation, Camera.Instance.Projection, Camera.Instance.View, Matrix.Identity);
+                        var proj2D = new Vector2(proj.X, proj.Y);
+                        float sqDist = Vector2.DistanceSquared(mousePos, proj2D);
+                        
+                        if (sqDist < minSqDist)
+                        {
+                            minSqDist = sqDist;
+                            closestObj = walker;
+                        }
+                    }
+                    
+                    closestObj?.OnClick();
                 }
 #endif
-
-                clicked?.OnClick();
             }
 
             DebugPanel.BringToFront();
