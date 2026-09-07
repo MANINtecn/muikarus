@@ -89,10 +89,6 @@ namespace Client.Main.Objects
         public int RemainingPathSteps => _currentPath?.Count ?? 0;
         public ushort NetworkId { get; set; }
 
-        private int _priorAction = -1;
-        private int _moveRequestGeneration = 0;
-
-        public ushort TargetPlayerId { get; set; } = 0xFFFF;
         public ushort idanim = 0;
         private KeyboardState _previousKeyboardState_WalkerTest;
 
@@ -299,12 +295,9 @@ namespace Client.Main.Objects
         {
             if (World == null) return;
 
-            int currentGeneration = System.Threading.Interlocked.Increment(ref _moveRequestGeneration);
-
             Vector2 startPos = new Vector2((int)MathF.Round(Location.X), (int)MathF.Round(Location.Y));
             Vector2 targetTile = new Vector2((int)MathF.Round(targetLocation.X), (int)MathF.Round(targetLocation.Y));
             WorldControl currentWorld = World;
-
             _ = Task.Run(() =>
             {
                 List<Vector2> path = Pathfinding.FindPath(startPos, targetTile, currentWorld);
@@ -316,11 +309,6 @@ namespace Client.Main.Objects
 
                 MuGame.ScheduleOnMainThread(() =>
                 {
-                    if (_moveRequestGeneration != currentGeneration)
-                    {
-                        return; // A newer movement request was made while pathfinding was running.
-                    }
-
                     if (MuGame.Instance.ActiveScene?.World == currentWorld && this.Status != GameControlStatus.Disposed)
                     {
                         _animationController?.PlayAnimation((ushort)PlayerAction.WalkMale); // Or appropriate walk animation

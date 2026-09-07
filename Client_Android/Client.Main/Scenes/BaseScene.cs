@@ -218,86 +218,16 @@ namespace Client.Main.Scenes
             }
 
             // handle 3D world object clicks if UI didn't consume input
-            if (!IsMouseInputConsumedThisFrame && 
+            if (!IsMouseInputConsumedThisFrame && MouseHoverObject != null &&
                 MuGame.Instance.PrevMouseState.LeftButton == ButtonState.Pressed &&
                 MuGame.Instance.Mouse.LeftButton == ButtonState.Released)
             {
-                if (MouseHoverObject != null)
-                {
-                    MouseHoverObject.OnClick();
-                }
-#if ANDROID || IOS
-                else if (World != null)
-                {
-                    // Touch tolerance fallback: search for nearby NPC/Monster on screen
-                    Client.Main.Objects.WalkerObject closestObj = null;
-                    float minSqDist = 60f * 60f; // 60 pixels tolerance radius
-                    var viewport = GraphicsManager.Instance.GraphicsDevice.Viewport;
-                    var mousePos = new Vector2(MuGame.Instance.Mouse.Position.X, MuGame.Instance.Mouse.Position.Y);
-                    
-                    foreach (var walker in World.WalkerObjectsById.Values)
-                    {
-                        if (!walker.Interactive || walker.OutOfView) continue;
-                        
-                        var proj = viewport.Project(walker.WorldPosition.Translation, Camera.Instance.Projection, Camera.Instance.View, Matrix.Identity);
-                        var proj2D = new Vector2(proj.X, proj.Y);
-                        float sqDist = Vector2.DistanceSquared(mousePos, proj2D);
-                        
-                        if (sqDist < minSqDist)
-                        {
-                            minSqDist = sqDist;
-                            closestObj = walker;
-                        }
-                    }
-                    
-                    closestObj?.OnClick();
-                }
-#endif
+                MouseHoverObject.OnClick();
             }
 
             DebugPanel.BringToFront();
             Cursor.BringToFront();
         }
-
-#if ANDROID || IOS
-        /// <summary>
-        /// One-shot (click-time only, never per-frame) fallback for imprecise mobile taps:
-        /// finds the closest interactive walker (NPC/monster) whose screen projection is
-        /// within a generous radius of the tap position.
-        /// </summary>
-        private WorldObject FindNearestInteractiveWalkerOnScreen(Vector2 touchPos)
-        {
-            if (World is not WalkableWorldControl walkableWorld)
-                return null;
-
-            const float toleranceScreenPx = 60f;
-            var viewport = MuGame.Instance.GraphicsDevice.Viewport;
-            var projection = Camera.Instance.Projection;
-            var view = Camera.Instance.View;
-
-            WorldObject best = null;
-            float bestDistSq = toleranceScreenPx * toleranceScreenPx;
-
-            foreach (var walker in walkableWorld.WalkerObjectsById.Values)
-            {
-                if (walker == null || !walker.Visible || !walker.Interactive || walker.Hidden || walker.OutOfView)
-                    continue;
-
-                Vector3 screenPos = viewport.Project(walker.WorldPosition.Translation, projection, view, Matrix.Identity);
-                if (screenPos.Z < 0f || screenPos.Z > 1f)
-                    continue;
-
-                float distSq = Vector2.DistanceSquared(new Vector2(screenPos.X, screenPos.Y), touchPos);
-                if (distSq <= bestDistSq)
-                {
-                    bestDistSq = distSq;
-                    best = walker;
-                }
-            }
-
-            return best;
-        }
-#endif
 
         public void FocusControlIfInteractive(GameControl control)
         {

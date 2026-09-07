@@ -72,9 +72,9 @@ namespace Client.Main
             _graphics.IsFullScreen = true;
             _graphics.PreferredBackBufferWidth = 0;
             _graphics.PreferredBackBufferHeight = 0;
-            _graphics.SynchronizeWithVerticalRetrace = false; // VSync desligado para evitar bug de 2 FPS em telas 120Hz
-            IsFixedTimeStep = false; // FixedTimeStep desligado pelo mesmo motivo
-            TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0 / 60.0);
+            _graphics.SynchronizeWithVerticalRetrace = false; // Desativa VSync para evitar quantização/throttle de 7-8 FPS
+            IsFixedTimeStep = false;
+            TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0 / 60.0); // 60 FPS fluido no Android
 #else
             if (Constants.UNLIMITED_FPS)
             {
@@ -237,7 +237,7 @@ namespace Client.Main
             _logger?.LogDebug($"Scale Factor: {_scaleFactor}");
 
 #if ANDROID || IOS
-            // Apply Target FPS from settings (60 FPS default for fluid mobile gameplay)
+            // Apply Target FPS from settings (60 FPS for fluid mobile gameplay)
             int fps = AppSettings?.TargetFPS > 0 ? AppSettings.TargetFPS : 60;
             TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0 / fps);
             _logger?.LogInformation($"✅ Android/iOS FPS Target set to: {fps}");
@@ -475,7 +475,6 @@ namespace Client.Main
         }
 
         private Point _lastTouchPos = Point.Zero;
-        private int _simulatedMouseTouchId = -1;
 
         private void UpdateInputInfo(GameTime gameTime)
         {
@@ -488,74 +487,18 @@ namespace Client.Main
             PrevTouchState = Touch;
 
 #if ANDROID || IOS
-            // Synthesize MouseState from TouchPanel for 100% reliable UI touch clicking on mobile.
+            // Synthesize MouseState from TouchPanel for 100% reliable UI touch clicking on mobile
             if (touchState.Count > 0)
             {
-                TouchLocation? targetTouch = null;
-
-                // 1. Manter o tracking do dedo que estava clicando no mundo (para garantir o evento de Release)
-                if (_simulatedMouseTouchId != -1)
-                {
-                    foreach (var t in touchState)
-                    {
-                        if (t.Id == _simulatedMouseTouchId)
-                        {
-                            targetTouch = t;
-                            break;
-                        }
-                    }
-                }
-
-                // 2. Se não achou (ou não estava trackeando), procura um dedo novo que não esteja na área de UI
-                if (targetTouch == null)
-                {
-                    foreach (var t in touchState)
-                    {
-                        if (t.State == TouchLocationState.Pressed)
-                        {
-                            bool isUi = (t.Position.X < windowBounds.Width * 0.35f && t.Position.Y > windowBounds.Height * 0.5f) || // Joystick
-                                        (t.Position.X > windowBounds.Width * 0.65f && t.Position.Y > windowBounds.Height * 0.5f) || // Action buttons
-                                        (t.Position.X > windowBounds.Width * 0.8f && t.Position.Y < windowBounds.Height * 0.2f);    // Top buttons
-
-                            if (!isUi)
-                            {
-                                targetTouch = t;
-                                _simulatedMouseTouchId = t.Id; // Começa a trackear este toque para o Mouse
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                // 3. Fallback: Se não tem toque no mundo, e não tem toque sendo trackeado, usa o toque 0 para UI
-                if (targetTouch == null && _simulatedMouseTouchId == -1)
-                {
-                    targetTouch = touchState[0];
-                }
-                else if (targetTouch == null && _simulatedMouseTouchId != -1)
-                {
-                    // O toque do mundo que estávamos trackeando foi solto neste frame!
-                    _simulatedMouseTouchId = -1;
-                    mouseState = new MouseState(_lastTouchPos.X, _lastTouchPos.Y, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
-                    goto MouseStateAssigned;
-                }
-
-                var touch = targetTouch.Value;
+                var touch = touchState[0];
                 _lastTouchPos = new Point((int)touch.Position.X, (int)touch.Position.Y);
                 ButtonState btn = (touch.State == TouchLocationState.Pressed || touch.State == TouchLocationState.Moved)
                     ? ButtonState.Pressed
                     : ButtonState.Released;
                 mouseState = new MouseState(_lastTouchPos.X, _lastTouchPos.Y, 0, btn, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
-
-                if (btn == ButtonState.Released)
-                {
-                    _simulatedMouseTouchId = -1;
-                }
-            MouseStateAssigned:;
             }
             else if (PrevTouchState.Count > 0)
             {
-                _simulatedMouseTouchId = -1;
                 // Finger released on this frame: synthesize LeftButton Released at the last touch position
                 mouseState = new MouseState(_lastTouchPos.X, _lastTouchPos.Y, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
             }

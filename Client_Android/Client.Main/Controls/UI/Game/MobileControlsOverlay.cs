@@ -32,8 +32,8 @@ namespace Client.Main.Controls.UI.Game
         // Joystick configuration (Upper-left, enlarged for comfortable thumb reach)
         private const float JOYSTICK_RADIUS = 90f;
         private const float KNOB_RADIUS = 40f;
-        private const float DEAD_ZONE = 0.2f;
-        private const float MOVE_INTERVAL_MS = 500f; // Menos spam de comandos, deixando o Generation ID descartar corretamente
+        private const float DEAD_ZONE = 0.15f;
+        private const float MOVE_INTERVAL_MS = 380f;
 
         private Vector2 _joystickCenter;
         private Vector2 _knobPosition;
@@ -174,14 +174,10 @@ namespace Client.Main.Controls.UI.Game
                 ProcessMouseFallback();
             }
 
-            // Handle Joystick Walking: only queue the next single-tile step once the
-            // previous one has fully finished (no pending path, not mid-move). This is
-            // what stops the hero from "walking further than expected" when the joystick
-            // is held - commands never stack up faster than the character can execute them.
+            // Handle Joystick Walking
             if (_isJoystickActive && _joystickDir.Length() > DEAD_ZONE)
             {
-                bool previousStepFinished = _hero == null || (_hero.RemainingPathSteps == 0 && !_hero.IsMoving);
-                if (previousStepFinished && totalMs - _lastMoveSentTime >= MOVE_INTERVAL_MS)
+                if (totalMs - _lastMoveSentTime >= MOVE_INTERVAL_MS && (_hero == null || _hero.RemainingPathSteps <= 1 || !_hero.IsMoving))
                 {
                     _lastMoveSentTime = totalMs;
                     SendJoystickMovement();
@@ -578,20 +574,22 @@ namespace Client.Main.Controls.UI.Game
             // Map Joystick 2D screen vector (X = right, Y = down) to MU isometric 3D space
             Vector3 moveDir = camRight * _joystickDir.X - camFwd * _joystickDir.Y;
 
-            // Single-tile step per tick: keeps the joystick feeling precise and 1:1 with the
-            // held direction instead of launching a multi-tile pathfind that overshoots.
-            const float stepDist = 1f;
+            float stepDist = 3.5f;
             Vector2 targetLocation = new Vector2(
                 MathF.Round(_hero.Location.X + moveDir.X * stepDist),
                 MathF.Round(_hero.Location.Y + moveDir.Y * stepDist));
 
-            if (targetLocation == _hero.Location)
-                return;
-
-            if (_hero.World is WalkableWorldControl walkable && !walkable.IsWalkable(targetLocation))
-                return;
-
-            _hero.MoveTo(targetLocation);
+            if (_hero.World is WalkableWorldControl walkable && walkable.IsWalkable(targetLocation))
+            {
+                _hero.MoveTo(targetLocation);
+            }
+            else
+            {
+                Vector2 shorterTarget = new Vector2(
+                    MathF.Round(_hero.Location.X + moveDir.X * 1.5f),
+                    MathF.Round(_hero.Location.Y + moveDir.Y * 1.5f));
+                _hero.MoveTo(shorterTarget);
+            }
         }
 
         public (ushort skillId, string name) GetSkillForSlot(int slot)
