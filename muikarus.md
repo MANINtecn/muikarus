@@ -368,6 +368,20 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
   - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 36` e `versionName: 1.36`.
   - Workflow GitHub Actions publicará automaticamente o **`IkarusMU-v1.36.apk`** na release `v1.36`.
 
+### 06/09/2026 — ⚠️ REGISTRO DE FALHA: v1.35 e v1.36 (Claude) NÃO Resolveram os Problemas — Testado e Reprovado pelo Usuário
+- [x] **Resultado real reportado pelo usuário após teste em campo:**
+  - **v1.34:** Jogo rodava a 7 FPS, mas **era possível andar** (joystick e/ou clique-no-chão funcionavam o suficiente para jogar).
+  - **v1.35 (Claude):** Tentativa de corrigir FPS + clique em NPC + joystick. Resultado: **inutilizável**, travando muito, ainda em ~2 FPS, sem clique no chão, e joystick andando sozinho (3x mais que o esperado com um leve toque).
+  - **v1.36 (Claude):** Tentativa de corrigir a regressão da v1.35 (reverteu o picking caro por frame, ajustou geração de movimento no `MoveTo`, recalibrou joystick). Diagnóstico técnico parecia correto (picking 3D caro por frame identificado e removido), mas o usuário decidiu **não seguir testando essa linha** — dado o histórico de duas tentativas frustradas seguidas, o risco/tempo não compensou mais.
+  - **Decisão do usuário (06/09):** Interromper as tentativas do Claude neste ponto específico (FPS mobile / clique NPC / joystick) e **retornar ao Gemini** para continuar mexendo nessa frente do projeto.
+- [x] **Estado técnico deixado no repositório (commits `fc9c66e` e `c2403b1`):**
+  - `MuGame.cs`: `IsFixedTimeStep = true` e VSync ligado no Android (revertendo o que a v1.34 tinha desligado). `TargetFPS` do `appsettings.json` voltou de 60 para 30.
+  - `WorldObject.cs` / `BaseScene.cs`: fallback de tolerância de toque para clique em NPC movido para rodar **apenas no momento do clique** (não mais por frame) — via `FindNearestInteractiveWalkerOnScreen` em `BaseScene.cs`, contra `WalkerObjectsById`.
+  - `WalkerObject.cs`: contador de geração (`_moveRequestGeneration`) em `MoveTo()` para descartar resultados de pathfinding assíncrono obsoletos.
+  - `MobileControlsOverlay.cs`: `DEAD_ZONE` subiu para 0.45, `MOVE_INTERVAL_MS` para 400, e o joystick só envia o próximo passo quando o anterior termina (`RemainingPathSteps == 0 && !IsMoving`).
+  - **Estes commits NÃO foram validados em dispositivo real pelo usuário como uma melhoria sobre a v1.34** (apenas corrigem, no papel, a regressão que a v1.35 introduziu — mas o usuário optou por não continuar testando essa via com o Claude).
+- [x] **Nota para quem retomar o projeto (Gemini ou outro):** Se for continuar a partir daqui, vale considerar reverter para o estado da v1.34 (`git show b5b2cc3`) como ponto de partida "jogável, porém a 7 FPS" em vez de construir em cima de v1.35/v1.36, cujo ganho real ainda não foi confirmado em campo.
+
 ---
 
 ## 🛠️ PRÓXIMOS PASSOS (ROADMAP)
