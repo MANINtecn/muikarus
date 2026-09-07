@@ -299,7 +299,7 @@ namespace Client.Main.Objects
         {
             if (World == null) return;
 
-            int currentGeneration = Interlocked.Increment(ref _moveRequestGeneration);
+            int currentGeneration = System.Threading.Interlocked.Increment(ref _moveRequestGeneration);
 
             Vector2 startPos = new Vector2((int)MathF.Round(Location.X), (int)MathF.Round(Location.Y));
             Vector2 targetTile = new Vector2((int)MathF.Round(targetLocation.X), (int)MathF.Round(targetLocation.Y));
