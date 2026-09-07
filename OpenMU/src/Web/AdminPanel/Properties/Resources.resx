@@ -120,6 +120,24 @@
   <data name="Create" xml:space="preserve">
     <value>Create</value>
   </data>
+  <data name="Ban" xml:space="preserve">
+    <value>Ban</value>
+  </data>
+  <data name="Unban" xml:space="preserve">
+    <value>Unban</value>
+  </data>
+  <data name="ConfirmBanAccount" xml:space="preserve">
+    <value>Ban account '{0}'? The player will be disconnected and unable to log in.</value>
+  </data>
+  <data name="ConfirmUnbanAccount" xml:space="preserve">
+    <value>Unban account '{0}'? The player will be able to log in again.</value>
+  </data>
+  <data name="AccountBanned" xml:space="preserve">
+    <value>Account '{0}' has been banned.</value>
+  </data>
+  <data name="AccountUnbanned" xml:space="preserve">
+    <value>Account '{0}' has been unbanned.</value>
+  </data>
   <data name="Reload" xml:space="preserve">
     <value>Reload</value>
   </data>

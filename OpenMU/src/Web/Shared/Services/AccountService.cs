@@ -7,6 +7,7 @@ namespace MUnique.OpenMU.Web.Shared.Services;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using MUnique.OpenMU.DataModel.Entities;
+using MUnique.OpenMU.Interfaces;
 using MUnique.OpenMU.Persistence;
 using MUnique.OpenMU.Web.Shared.Components;
 using MUnique.OpenMU.Web.Shared.Components.Form.Modal;
@@ -20,6 +21,8 @@ public class AccountService : IDataService<Account>, ISupportDataChangedNotifica
 {
     private readonly IDataSource<Account> _dataSource;
     private readonly IModalService _modalService;
+    private readonly ILoginServer? _loginServer;
+    private readonly IServerProvider? _serverProvider;
     private readonly Debouncer _debouncer = new(300);
 
     private string _searchFilter = string.Empty;
@@ -29,10 +32,14 @@ public class AccountService : IDataService<Account>, ISupportDataChangedNotifica
     /// </summary>
     /// <param name="dataSource">The player context.</param>
     /// <param name="modalService">The modal service.</param>
-    public AccountService(IDataSource<Account> dataSource, IModalService modalService)
+    /// <param name="loginServer">The login server, used to disconnect a banned account immediately. Optional: null on hosts where it is not registered (e.g. distributed admin panel without direct server access).</param>
+    /// <param name="serverProvider">The server provider, used together with <paramref name="loginServer"/> to find the game server a banned account is connected to.</param>
+    public AccountService(IDataSource<Account> dataSource, IModalService modalService, ILoginServer? loginServer = null, IServerProvider? serverProvider = null)
     {
         this._dataSource = dataSource;
         this._modalService = modalService;
+        this._loginServer = loginServer;
+        this._serverProvider = serverProvider;
     }
 
     /// <inheritdoc />
@@ -96,7 +103,7 @@ public class AccountService : IDataService<Account>, ISupportDataChangedNotifica
     }
 
     /// <summary>
-    /// Bans the specified account.
+    /// Bans the specified account and, if it's currently online, disconnects it immediately.
     /// </summary>
     /// <param name="account">The account.</param>
     public async ValueTask BanAsync(Account account)
@@ -104,6 +111,10 @@ public class AccountService : IDataService<Account>, ISupportDataChangedNotifica
         account.State = AccountState.Banned;
         var context = await this._dataSource.GetContextAsync().ConfigureAwait(false);
         await context.SaveChangesAsync().ConfigureAwait(false);
+
+        await this.TryDisconnectAsync(account.LoginName).ConfigureAwait(false);
+
+        this.DataChanged?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
@@ -115,6 +126,36 @@ public class AccountService : IDataService<Account>, ISupportDataChangedNotifica
         account.State = AccountState.Normal;
         var context = await this._dataSource.GetContextAsync().ConfigureAwait(false);
         await context.SaveChangesAsync().ConfigureAwait(false);
+        this.DataChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private async Task TryDisconnectAsync(string loginName)
+    {
+        if (this._loginServer is null || this._serverProvider is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var snapshot = await this._loginServer.GetSnapshotAsync().ConfigureAwait(false);
+            if (!snapshot.TryGetValue(loginName, out var serverId))
+            {
+                return; // account is not currently logged in.
+            }
+
+            await this._loginServer.LogOffAsync(loginName, serverId).ConfigureAwait(false);
+            if (this._serverProvider.Servers.FirstOrDefault(s => s.Id == serverId) is IGameServer gameServer)
+            {
+                await gameServer.DisconnectAccountAsync(loginName).ConfigureAwait(false);
+            }
+        }
+        catch
+        {
+            // Best-effort: the ban itself already succeeded and is persisted; a failure to
+            // kick an online session immediately just means it'll be rejected on next action
+            // or re-login, so we don't want this to surface as a failed ban to the admin.
+        }
     }
 
     /// <summary>

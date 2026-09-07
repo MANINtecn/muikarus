@@ -338,7 +338,61 @@ namespace MUnique.OpenMU.Web.AdminPanel.Properties {
                 return ResourceManager.GetString("Create", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Ban.
+        /// </summary>
+        public static string Ban {
+            get {
+                return ResourceManager.GetString("Ban", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Unban.
+        /// </summary>
+        public static string Unban {
+            get {
+                return ResourceManager.GetString("Unban", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Ban account &apos;{0}&apos;? The player will be disconnected and unable to log in..
+        /// </summary>
+        public static string ConfirmBanAccount {
+            get {
+                return ResourceManager.GetString("ConfirmBanAccount", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Unban account &apos;{0}&apos;? The player will be able to log in again..
+        /// </summary>
+        public static string ConfirmUnbanAccount {
+            get {
+                return ResourceManager.GetString("ConfirmUnbanAccount", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Account &apos;{0}&apos; has been banned..
+        /// </summary>
+        public static string AccountBanned {
+            get {
+                return ResourceManager.GetString("AccountBanned", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Account &apos;{0}&apos; has been unbanned..
+        /// </summary>
+        public static string AccountUnbanned {
+            get {
+                return ResourceManager.GetString("AccountUnbanned", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Create Connect Server.
         /// </summary>
