@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,6 +21,11 @@ namespace Client.Main
         public double FPS { get; private set; }
         public double FPS_AVG { get; private set; }
         public float FPS_ANIMATION_FACTOR { get; private set; }
+
+        // --- NEW METRICS FOR PROFILING ---
+        public static int DrawCalls { get; set; } = 0;
+        public int LastFrameDrawCalls { get; private set; } = 0;
+        public long GCMemory { get; private set; } = 0;
 
         private const float REFERENCE_FPS = 25f;
 
@@ -69,6 +74,11 @@ namespace Client.Main
             }
 
             _lastTime = WorldTime;
+
+            // Profile metrics
+            LastFrameDrawCalls = DrawCalls;
+            DrawCalls = 0; // Reset for the next frame
+            GCMemory = GC.GetTotalMemory(false) / 1024; // KB
         }
     }
 

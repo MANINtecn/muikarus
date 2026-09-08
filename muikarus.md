@@ -37,7 +37,9 @@
   * Cards/botões touch visíveis na tela (ex: botões dourados no rodapé da seleção de personagem).
 
 ### 5. 📦 Versionamento e Build CI/CD
-* ✅ O pipeline GitHub Actions (`android-build.yml`) extrai automaticamente o número da versão do `AndroidManifest.xml`.
+* ❌ **NUNCA** pedir para o usuário "gerar a build" ou "compilar o APK" manualmente no PC dele.
+* ✅ O pipeline GitHub Actions (`android-build.yml`) faz o trabalho pesado, extrai o número da versão do `AndroidManifest.xml`, compila e salva o APK na aba de *Releases* do repositório para download direto no celular.
+* ✅ **SEMPRE** que precisar testar uma alteração no Android, a IA deve alterar a versão (`AndroidManifest.xml` e `MuAndroid.csproj`), fazer o `git commit` e `git push` para o GitHub.
 * ✅ Sempre atualizar em sincronia: `AndroidManifest.xml` (versionCode/versionName), `MuAndroid.csproj` (ApplicationVersion/DisplayVersion) e a seção de changelog neste arquivo.
 
 ---

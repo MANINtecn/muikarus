@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Client.Main.Controllers;
 using Client.Main.Models;
 using Microsoft.Xna.Framework;
@@ -81,6 +81,9 @@ namespace Client.Main.Controls.UI
                 X = posX,
                 Y = posY += labelHeight
             });
+
+            // Make space for new labels
+            ControlSize = new Point(250, 180);
         }
 
         public override void Update(GameTime gameTime)
@@ -95,7 +98,9 @@ namespace Client.Main.Controls.UI
             {
                 _updateTimer = 0;
 
-                _sb.Clear().Append("FPS: ").Append((int)FPSCounter.Instance.FPS_AVG);
+                _sb.Clear().Append("FPS: ").Append((int)FPSCounter.Instance.FPS_AVG)
+                   .Append(" | DC: ").Append(FPSCounter.Instance.LastFrameDrawCalls)
+                   .Append(" | GC: ").Append(FPSCounter.Instance.GCMemory).Append("KB");
                 _fpsLabel.Text = _sb.ToString();
 
                 // Mouse Position
