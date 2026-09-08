@@ -740,8 +740,6 @@ namespace Client.Main.Scenes
             }
         }
 
-        private static readonly Keys[] _allKeys = (Keys[])System.Enum.GetValues(typeof(Keys));
-
         // ─────────────────────────── Update Loop ───────────────────────────
         public override void Update(GameTime gameTime)
         {
@@ -757,7 +755,7 @@ namespace Client.Main.Scenes
 
             if (FocusControl == _moveCommandWindow && _moveCommandWindow.Visible)
             {
-                foreach (Keys key in _allKeys)
+                foreach (Keys key in System.Enum.GetValues(typeof(Keys)))
                 {
                     if (currentKeyboardState.IsKeyDown(key) && _previousKeyboardState.IsKeyUp(key))
                     {

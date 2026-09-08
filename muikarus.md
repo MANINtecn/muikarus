@@ -37,9 +37,7 @@
   * Cards/botões touch visíveis na tela (ex: botões dourados no rodapé da seleção de personagem).
 
 ### 5. 📦 Versionamento e Build CI/CD
-* ❌ **NUNCA** pedir para o usuário "gerar a build" ou "compilar o APK" manualmente no PC dele.
-* ✅ O pipeline GitHub Actions (`android-build.yml`) faz o trabalho pesado, extrai o número da versão do `AndroidManifest.xml`, compila e salva o APK na aba de *Releases* do repositório para download direto no celular.
-* ✅ **SEMPRE** que precisar testar uma alteração no Android, a IA deve alterar a versão (`AndroidManifest.xml` e `MuAndroid.csproj`), fazer o `git commit` e `git push` para o GitHub.
+* ✅ O pipeline GitHub Actions (`android-build.yml`) extrai automaticamente o número da versão do `AndroidManifest.xml`.
 * ✅ Sempre atualizar em sincronia: `AndroidManifest.xml` (versionCode/versionName), `MuAndroid.csproj` (ApplicationVersion/DisplayVersion) e a seção de changelog neste arquivo.
 
 ---
@@ -383,6 +381,13 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
   - `MobileControlsOverlay.cs`: `DEAD_ZONE` subiu para 0.45, `MOVE_INTERVAL_MS` para 400, e o joystick só envia o próximo passo quando o anterior termina (`RemainingPathSteps == 0 && !IsMoving`).
   - **Estes commits NÃO foram validados em dispositivo real pelo usuário como uma melhoria sobre a v1.34** (apenas corrigem, no papel, a regressão que a v1.35 introduziu — mas o usuário optou por não continuar testando essa via com o Claude).
 - [x] **Nota para quem retomar o projeto (Gemini ou outro):** Se for continuar a partir daqui, vale considerar reverter para o estado da v1.34 (`git show b5b2cc3`) como ponto de partida "jogável, porém a 7 FPS" em vez de construir em cima de v1.35/v1.36, cujo ganho real ainda não foi confirmado em campo.
+
+### 08/09/2026 — ⚠️ REGISTRO DE FALHA: v1.44 NÃO resolveu e causou Regressão
+- [x] **Resultado real reportado pelo usuário:**
+  - **v1.44 (Gemini):** Tentativa de otimizar FPS através da reintegração de `IsFixedTimeStep = true` e `VSync = true` no Android para forçar um limite de 30 FPS estável. Resultado: **Idêntico à falha da v1.35 e v1.36**. O jogo dropou para 2 FPS e o personagem ficou paralisado (sem conseguir andar/pathfinding quebrado).
+  - **Diagnóstico Técnico Confirmado:** No MonoGame Android, mexer em `IsFixedTimeStep = true` com telas não padronizadas ou sem VSync garantido pelo hardware dessincroniza o relógio interno (`GameTime`). Isso faz com que cálculos de física e movimentação baseados em tempo de delta sejam corrompidos, resultando em personagens incapazes de andar. A sobrecarga para alcançar o frame travado no mobile com a resolução nativa da tela causa um estrangulamento imediato para 2 FPS.
+  - **Ação Tomada:** Revertida imediatamente toda a tentativa de profilings de tela e o `IsFixedTimeStep`. O projeto foi restaurado para a estrutura original (v1.43) e lançado como **v1.45**.
+  - **🛑 LEI ABSOLUTA DAQUI PRA FRENTE:** Nunca mais mexer em `IsFixedTimeStep` ou tentar reativar `SynchronizeWithVerticalRetrace` no `MuGame.cs` para o Android. Devemos aceitar o FPS base nativo sem VSync e otimizar apenas as **Draw Calls visuais** (remoção de grama, efeitos) se quisermos ganho de performance real.
 
 ---
 
