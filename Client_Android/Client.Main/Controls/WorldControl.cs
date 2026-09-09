@@ -379,6 +379,7 @@ namespace Client.Main.Controls
         {
             obj.DepthState = state;
             obj.Draw(time);
+            FPSCounter.DrawCalls++;
             obj.RenderOrder = ++_renderCounter;
         }
 

@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Client.Main.Controllers;
 using Client.Main.Models;
 using Microsoft.Xna.Framework;
@@ -97,6 +97,12 @@ namespace Client.Main.Controls.UI
 
                 _sb.Clear().Append("FPS: ").Append((int)FPSCounter.Instance.FPS_AVG);
                 _fpsLabel.Text = _sb.ToString();
+                
+                _sb.Clear().Append("DC: ").Append(FPSCounter.DrawCalls);
+                _dcLabel.Text = _sb.ToString();
+                
+                _sb.Clear().Append("GC: ").Append(FPSCounter.GCMemory / 1024 / 1024).Append("MB");
+                _gcLabel.Text = _sb.ToString();
 
                 // Mouse Position
                 _sb.Clear().Append("Mouse Position - X: ").Append(MuGame.Instance.Mouse.Position.X)

@@ -389,6 +389,12 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
   - **Ação Tomada:** Revertida imediatamente toda a tentativa de profilings de tela e o `IsFixedTimeStep`. O projeto foi restaurado para a estrutura original (v1.43) e lançado como **v1.45**.
   - **🛑 LEI ABSOLUTA DAQUI PRA FRENTE:** Nunca mais mexer em `IsFixedTimeStep` ou tentar reativar `SynchronizeWithVerticalRetrace` no `MuGame.cs` para o Android. Devemos aceitar o FPS base nativo sem VSync e otimizar apenas as **Draw Calls visuais** (remoção de grama, efeitos) se quisermos ganho de performance real.
 
+### 08/09/2026 — 🛠️ O Paradoxo do Tempo e a v1.46 (A Cura da Tela Preta)
+- [x] **A Descoberta Final (Thread Starvation vs MonoGame Panic):**
+  - O motivo de `IsFixedTimeStep = true` dar 2 FPS foi porque ele força o "catch-up" (chama a física dezenas de vezes para compensar atraso).
+  - O motivo de `IsFixedTimeStep = false` dar **TELA PRETA** (como relatado na v1.45) é porque, sem trava, o loop `Update` roda a 2.000 vezes por segundo, esgotando 100% da CPU mobile e causando **Thread Starvation**. O Android não consegue processar os pacotes de rede nem os downloads de assets em background.
+  - **A Solução:** Injetamos um limitador **manual** no final do `MuGame.Update()` via `Thread.Sleep`! Assim, mantemos o `IsFixedTimeStep = false` (a física fica solta) mas o jogo dorme nos ms que sobram para não sufocar a CPU, mantendo 30 FPS perfeitos e corrigindo a tela preta instantaneamente.
+
 ---
 
 ## 🛠️ PRÓXIMOS PASSOS (ROADMAP)

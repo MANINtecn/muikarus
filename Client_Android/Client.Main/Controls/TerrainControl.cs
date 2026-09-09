@@ -602,6 +602,7 @@ namespace Client.Main.Controls
                 {
                     pass.Apply();
                     GraphicsDevice.DrawUserPrimitives(PrimitiveType.TriangleList, _opaqueBatches[t], 0, count / 3);
+                    FPSCounter.DrawCalls++;
                 }
             }
 
@@ -622,6 +623,7 @@ namespace Client.Main.Controls
                 {
                     pass.Apply();
                     GraphicsDevice.DrawUserPrimitives(PrimitiveType.TriangleList, _alphaBatches[t], 0, count / 3);
+                    FPSCounter.DrawCalls++;
                 }
             }
 
@@ -749,7 +751,6 @@ namespace Client.Main.Controls
             int endY = Math.Min(tilesPerAxis - 1, (int)((cameraPos.Y + renderDist) / cellWorld) + EXTRA);
 
             var frustum = Camera.Instance.Frustum;
-            var visible = new List<TerrainBlock>((endX - startX + 1) * (endY - startY + 1));
 
             for (int gy = startY; gy <= endY; gy++)
                 for (int gx = startX; gx <= endX; gx++)
@@ -771,11 +772,8 @@ namespace Client.Main.Controls
                     block.IsVisible = frustum.Contains(block.Bounds) != ContainmentType.Disjoint;
 
                     if (block.IsVisible)
-                        visible.Add(block);
+                        _visibleBlocks.Enqueue(block);
                 }
-
-            foreach (var block in visible)
-                _visibleBlocks.Enqueue(block);
         }
 
         private void RenderTerrainBlock(float xf, float yf, int xi, int yi, bool isAfter, int lodStep)

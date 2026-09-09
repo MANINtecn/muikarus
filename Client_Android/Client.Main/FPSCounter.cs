@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,6 +16,15 @@ namespace Client.Main
         private double _startTime = 0;
         private double _lastTime = 0;
         private int _frameCount = 0;
+
+        public long TotalFrames { get; private set; }
+        public float AverageFramesPerSecond { get; private set; }
+        public float CurrentFramesPerSecond { get; private set; }
+
+        public static int DrawCalls { get; set; } = 0;
+        public static long GCMemory { get; set; } = 0;
+
+        public const int MAXIMUM_SAMPLES = 100;
 
         public double WorldTime { get; private set; }
         public double FPS { get; private set; }
@@ -47,6 +56,8 @@ namespace Client.Main
 
             _frameCount++;
             WorldTime = gameTime.TotalGameTime.TotalMilliseconds;
+            DrawCalls = 0;
+            GCMemory = GC.GetTotalMemory(false);
 
             double differenceMs = WorldTime - _lastTime;
             if (differenceMs <= 0)
