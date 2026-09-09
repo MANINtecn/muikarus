@@ -330,7 +330,9 @@ namespace Client.Main
                 var sleepTime = targetTime - elapsed;
                 if (sleepTime.TotalMilliseconds > 0)
                 {
-                    System.Threading.Thread.Sleep((int)sleepTime.TotalMilliseconds);
+                    int ms = (int)sleepTime.TotalMilliseconds;
+                    if (ms > 15) ms = 15; // Evita dormir muito tempo de uma vez e travar o pump de rede
+                    System.Threading.Thread.Sleep(ms);
                 }
             }
             _lastFrameTime = gameTime.TotalGameTime;
