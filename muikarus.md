@@ -453,10 +453,19 @@ Para trabalhar os três (usuário + Gemini + Claude) juntos sem atrito de merge/
 - **Regra de git:** cada IA trabalha a partir do estado que o usuário confirmar como "atual" (hoje: `b5b2cc3` / v1.34 no cliente). Não fazer `push --force` sem avisar o usuário; se o histórico remoto divergir do local, perguntar antes de sincronizar.
 - **Commits:** neste repositório, por pedido explícito do usuário, commits/PRs **não** levam linha de coautoria de IA (`Co-Authored-By`), independente da orientação padrão do sistema.
 
-### 📋 ESTADO ATUAL (Deixado por: Gemini)
-- **O que está funcionando:** Código revertido limpo para a versão v1.34 (Commit `b5b2cc3`). Controles e joystick funcionais, porém rodando a ~7 FPS devido à tentativa de destravar FPS sem VSync no mobile.
-- **Última tentativa falha (O que NÃO fazer):** Não devemos implementar raycast 3D por frame no `Update` para NPCs, e não devemos usar o `IsFixedTimeStep = false` no Android sem limitar a CPU, pois gera estrangulamento térmico. (Esses foram os erros das v1.35 e v1.36 descartadas).
-- **Tarefa Imediata para a Próxima IA (Gemini):** Retomar a otimização de FPS no `Client_Android` a partir da v1.34 (7 FPS, mas jogável), aplicando as lições documentadas: nunca desligar `IsFixedTimeStep`/VSync no Android sem alternativa de limitação de CPU, e nunca fazer picking 3D (`viewport.Project`/raycast) por objeto a cada frame — apenas no instante do clique.
+### 📋 ESTADO ATUAL (Deixado por: Gemini — 09/09/2026)
+- **Versão Atual:** v1.49 (Commit `a443b7c`).
+- **O que está funcionando:**
+  - Build CI/CD do GitHub Actions 100% estabilizado e gerando APK assinado automaticamente.
+  - Painel de debug ativo na tela reportando FPS, DrawCalls (DC) e Garbage Collector Memory (GC).
+  - Causa da Tela Preta erradicada: Restaurado o pacote canônico `MuAndroid.MuAndroid` com varredura dinâmica de dados no Android e remoção do `Thread.Sleep` do loop `Update`.
+  - Conexão de rede ativa com o ConnectServer da VPS (`192.99.110.164:44405`).
+- **Última lição confirmada:**
+  - `Thread.Sleep` dentro de `Update` no MonoGame Android asfixia o pump de rede e ações agendadas na thread principal (`_mainThreadActions`).
+  - Nunca alterar o `package` no `AndroidManifest.xml`, pois ele dita o diretório `/Android/data/<package>/files/` onde ficam armazenados os 1.7 GB do jogo.
+- **Tarefa Imediata para o Desempenho (FPS):**
+  - O FPS base de ~7 a 15 FPS no mobile decorre do BackBuffer em resolução nativa cheia (ex: 2400x1080) e quantidade excessiva de Draw Calls no mundo 3D (Lorencia).
+  - Próximos passos de otimização de FPS: trabalhar em ViewFar/culling, resolução interna renderizada (RenderScale / BackBuffer adaptativo para mobile) e batching de objetos sem desestabilizar o loop de tempo.
 
 ### 📋 ESTADO ATUAL (Deixado por: Claude)
 - **Área assumida:** Servidor OpenMU e infraestrutura (VPS, portas, Web Admin Panel, rates).
