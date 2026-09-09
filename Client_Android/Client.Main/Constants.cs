@@ -30,21 +30,41 @@ namespace Client.Main
                     {
                         if (_dataPath != null) return _dataPath;
 
-                        string externalData = System.IO.Path.Combine(Android.App.Application.Context.GetExternalFilesDir(null)!.AbsolutePath, "Data");
-                        string internalData = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Data");
+                        var candidates = new System.Collections.Generic.List<string>();
 
-                        // Check where valid assets actually reside
-                        if (System.IO.Directory.Exists(externalData) && System.IO.File.Exists(System.IO.Path.Combine(externalData, "World95", "EncTerrain95.att")))
+                        try
                         {
-                            _dataPath = externalData;
+                            var ext = Android.App.Application.Context.GetExternalFilesDir(null)?.AbsolutePath;
+                            if (!string.IsNullOrEmpty(ext))
+                                candidates.Add(System.IO.Path.Combine(ext, "Data"));
                         }
-                        else if (System.IO.Directory.Exists(internalData) && System.IO.File.Exists(System.IO.Path.Combine(internalData, "World95", "EncTerrain95.att")))
+                        catch { }
+
+                        candidates.Add(System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Data"));
+                        candidates.Add("/storage/emulated/0/Android/data/MuAndroid.MuAndroid/files/Data");
+                        candidates.Add("/storage/emulated/0/Android/data/com.ikarus.mu/files/Data");
+                        candidates.Add("/sdcard/Android/data/MuAndroid.MuAndroid/files/Data");
+                        candidates.Add("/sdcard/Android/data/com.ikarus.mu/files/Data");
+
+                        foreach (var path in candidates)
                         {
-                            _dataPath = internalData;
+                            if (System.IO.Directory.Exists(path) &&
+                                (System.IO.File.Exists(System.IO.Path.Combine(path, "World95", "EncTerrain95.att")) ||
+                                 System.IO.File.Exists(System.IO.Path.Combine(path, "World1", "EncTerrain1.att"))))
+                            {
+                                _dataPath = path;
+                                return _dataPath;
+                            }
                         }
-                        else
+
+                        try
                         {
-                            _dataPath = externalData;
+                            var ext = Android.App.Application.Context.GetExternalFilesDir(null)?.AbsolutePath;
+                            _dataPath = !string.IsNullOrEmpty(ext) ? System.IO.Path.Combine(ext, "Data") : candidates[0];
+                        }
+                        catch
+                        {
+                            _dataPath = candidates[0];
                         }
 
                         return _dataPath;

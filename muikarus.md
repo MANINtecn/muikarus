@@ -403,6 +403,19 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
   - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 48` e `versionName: 1.48`.
   - Workflow GitHub Actions compilará e publicará o **`IkarusMU-v1.48.apk`** na release `v1.48`.
 
+### 09/09/2026 — 🎯 Versão v1.49: Fim da Tela Preta Real (Causa Raiz: Package ID & Thread.Sleep)
+- [x] **A Causa Raiz Descoberta da Tela Preta:**
+  - Na v1.45, o `package` no `AndroidManifest.xml` havia sido acidentalmente alterado para `com.ikarus.mu`, divergindo do `ApplicationId` (`MuAndroid.MuAndroid`).
+  - No Android, isso isolou o app da pasta onde residem os 1.7 GB de assets (`/Android/data/MuAndroid.MuAndroid/files/Data`).
+  - Sem assets, a `NewLoginWorld` não carregava o modelo do barco nem o terreno/céu (mundo 100% preto), e a rede não avançava para exibir os campos de login.
+  - O `Thread.Sleep(15)` injetado no `Update()` no mobile sufocava o loop principal e as ações assíncronas do jogo.
+- [x] **Soluções Implementadas:**
+  - Restaurado `package="MuAndroid.MuAndroid"` no `AndroidManifest.xml`.
+  - Adicionada detecção multi-caminho em `Constants.DataPath` para varrer todas as pastas possíveis de dados no Android.
+  - Removido `Thread.Sleep` de dentro do `MuGame.Update()`, restaurando o fluxo nativo estável idêntico ao da v1.43.
+- [x] **Release e Versionamento v1.49:**
+  - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 49` e `versionName: 1.49`.
+
 ---
 
 ## 🛠️ PRÓXIMOS PASSOS (ROADMAP)

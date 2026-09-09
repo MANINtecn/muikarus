@@ -259,10 +259,6 @@ namespace Client.Main
             AppLoggerFactory?.Dispose(); // AppLoggerFactory can be null if Initialize failed early
         }
 
-#if ANDROID || IOS
-        private TimeSpan _lastFrameTime;
-#endif
-
         protected override void Update(GameTime gameTime)
         {
             // --- Process Main Thread Actions ---
@@ -320,23 +316,6 @@ namespace Client.Main
                 _logger?.LogCritical(e, "Unhandled exception in MuGame.Update loop (outside scene/base update)!");
                 // Exit();
             }
-
-#if ANDROID || IOS
-            var currentFrameTime = gameTime.TotalGameTime;
-            var elapsed = currentFrameTime - _lastFrameTime;
-            var targetTime = TimeSpan.FromTicks(333333); // 30 FPS target
-            if (elapsed < targetTime)
-            {
-                var sleepTime = targetTime - elapsed;
-                if (sleepTime.TotalMilliseconds > 0)
-                {
-                    int ms = (int)sleepTime.TotalMilliseconds;
-                    if (ms > 15) ms = 15; // Evita dormir muito tempo de uma vez e travar o pump de rede
-                    System.Threading.Thread.Sleep(ms);
-                }
-            }
-            _lastFrameTime = gameTime.TotalGameTime;
-#endif
         }
 
         protected override void LoadContent()
