@@ -395,6 +395,14 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
   - O motivo de `IsFixedTimeStep = false` dar **TELA PRETA** (como relatado na v1.45) é porque, sem trava, o loop `Update` roda a 2.000 vezes por segundo, esgotando 100% da CPU mobile e causando **Thread Starvation**. O Android não consegue processar os pacotes de rede nem os downloads de assets em background.
   - **A Solução:** Injetamos um limitador **manual** no final do `MuGame.Update()` via `Thread.Sleep`! Assim, mantemos o `IsFixedTimeStep = false` (a física fica solta) mas o jogo dorme nos ms que sobram para não sufocar a CPU, mantendo 30 FPS perfeitos e corrigindo a tela preta instantaneamente.
 
+### 09/09/2026 — 🛠️ Versão v1.48: Correção de compilação no DebugPanel
+- [x] **Correção no `DebugPanel.cs`:**
+  - Declarados os controles `_dcLabel` e `_gcLabel` que causavam quebra de compilação no GitHub Actions na v1.46 e v1.47.
+  - Painel de debug ajustado em largura para exibir métricas em tempo real (FPS, DrawCalls e consumo de GC Memory).
+- [x] **Release e Versionamento v1.48:**
+  - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 48` e `versionName: 1.48`.
+  - Workflow GitHub Actions compilará e publicará o **`IkarusMU-v1.48.apk`** na release `v1.48`.
+
 ---
 
 ## 🛠️ PRÓXIMOS PASSOS (ROADMAP)

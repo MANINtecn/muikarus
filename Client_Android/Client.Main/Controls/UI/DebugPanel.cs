@@ -8,6 +8,8 @@ namespace Client.Main.Controls.UI
     public class DebugPanel : UIControl
     {
         private LabelControl _fpsLabel;
+        private LabelControl _dcLabel;
+        private LabelControl _gcLabel;
         private LabelControl _mousePosLabel;
         private LabelControl _playerCordsLabel;
         private LabelControl _mapTileLabel;
@@ -25,7 +27,7 @@ namespace Client.Main.Controls.UI
 
             Padding = new Margin { Top = 15, Left = 15 };
 
-            ControlSize = new Point(210, 140);
+            ControlSize = new Point(250, 140);
             BackgroundColor = Color.Black * 0.6f;
             BorderColor = Color.White * 0.3f;
             BorderThickness = 2;
@@ -39,6 +41,22 @@ namespace Client.Main.Controls.UI
                 Text = "FPS: {0}    ",
                 TextColor = Color.LightGreen,
                 X = posX,
+                Y = posY
+            });
+
+            Controls.Add(_dcLabel = new LabelControl
+            {
+                Text = "DC: {0}    ",
+                TextColor = Color.LightGreen,
+                X = posX + 75,
+                Y = posY
+            });
+
+            Controls.Add(_gcLabel = new LabelControl
+            {
+                Text = "GC: {0}MB    ",
+                TextColor = Color.LightGreen,
+                X = posX + 145,
                 Y = posY
             });
 
