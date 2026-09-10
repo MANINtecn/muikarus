@@ -66,17 +66,25 @@ namespace Client.Main.Controls.UI.Game.Inventory
 
             // Draw a rectangle representing the item
             Rectangle destRect = new Rectangle(X, Y, ViewSize.X, ViewSize.Y);
-            spriteBatch.Draw(pixel, destRect, Color.DarkGoldenrod * 0.8f); // Color for the picked-up item
+            spriteBatch.Draw(pixel, destRect, new Color(200, 160, 40, 220));
 
-            // Draw item name (simplified)
+            // Gold border
+            spriteBatch.Draw(pixel, new Rectangle(destRect.X, destRect.Y, destRect.Width, 2), Color.Gold);
+            spriteBatch.Draw(pixel, new Rectangle(destRect.X, destRect.Bottom - 2, destRect.Width, 2), Color.Gold);
+            spriteBatch.Draw(pixel, new Rectangle(destRect.X, destRect.Y, 2, destRect.Height), Color.Gold);
+            spriteBatch.Draw(pixel, new Rectangle(destRect.Right - 2, destRect.Y, 2, destRect.Height), Color.Gold);
+
+            // Draw item name
             if (_font != null && !string.IsNullOrEmpty(Item.Definition.Name))
             {
-                Vector2 textSize = _font.MeasureString(Item.Definition.Name) * 0.5f; // Small font
+                float scale = 0.55f;
+                Vector2 textSize = _font.MeasureString(Item.Definition.Name) * scale;
                 Vector2 textPos = new Vector2(
                     destRect.X + (destRect.Width - textSize.X) / 2,
                     destRect.Y + (destRect.Height - textSize.Y) / 2
                 );
-                spriteBatch.DrawString(_font, Item.Definition.Name, textPos, Color.White, 0, Vector2.Zero, 0.5f, SpriteEffects.None, 0f);
+                spriteBatch.DrawString(_font, Item.Definition.Name, textPos + new Vector2(1, 1), Color.Black, 0, Vector2.Zero, scale, SpriteEffects.None, 0f);
+                spriteBatch.DrawString(_font, Item.Definition.Name, textPos, Color.White, 0, Vector2.Zero, scale, SpriteEffects.None, 0f);
             }
 
             // We don't call base.Draw(gameTime) because we don't have children and don't want the standard background/frame

@@ -100,7 +100,7 @@ namespace Client.Main.Controls
 
             // Handle click‐to‐move with a simple cooldown
             if (!Scene.IsMouseInputConsumedThisFrame && // check if UI already handled the click
-                (Scene.MouseControl == this || Scene.MouseControl == World || Scene.MouseControl == null) && // ensure this world or its base is the target or no one captured it
+                (Scene.MouseControl == this || Scene.MouseControl == World || Scene.MouseControl == null || Scene.MouseControl is Client.Main.Controls.UI.Game.MobileControlsOverlay) && // ensure this world or its base is the target or no one captured it
                 MuGame.Instance.Mouse.LeftButton == ButtonState.Pressed &&
                 _cursorNextMoveTime <= 0f)
             {
@@ -249,15 +249,15 @@ namespace Client.Main.Controls
         }
 
         /// <summary>
-        /// Returns the first <see cref="NPCObject"/> on or adjacent to the given tile, or <c>null</c>.
+        /// Returns the first <see cref="NPCObject"/> on the given tile, or <c>null</c>.
         /// </summary>
         private NPCObject FindNpcAtTile(byte tileX, byte tileY)
         {
             foreach (var obj in Objects)
             {
                 if (obj is NPCObject npc &&
-                    Math.Abs((int)npc.Location.X - tileX) <= 1 &&
-                    Math.Abs((int)npc.Location.Y - tileY) <= 1)
+                    (int)npc.Location.X == tileX &&
+                    (int)npc.Location.Y == tileY)
                 {
                     return npc;
                 }

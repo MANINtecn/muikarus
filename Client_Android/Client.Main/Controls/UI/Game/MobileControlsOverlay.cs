@@ -53,7 +53,7 @@ namespace Client.Main.Controls.UI.Game
 
             AutoViewSize = false;
             ViewSize = new Point(MuGame.Instance.Width, MuGame.Instance.Height);
-            Interactive = true;
+            Interactive = false; // Container itself must not capture mouse/touch events across whole screen
             Status = GameControlStatus.Ready;
             Visible = true;
 

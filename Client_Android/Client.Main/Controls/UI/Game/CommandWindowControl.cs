@@ -15,17 +15,17 @@ namespace Client.Main.Controls.UI.Game
     {
         public static CommandWindowControl Instance { get; private set; }
 
-        private const int WINDOW_WIDTH = 200;
-        private const int WINDOW_HEIGHT = 280;
+        private const int WINDOW_WIDTH = 480;
+        private const int WINDOW_HEIGHT = 150;
 
         private readonly string[] _commands = new string[]
         {
-            "1. Trade (Negociar)",
-            "2. Buy (Comprar)",
-            "3. Party (Grupo)",
-            "4. Whisper (Sussurro)",
-            "5. Guild (Convite)",
-            "6. Duel (Duelo)"
+            "Trade (Negociar)",
+            "Buy (Comprar)",
+            "Party (Grupo)",
+            "Whisper (Sussurrar)",
+            "Guild (Convite)",
+            "Duel (Duelo)"
         };
 
         private readonly Rectangle[] _btnRects = new Rectangle[6];
@@ -63,15 +63,24 @@ namespace Client.Main.Controls.UI.Game
             X = Math.Max(10, screenW / 2 - WINDOW_WIDTH / 2);
             Y = Math.Max(10, screenH / 2 - WINDOW_HEIGHT / 2);
 
-            int startY = 40;
-            int itemH = 34;
+            int cols = 3;
+            int marginX = 12;
+            int spacingX = 10;
+            int itemW = (WINDOW_WIDTH - (marginX * 2) - ((cols - 1) * spacingX)) / cols;
+            int startY = 46;
+            int itemH = 40;
+            int spacingY = 8;
 
             for (int i = 0; i < _commands.Length; i++)
             {
-                _btnRects[i] = new Rectangle(12, startY + i * (itemH + 4), WINDOW_WIDTH - 24, itemH);
+                int col = i % cols;
+                int row = i / cols;
+                int bx = marginX + col * (itemW + spacingX);
+                int by = startY + row * (itemH + spacingY);
+                _btnRects[i] = new Rectangle(bx, by, itemW, itemH);
             }
 
-            _closeBtnRect = new Rectangle(WINDOW_WIDTH - 30, 8, 22, 22);
+            _closeBtnRect = new Rectangle(WINDOW_WIDTH - 34, 6, 26, 26);
         }
 
         public override void Update(GameTime gameTime)

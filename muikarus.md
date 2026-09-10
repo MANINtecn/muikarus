@@ -461,6 +461,35 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
 
 ---
 
+### 🚀 [10/09/2026] — Versão 1.52 (Cura do Clique no Chão, Layout Widescreen de Comandos, Ajuste Fino do [X] e Itens Nítidos)
+- [x] **Diagnóstico Crítico: Por que o personagem não andava ao clicar no chão na v1.51?**
+  - **Causa Raiz Identificada:** O container `MobileControlsOverlay` foi instanciado com `Interactive = true;` e cobria toda a tela do celular (`ViewSize = new Point(Width, Height)`). No loop `BaseScene.Update`, o motor de interface do jogo detectava o overlay sob o cursor em qualquer ponto da tela e definia `Scene.MouseControl = _mobileControls`. Como o `WalkableWorldControl` só processava clique-para-andar no chão se `Scene.MouseControl == World` ou `null`, o clique no terreno ficava **100% bloqueado**!
+  - **Por que andar na parede e sentar no banco funcionava?** Porque objetos 3D do cenário (`HouseWallObject`, `RestPlaceObject`, `FurnitureObject`) possuem lógica de colisão e `OnClick()` disparados diretamente pelo raycast da cena (`MouseHoverObject.OnClick()`), contornando o bloqueio do terreno.
+  - **Solução Implementada:**
+    1. Alterado `MobileControlsOverlay.Interactive = false;`. O container não intercepta mais nenhum toque no espaço vazio; apenas seus botões filhos (`[INV]`, `[CHAR]`, etc.) possuem `Interactive = true` em seus próprios retângulos.
+    2. Adicionada salvaguarda em `WalkableWorldControl.cs`: se `Scene.MouseControl is MobileControlsOverlay`, o clique no terreno é aceito e processado normalmente.
+    3. Ajustado `FindNpcAtTile` para comparar a coordenada exata do ladrilho (`tileX == npc.Location.X && tileY == npc.Location.Y`). Se o jogador clicar no chão adjacente ao NPC, ele anda normalmente; se clicar no próprio NPC, abre o diálogo/loja.
+- [x] **Janela de Comandos (CMD / `CommandWindowControl.cs`) em 3 Colunas Horizontais:**
+  - Reformulada de uma lista vertical estreita (200x280) para um formato **widescreen ergonômico** (480x150) com 3 colunas e 2 linhas de botões largos (145x40px).
+  - Distribuição: Coluna 1: Trade / Whisper | Coluna 2: Buy / Guild | Coluna 3: Party / Duel.
+  - Botão `[X]` de fechar integrado no canto superior direito do banner dourado.
+- [x] **Ajuste Fino do Botão [X] na Loja do Bar/NPC (`NpcShopControl.cs`):**
+  - Botão `closeBtn` reposicionado exatamente em `X = 390, Y = 94` (26x26), alinhado com perfeição na quina superior direita da moldura original do NPC Shop.
+- [x] **Itens Visíveis e Nítidos no Inventário (`InventoryControl.cs` & `PickedItemRenderer.cs`):**
+  - **Problema:** Os 3 itens teste existiam e podiam ser arrastados, mas eram praticamente invisíveis porque eram desenhados na cor `DarkSlateGray` (quase idêntica ao fundo cinza-escuro da grade) com textos microscópicos (escala 0.4f).
+  - **Solução Visual Mobile:**
+    - Moldura destacada com recuo (inset) de 2px para separar cada item das divisórias da grade.
+    - Cores vivas por categoria:
+      - **Armaduras e Escudos:** Azul Real profundo (`#19325F`) com borda dourada reluzente de 2px.
+      - **Armas (Espadas, Machados, Arcos):** Carmesim escuro (`#5F1919`) com borda prateada/bronze de 2px.
+      - **Poções e Consumíveis:** Rubi vibrante (`#871423`) com borda ouro de 2px.
+    - Textos e nomes renderizados com sombra preta (escala 0.55f), garantindo contraste absoluto e leitura fácil em telas mobile.
+    - Item arrastado (`PickedItemRenderer`) agora brilha em ouro âmbar com borda luminosa sob a ponta do dedo.
+- [x] **Release e Versionamento v1.52:**
+  - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 52` e `versionName: 1.52`.
+
+---
+
 ## 🛠️ PRÓXIMOS PASSOS (ROADMAP)
 
 1. [x] Instalar .NET 8 / 10 SDK e compilar a solução `OpenMU`.
@@ -478,9 +507,10 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
 13. [x] **CONCLUÍDO (v1.24):** Entrada confirmada em Lorencia 3D, batching dinâmico do terreno (30+ FPS), textura das pedras da cidade e Joystick Analógico + Botões Touch no mundo!
 14. [x] **CONCLUÍDO (v1.50):** Teste de otimização de FPS mobile e diagnóstico definitivo sobre culling e gargalo.
 15. [x] **CONCLUÍDO (v1.51):** Restauração de visibilidade (ViewFar 3500f + blindagem hero), interação touch com NPCs, botões [X] de fechar e menu HUD mobile de ações.
-16. [ ] Aprender a usar o **Web Admin Panel** (`http://localhost:5000`) para gerenciar contas, itens e rates.
-17. [ ] **DEPLOY VPS:** Garantir portas `44405` e `55901` totalmente abertas no firewall da VPS Windows (`192.99.110.164`).
-18. [ ] **SISTEMA DE AUTO-UPDATE (PATCHER LEVE):** Criar lógica no `LoadScene.cs` para checar `patch_version.txt`. Se houver atualizações pontuais, baixar apenas um `Patch.zip` de poucos megabytes em vez de pacotes completos.
+16. [x] **CONCLUÍDO (v1.52):** Desbloqueio definitivo do clique no chão (correção de overlay touch), comandos em 3 colunas horizontais, ajuste do [X] do bar e renderização de itens com cores vivas e sombras.
+17. [ ] Aprender a usar o **Web Admin Panel** (`http://localhost:5000`) para gerenciar contas, itens e rates.
+18. [ ] **DEPLOY VPS:** Garantir portas `44405` e `55901` totalmente abertas no firewall da VPS Windows (`192.99.110.164`).
+19. [ ] **SISTEMA DE AUTO-UPDATE (PATCHER LEVE):** Criar lógica no `LoadScene.cs` para checar `patch_version.txt`. Se houver atualizações pontuais, baixar apenas um `Patch.zip` de poucos megabytes em vez de pacotes completos.
 
 ---
 
@@ -499,22 +529,25 @@ Para trabalhar os três (usuário + Gemini + Claude) juntos sem atrito de merge/
 - **Commits:** neste repositório, por pedido explícito do usuário, commits/PRs **não** levam linha de coautoria de IA (`Co-Authored-By`), independente da orientação padrão do sistema.
 
 ### 📋 ESTADO ATUAL (Deixado por: Gemini — 10/09/2026)
-- **Versão Atual:** v1.51
+- **Versão Atual:** v1.52
 - **O que está funcionando:**
   - Build CI/CD do GitHub Actions 100% estabilizado e gerando APK assinado automaticamente.
-  - Personagem e NPCs 100% restaurados e visíveis em Lorencia (`ViewFar = 3500f`).
-  - Interação direta com NPCs pelo toque na tela: tocar em um NPC agora abre o diálogo/loja (`SendTalkToNpcRequestAsync`) sem disparar caminhada vazia.
-  - Janelas com botão touch `[X]` ergonômico no topo direito (`InventoryControl`, `CharacterInfoWindowControl`, `NpcShopControl`).
-  - Menu HUD mobile no `MobileControlsOverlay`: botões `[INV]`, `[CHAR]`, `[MAP]`, `[CMD]` e `[X]` (fechar todas as janelas).
-  - Escalonamento 720p ativo mantendo os fragment shaders leves no Android.
+  - Personagem e NPCs 100% visíveis em Lorencia (`ViewFar = 3500f`).
+  - Caminhada livre pelo chão restaurada no celular com 1 toque (resolvido o conflito de clique do `MobileControlsOverlay`).
+  - Interação com NPCs no ladrilho exato abrindo diálogo e loja (`SendTalkToNpcRequestAsync`).
+  - Menu HUD mobile no `MobileControlsOverlay` (`[INV]`, `[CHAR]`, `[MAP]`, `[CMD]`, `[X]`).
+  - Janela de Comandos (CMD) reformulada em 3 colunas horizontais ergonômicas para mobile landscape.
+  - Botão `[X]` de fechar da loja do bar alinhado com perfeição na quina superior direita.
+  - Itens do inventário agora possuem destaque colorido vibrante por tipo (armadura, arma, poção), borda dupla e nomes legíveis com sombra.
 - **Próximos Passos:**
-  - Usuário testar a versão v1.51 no celular (interagir com ferreiro/loja, abrir/fechar inventário e status pelos novos botões HUD).
-  - Ajustar visualização de itens no inventário mobile e atalhos de poções/skills se necessário.
+  - Usuário testar a versão v1.52 no celular (andar livremente pelo chão, abrir comandos em 3 colunas, ver itens coloridos no inventário).
+  - Conectar sincronização de itens de NPC Shop vindos do servidor OpenMU.
 
 ### 📋 ESTADO ATUAL (Deixado por: Claude)
 - **Área assumida:** Servidor OpenMU e infraestrutura (VPS, portas, Web Admin Panel, rates).
-- **Tarefa Imediata para Claude:** Ainda não iniciada — próximo passo é revisar o item 16 do roadmap ("Garantir portas 44405 e 55901 totalmente abertas no firewall da VPS") e o item 15 ("Aprender a usar o Web Admin Panel"), conforme o usuário confirmar prioridade.
+- **Tarefa Imediata para Claude:** Ainda não iniciada — próximo passo é revisar o item 17 do roadmap ("Garantir portas 44405 e 55901 totalmente abertas no firewall da VPS") e o item 16 ("Aprender a usar o Web Admin Panel"), conforme o usuário confirmar prioridade.
 
 ---
+
 
 

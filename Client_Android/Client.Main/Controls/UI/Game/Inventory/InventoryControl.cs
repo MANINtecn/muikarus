@@ -584,35 +584,71 @@ namespace Client.Main.Controls.UI.Game.Inventory
         {
             Point gridTopLeft = new Point(frameRect.X + _gridOffset.X, frameRect.Y + _gridOffset.Y);
             var font = GraphicsManager.Instance.Font;
+            var pixel = GraphicsManager.Instance.Pixel;
 
             foreach (var item in _items)
             {
                 if (item == _pickedItemRenderer.Item) continue; // Do not draw the picked up item here
 
-                Rectangle itemRect = new Rectangle(
+                Rectangle baseRect = new Rectangle(
                     gridTopLeft.X + item.GridPosition.X * INVENTORY_SQUARE_WIDTH,
                     gridTopLeft.Y + item.GridPosition.Y * INVENTORY_SQUARE_HEIGHT,
                     item.Definition.Width * INVENTORY_SQUARE_WIDTH,
                     item.Definition.Height * INVENTORY_SQUARE_HEIGHT);
 
-                // Draw item background
-                spriteBatch.Draw(GraphicsManager.Instance.Pixel, itemRect, Color.DarkSlateGray);
+                // Inset so item boundaries are sharp and separated from grid
+                Rectangle itemRect = new Rectangle(baseRect.X + 2, baseRect.Y + 2, baseRect.Width - 4, baseRect.Height - 4);
 
-                // Draw item border
-                spriteBatch.Draw(GraphicsManager.Instance.Pixel, new Rectangle(itemRect.X, itemRect.Y, itemRect.Width, 1), Color.White);
-                spriteBatch.Draw(GraphicsManager.Instance.Pixel, new Rectangle(itemRect.X, itemRect.Bottom - 1, itemRect.Width, 1), Color.White);
-                spriteBatch.Draw(GraphicsManager.Instance.Pixel, new Rectangle(itemRect.X, itemRect.Y, 1, itemRect.Height), Color.White);
-                spriteBatch.Draw(GraphicsManager.Instance.Pixel, new Rectangle(itemRect.Right - 1, itemRect.Y, 1, itemRect.Height), Color.White);
+                Color bgColor;
+                Color borderColor;
 
-                // Item text
-                if (font != null)
+                string defName = (item.Definition?.Name ?? "").ToLowerInvariant();
+                if (defName.Contains("armor") || defName.Contains("helm") || defName.Contains("pant") || defName.Contains("glove") || defName.Contains("boot") || defName.Contains("shield"))
                 {
-                    string text = item.Definition.Name.Length > 6 ? item.Definition.Name.Substring(0, 6) : item.Definition.Name;
-                    Vector2 textSize = font.MeasureString(text) * 0.4f;
+                    bgColor = new Color(25, 50, 95, 235); // Royal Blue
+                    borderColor = new Color(235, 195, 75, 255); // Gold
+                }
+                else if (defName.Contains("sword") || defName.Contains("axe") || defName.Contains("bow") || defName.Contains("staff") || defName.Contains("mace"))
+                {
+                    bgColor = new Color(95, 25, 25, 235); // Crimson Red
+                    borderColor = new Color(220, 180, 160, 255); // Silver/Bronze
+                }
+                else if (defName.Contains("potion"))
+                {
+                    bgColor = new Color(135, 20, 35, 245); // Ruby Red
+                    borderColor = new Color(255, 215, 0, 255); // Bright Gold
+                }
+                else
+                {
+                    bgColor = new Color(40, 60, 80, 235);
+                    borderColor = Color.Goldenrod;
+                }
+
+                // Draw item background
+                spriteBatch.Draw(pixel, itemRect, bgColor);
+
+                // Draw item 2px border
+                spriteBatch.Draw(pixel, new Rectangle(itemRect.X, itemRect.Y, itemRect.Width, 2), borderColor);
+                spriteBatch.Draw(pixel, new Rectangle(itemRect.X, itemRect.Bottom - 2, itemRect.Width, 2), borderColor);
+                spriteBatch.Draw(pixel, new Rectangle(itemRect.X, itemRect.Y, 2, itemRect.Height), borderColor);
+                spriteBatch.Draw(pixel, new Rectangle(itemRect.Right - 2, itemRect.Y, 2, itemRect.Height), borderColor);
+
+                // Item text / label
+                if (font != null && !string.IsNullOrEmpty(item.Definition?.Name))
+                {
+                    string shortName = item.Definition.Name;
+                    if (shortName.Length > 10)
+                        shortName = shortName.Substring(0, 8) + "..";
+
+                    float scale = 0.55f;
+                    Vector2 textSize = font.MeasureString(shortName) * scale;
                     Vector2 textPos = new Vector2(
                         itemRect.X + (itemRect.Width - textSize.X) / 2,
                         itemRect.Y + (itemRect.Height - textSize.Y) / 2);
-                    spriteBatch.DrawString(font, text, textPos, Color.White, 0, Vector2.Zero, 0.4f, SpriteEffects.None, 0f);
+
+                    // Text shadow for maximum legibility on mobile
+                    spriteBatch.DrawString(font, shortName, textPos + new Vector2(1, 1), Color.Black, 0, Vector2.Zero, scale, SpriteEffects.None, 0f);
+                    spriteBatch.DrawString(font, shortName, textPos, Color.White, 0, Vector2.Zero, scale, SpriteEffects.None, 0f);
                 }
             }
         }
