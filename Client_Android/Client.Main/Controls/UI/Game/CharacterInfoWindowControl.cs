@@ -214,6 +214,23 @@ namespace Client.Main.Controls.UI.Game
             Controls.Add(_petButton);
             Controls.Add(_masterLevelButton);
 
+            var topCloseBtn = new ButtonControl
+            {
+                Text = "X",
+                FontSize = 14f,
+                TextColor = Color.White,
+                BackgroundColor = new Color(180, 40, 40, 230),
+                HoverBackgroundColor = new Color(220, 60, 60, 255),
+                PressedBackgroundColor = new Color(120, 20, 20, 255),
+                X = WINDOW_WIDTH - 28,
+                Y = 4,
+                ControlSize = new Point(24, 24),
+                ViewSize = new Point(24, 24),
+                Visible = true
+            };
+            topCloseBtn.Click += (s, e) => { Visible = false; SoundController.Instance.PlayBuffer("Sound/iButtonClick.wav"); };
+            Controls.Add(topCloseBtn);
+
             SetupLayout();
             return base.Load();
         }

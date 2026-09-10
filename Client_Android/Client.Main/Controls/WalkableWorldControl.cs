@@ -55,11 +55,7 @@ namespace Client.Main.Controls
             : base(worldIndex)
         {
             Interactive = true;
-#if ANDROID || IOS
-            Camera.Instance.ViewFar = 2200f;
-#else
-            Camera.Instance.ViewFar = 3200f;
-#endif
+            Camera.Instance.ViewFar = 3500f;
         }
 
         /// <summary>
@@ -74,11 +70,7 @@ namespace Client.Main.Controls
         public override void AfterLoad()
         {
             base.AfterLoad();
-#if ANDROID || IOS
-            Camera.Instance.ViewFar = 2200f;
-#else
-            Camera.Instance.ViewFar = 3200f;
-#endif
+            Camera.Instance.ViewFar = 3500f;
         }
 
         // --- Lifecycle Methods ---
@@ -113,6 +105,19 @@ namespace Client.Main.Controls
                 _cursorNextMoveTime <= 0f)
             {
                 CalculateMouseTilePos();
+
+                // 1. Check if an NPC was clicked or tapped
+                NPCObject clickedNpc = (Scene?.MouseHoverObject as NPCObject) ?? FindNpcAtTile(MouseTileX, MouseTileY);
+                if (clickedNpc != null)
+                {
+                    clickedNpc.OnClick();
+                    if (Scene is Client.Main.Scenes.BaseScene bsNpc)
+                        bsNpc.SetMouseInputConsumed();
+                    _cursorNextMoveTime = 400f;
+                    return;
+                }
+
+                // 2. Check if a Monster was clicked or attacked
                 if (Walker is PlayerObject player)
                 {
                     MonsterObject monster = hoveredMonster ?? FindMonsterAtTile(MouseTileX, MouseTileY);
@@ -238,6 +243,23 @@ namespace Client.Main.Controls
                     m.Location.Y == tileY)
                 {
                     return m;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Returns the first <see cref="NPCObject"/> on or adjacent to the given tile, or <c>null</c>.
+        /// </summary>
+        private NPCObject FindNpcAtTile(byte tileX, byte tileY)
+        {
+            foreach (var obj in Objects)
+            {
+                if (obj is NPCObject npc &&
+                    Math.Abs((int)npc.Location.X - tileX) <= 1 &&
+                    Math.Abs((int)npc.Location.Y - tileY) <= 1)
+                {
+                    return npc;
                 }
             }
             return null;

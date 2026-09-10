@@ -1,5 +1,6 @@
 using Client.Main.Content;
 using Client.Main.Controllers;
+using Client.Main.Controls.UI.Common;
 using Client.Main.Models;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -26,6 +27,7 @@ namespace Client.Main.Controls.UI.Game.Inventory
         public const int Rows = 8;
 
         private LabelControl _zenLabel;
+        private ButtonControl _closeButton;
         private long _zenAmount = 0; // Player's ZEN amount
 
         public long ZenAmount
@@ -102,6 +104,28 @@ namespace Client.Main.Controls.UI.Game.Inventory
 
             // Initialize ZEN label
             InitializeZenLabel();
+
+            // Mobile-friendly touch close button [X]
+            _closeButton = new ButtonControl
+            {
+                Text = "X",
+                FontSize = 14f,
+                TextColor = Color.White,
+                BackgroundColor = new Color(180, 40, 40, 230),
+                HoverBackgroundColor = new Color(220, 60, 60, 255),
+                PressedBackgroundColor = new Color(120, 20, 20, 255),
+                X = ControlSize.X - 32,
+                Y = 4,
+                ControlSize = new Point(26, 26),
+                ViewSize = new Point(26, 26),
+                Visible = true
+            };
+            _closeButton.Click += (s, e) =>
+            {
+                Visible = false;
+                SoundController.Instance.PlayBuffer("Sound/iButtonClick.wav");
+            };
+            Controls.Add(_closeButton);
         }
 
         private void InitializeZenLabel()

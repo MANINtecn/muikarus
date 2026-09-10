@@ -24,9 +24,7 @@ namespace Client.Main.Worlds
 
         public override void AfterLoad()
         {
-#if ANDROID || IOS
-            Camera.Instance.ViewFar = 2200f;
-#endif
+            Camera.Instance.ViewFar = 3500f;
             Vector2 defaultSpawn = new Vector2(138, 124);
 
             Walker.Reset();

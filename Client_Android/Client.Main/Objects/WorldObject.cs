@@ -146,22 +146,30 @@ namespace Client.Main.Objects
 
             if (Status != GameControlStatus.Ready) return;
 
-            // Early exit if object is out of view (fast 2D distance pre-check avoids expensive 48-dot-product frustum math)
-            var cam = Camera.Instance;
-            if (cam != null)
+            // Local hero should never be culled out of view
+            if (World is WalkableWorldControl wwc && wwc.Walker == this)
             {
-                var cam2 = new Vector2(cam.Position.X, cam.Position.Y);
-                var obj2 = new Vector2(WorldPosition.Translation.X, WorldPosition.Translation.Y);
-                float maxDist = cam.ViewFar + 350f;
-                if (Vector2.DistanceSquared(cam2, obj2) > maxDist * maxDist)
-                {
-                    OutOfView = true;
-                    return;
-                }
+                OutOfView = false;
             }
+            else
+            {
+                // Early exit if object is out of view (fast 2D distance pre-check avoids expensive 48-dot-product frustum math)
+                var cam = Camera.Instance;
+                if (cam != null)
+                {
+                    var cam2 = new Vector2(cam.Position.X, cam.Position.Y);
+                    var obj2 = new Vector2(WorldPosition.Translation.X, WorldPosition.Translation.Y);
+                    float maxDist = cam.ViewFar + 350f;
+                    if (Vector2.DistanceSquared(cam2, obj2) > maxDist * maxDist)
+                    {
+                        OutOfView = true;
+                        return;
+                    }
+                }
 
-            OutOfView = Camera.Instance.Frustum.Contains(BoundingBoxWorld) == ContainmentType.Disjoint;
-            if (OutOfView) return;
+                OutOfView = Camera.Instance.Frustum.Contains(BoundingBoxWorld) == ContainmentType.Disjoint;
+                if (OutOfView) return;
+            }
 
             // Cache parent's mouse hover state
             bool parentIsMouseHover = Parent?.IsMouseHover ?? false;

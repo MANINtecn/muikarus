@@ -2,6 +2,8 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System.Linq;
+using Client.Main.Controls.UI.Common;
+using Client.Main.Controllers;
 
 namespace Client.Main.Controls.UI.Game
 {
@@ -15,6 +17,27 @@ namespace Client.Main.Controls.UI.Game
         public NpcShopControl()
         {
             Visible = false;
+
+            var closeBtn = new ButtonControl
+            {
+                Text = "X",
+                FontSize = 14f,
+                TextColor = Color.White,
+                BackgroundColor = new Color(180, 40, 40, 230),
+                HoverBackgroundColor = new Color(220, 60, 60, 255),
+                PressedBackgroundColor = new Color(120, 20, 20, 255),
+                X = 380,
+                Y = 40,
+                ControlSize = new Point(28, 28),
+                ViewSize = new Point(28, 28),
+                Visible = true
+            };
+            closeBtn.Click += (s, e) =>
+            {
+                Visible = false;
+                SoundController.Instance.PlayBuffer("Sound/iButtonClick.wav");
+            };
+            Controls.Add(closeBtn);
 
             var rows = 14;
             var cols = 8;

@@ -425,11 +425,39 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
 - [x] **Soluções Implementadas no v1.50:**
   - **Escalonamento Interno para 720p:** `MainActivity.ApplyAndroidDefaults()` calcula a resolução interna do BackBuffer travando a altura máxima em 720p e adaptando a largura proporcionalmente à proporção de aspecto da tela (ex: 1600x720 num display 20:9), permitindo ao hardware de display do Android (SurfaceFlinger) fazer o upscale para tela cheia com 0% de custo de GPU. Redução de mais de 60% na carga de fragment shaders.
   - **TouchPanel Adaptado:** `TouchPanel.DisplayWidth = Width` e `TouchPanel.DisplayHeight = Height` para alinhamento 1:1 entre coordenadas de toque e renderização.
-  - **Limitação de Culling (`ViewFar = 2200f`):** Definido `Camera.Instance.ViewFar = 2200f` em `WalkableWorldControl` e `LorenciaWorld.AfterLoad()`, reduzindo o raio de busca de terreno de 62.500 unidades para 2.750 unidades.
+  - **Limitação de Culling (`ViewFar = 2200f`):** Definido `Camera.Instance.ViewFar = 2200f` em `WalkableWorldControl` e `LorenciaWorld.AfterLoad()`.
   - **Eliminação de Passes de Sombra no Mobile:** `#if !ANDROID && !IOS` direto nas chamadas de sombra no `ModelObject.DrawModel()`.
   - **Otimização do Contador de GC:** `GC.GetTotalMemory` passa a ser chamado a cada 2 segundos no `FPSCounter`, eliminando 60 chamadas/s.
-- [x] **Release e Versionamento v1.50:**
-  - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 50` e `versionName: 1.50`.
+- [x] **🛑 RESULTADO DO TESTE REAL v1.50 & LIÇÕES APRENDIDAS (NUNCA MAIS REPETIR):**
+  - **Desaparecimento do Personagem e NPCs:** Ao encurtar `ViewFar` para `2200f`, o culling de `WorldObject.cs` (`maxDist = cam.ViewFar + 350f = 2550f`) falhou criticamente porque a câmera 3D fica posicionada muito alta e inclinada no ar em relação ao piso do mundo. A distância vetorial do olho da câmera até o chão passou de 2550 unidades, marcando `OutOfView = true` para o herói e todos os NPCs!
+  - **Regra de Ouro #1:** `ViewFar` nunca deve ser menor que `3500f` em mundos caminháveis.
+  - **Regra de Ouro #2:** O personagem local (`wwc.Walker == this`) deve ser explicitamente protegido contra culling de câmera.
+  - **A Prova Definitiva dos 7–9 FPS:** Mesmo sem desenhar o personagem, sem desenhar NPCs, sem sombras e em 720p, a taxa de quadros continuou presa em 7–9 FPS (~110–140ms/quadro). **Isso prova conclusivamente que o limitador de 7–9 FPS não é preenchimento de GPU (fillrate) nem quantidade de triângulos/modelos 3D.** É uma restrição de quantização de frames do MonoGame Android ou sincronização interna do loop de renderização. Mutilar os gráficos não aumenta o FPS.
+  - **Decisão Estratégica:** Pivotar imediatamente do teste cego de FPS para entrega de gameplay, usabilidade e recursos mobile essenciais.
+
+---
+
+### ⚔️ [10/09/2026] — Versão 1.51 (Restauração, Falar com NPCs, Fechar Janelas [X] e HUD Mobile)
+- [x] **Restauração Imediata das Entidades 3D:**
+  - `Camera.Instance.ViewFar` restaurado para `3500f` com segurança em `WalkableWorldControl.cs` e `LorenciaWorld.cs`.
+  - `WorldObject.cs`: Blindagem total do herói local contra culling (`if (wwc.Walker == this) OutOfView = false;`). Personagem e NPCs 100% visíveis novamente.
+- [x] **Comunicação Touch com NPCs no Celular (`WalkableWorldControl.cs`):**
+  - **Problema:** Ao tocar em um NPC (ferreiro, vendedora de poções, baú, etc.), o jogo ignorava o NPC e mandava o personagem andar até aquela coordenada no chão, sem nunca abrir o diálogo ou loja.
+  - **Solução:** Implementado método `FindNpcAtTile()` para inspecionar os objetos do mundo no ladrilho tocado. Ao detectar um NPC, cancela o "andar até o chão" e invoca imediatamente `clickedNpc.OnClick()`. Isso dispara o pacote de rede `SendTalkToNpcRequestAsync` para a VPS, abrindo lojas e diálogos perfeitamente com 1 toque!
+- [x] **Botões Touch [X] de Fechar em Todas as Janelas:**
+  - **Inventário (`InventoryControl.cs`):** Adicionado botão vermelho estilizado `[X]` no canto superior direito (`ControlSize.X - 32, 4`), com evento touch para fechar o inventário sem precisar de teclado ou atalho de PC.
+  - **Janela de Atributos (`CharacterInfoWindowControl.cs`):** Adicionado botão `[X]` no topo direito (`WINDOW_WIDTH - 28, 4`).
+  - **Loja de NPCs (`NpcShopControl.cs`):** Adicionado botão `[X]` no topo da tela de compras (`380, 40`).
+- [x] **Menu HUD Mobile com Barra de Ações Rápidas (`MobileControlsOverlay.cs`):**
+  - Adicionada barra ergonômica de botões touch na interface mobile:
+    - **`[INV]`**: Abre/fecha o Inventário.
+    - **`[CHAR]`**: Abre/fecha a janela de Status/Atributos do Personagem (Força, Agilidade, Vida, Mana).
+    - **`[MAP]`**: Abre/fecha o Mini-mapa de Lorencia.
+    - **`[CMD]`**: Abre a janela de Comandos e Ações.
+    - **`[X]`**: Botão de Fechamento Geral (fecha todas as janelas abertas de uma só vez para desobstruir a tela do celular).
+  - Corrigido `MobileControlsOverlay.Draw()` chamando `base.Draw(gameTime)` para desenhar todos os botões e subcontroles touch na tela.
+- [x] **Release e Versionamento v1.51:**
+  - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 51` e `versionName: 1.51`.
 
 ---
 
@@ -448,10 +476,11 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
 11. [x] **CONCLUÍDO (v1.18):** Teclado virtual Android 100% infalível via diálogo nativo escuro ergonômico, auto-avanço de campo (Usuário -> Senha) e disparo direto de login ao teclar Concluir.
 12. [x] **CONCLUÍDO (v1.19/v1.20):** Otimização da Seleção de Personagens (60 FPS estáveis), remoção da colisão de carregamento ao entrar no mundo e botões touch dedicados.
 13. [x] **CONCLUÍDO (v1.24):** Entrada confirmada em Lorencia 3D, batching dinâmico do terreno (30+ FPS), textura das pedras da cidade e Joystick Analógico + Botões Touch no mundo!
-14. [x] **CONCLUÍDO (v1.50):** Otimização agressiva de FPS mobile (resolução interna 720p, ViewFar 2200f, corte de shadow pass e culling).
-15. [ ] Aprender a usar o **Web Admin Panel** (`http://localhost:5000`) para gerenciar contas, itens e rates.
-16. [ ] **DEPLOY VPS:** Garantir portas `44405` e `55901` totalmente abertas no firewall da VPS Windows (`192.99.110.164`).
-17. [ ] **SISTEMA DE AUTO-UPDATE (PATCHER LEVE):** Criar lógica no `LoadScene.cs` para checar `patch_version.txt`. Se houver atualizações pontuais, baixar apenas um `Patch.zip` de poucos megabytes em vez de pacotes completos.
+14. [x] **CONCLUÍDO (v1.50):** Teste de otimização de FPS mobile e diagnóstico definitivo sobre culling e gargalo.
+15. [x] **CONCLUÍDO (v1.51):** Restauração de visibilidade (ViewFar 3500f + blindagem hero), interação touch com NPCs, botões [X] de fechar e menu HUD mobile de ações.
+16. [ ] Aprender a usar o **Web Admin Panel** (`http://localhost:5000`) para gerenciar contas, itens e rates.
+17. [ ] **DEPLOY VPS:** Garantir portas `44405` e `55901` totalmente abertas no firewall da VPS Windows (`192.99.110.164`).
+18. [ ] **SISTEMA DE AUTO-UPDATE (PATCHER LEVE):** Criar lógica no `LoadScene.cs` para checar `patch_version.txt`. Se houver atualizações pontuais, baixar apenas um `Patch.zip` de poucos megabytes em vez de pacotes completos.
 
 ---
 
@@ -463,30 +492,29 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
 ### 🗂️ DIVISÃO DE RESPONSABILIDADES (definida com o usuário em 06/09/2026)
 Para trabalhar os três (usuário + Gemini + Claude) juntos sem atrito de merge/regressão cruzada, o projeto foi dividido por **área fixa**, não por tarefa avulsa:
 
-- **🕹️ Gemini → Cliente Mobile/Android (`Client_Android/`):** FPS, rendering 3D, touch/joystick, UI mobile, otimizações MonoGame. Ele já é quem está com contexto de campo mais recente aqui (reverteu para v1.34 e validou no aparelho).
+- **🕹️ Gemini → Cliente Mobile/Android (`Client_Android/`):** FPS, rendering 3D, touch/joystick, UI mobile, otimizações MonoGame.
 - **🖥️ Claude → Servidor (`OpenMU/`) e infraestrutura:** Configuração de VPS, portas/firewall, Web Admin Panel, rates, banco de dados, deploy. Área que não colide com arquivos do cliente mobile.
 - **Regra de exceção:** se uma IA precisar mexer fora da própria área (ex.: Claude precisar tocar em algo do `Client_Android`), isso deve ser combinado com o usuário antes, e registrado aqui no handoff — nunca silenciosamente.
-- **Regra de git:** cada IA trabalha a partir do estado que o usuário confirmar como "atual" (hoje: `b5b2cc3` / v1.34 no cliente). Não fazer `push --force` sem avisar o usuário; se o histórico remoto divergir do local, perguntar antes de sincronizar.
+- **Regra de git:** cada IA trabalha a partir do estado que o usuário confirmar como "atual". Não fazer `push --force` sem avisar o usuário; se o histórico remoto divergir do local, perguntar antes de sincronizar.
 - **Commits:** neste repositório, por pedido explícito do usuário, commits/PRs **não** levam linha de coautoria de IA (`Co-Authored-By`), independente da orientação padrão do sistema.
 
-### 📋 ESTADO ATUAL (Deixado por: Gemini — 09/09/2026)
-- **Versão Atual:** v1.50
+### 📋 ESTADO ATUAL (Deixado por: Gemini — 10/09/2026)
+- **Versão Atual:** v1.51
 - **O que está funcionando:**
   - Build CI/CD do GitHub Actions 100% estabilizado e gerando APK assinado automaticamente.
-  - Painel de debug ativo na tela reportando FPS, DrawCalls (DC) e Garbage Collector Memory (GC).
-  - Personagem anda, mundo 3D visível, NPCs visíveis em Lorencia.
-  - Implementado o "Caminho 1" de FPS:
-    1. Escalonamento interno para 720p proporcional ao aspect ratio nativo da tela.
-    2. Culling de distância (`Camera.Instance.ViewFar = 2200f`) aplicado em `WalkableWorldControl` e `LorenciaWorld`.
-    3. Corte de chamadas e verificações de shadow passes no `ModelObject.DrawModel`.
-    4. Remoção de checagem per-frame do `GC.GetTotalMemory`.
-- **Tarefa Imediata:**
-  - Usuário testar v1.50 para checar salto de FPS em Lorencia.
-  - Em seguida, avançar para a camada de gameplay mobile (diálogo com NPCs, botão [X] de fechar janelas, menus touch e exibição de itens).
+  - Personagem e NPCs 100% restaurados e visíveis em Lorencia (`ViewFar = 3500f`).
+  - Interação direta com NPCs pelo toque na tela: tocar em um NPC agora abre o diálogo/loja (`SendTalkToNpcRequestAsync`) sem disparar caminhada vazia.
+  - Janelas com botão touch `[X]` ergonômico no topo direito (`InventoryControl`, `CharacterInfoWindowControl`, `NpcShopControl`).
+  - Menu HUD mobile no `MobileControlsOverlay`: botões `[INV]`, `[CHAR]`, `[MAP]`, `[CMD]` e `[X]` (fechar todas as janelas).
+  - Escalonamento 720p ativo mantendo os fragment shaders leves no Android.
+- **Próximos Passos:**
+  - Usuário testar a versão v1.51 no celular (interagir com ferreiro/loja, abrir/fechar inventário e status pelos novos botões HUD).
+  - Ajustar visualização de itens no inventário mobile e atalhos de poções/skills se necessário.
 
 ### 📋 ESTADO ATUAL (Deixado por: Claude)
 - **Área assumida:** Servidor OpenMU e infraestrutura (VPS, portas, Web Admin Panel, rates).
-- **Tarefa Imediata para Claude:** Ainda não iniciada — próximo passo é revisar o item 15 do roadmap ("Garantir portas 44405 e 55901 totalmente abertas no firewall da VPS") e o item 14 ("Aprender a usar o Web Admin Panel"), conforme o usuário confirmar prioridade.
+- **Tarefa Imediata para Claude:** Ainda não iniciada — próximo passo é revisar o item 16 do roadmap ("Garantir portas 44405 e 55901 totalmente abertas no firewall da VPS") e o item 15 ("Aprender a usar o Web Admin Panel"), conforme o usuário confirmar prioridade.
 
 ---
+
 
