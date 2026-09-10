@@ -1,4 +1,4 @@
-﻿using Client.Main.Controllers;
+using Client.Main.Controllers;
 using Client.Main.Controls;
 using Client.Main.Objects.Monsters;
 using Client.Main.Objects.Worlds.Lorencia;
@@ -24,6 +24,9 @@ namespace Client.Main.Worlds
 
         public override void AfterLoad()
         {
+#if ANDROID || IOS
+            Camera.Instance.ViewFar = 2200f;
+#endif
             Vector2 defaultSpawn = new Vector2(138, 124);
 
             Walker.Reset();

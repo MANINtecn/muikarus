@@ -22,6 +22,8 @@ namespace Client.Main
                 public static bool OPTIMIZE_FOR_INTEGRATED_GPU = true;
                 public static bool HIGH_QUALITY_TEXTURES = false;
                 public static float RENDER_SCALE = 1.0f;
+                public static int TARGET_RENDER_WIDTH = 0;
+                public static int TARGET_RENDER_HEIGHT = 0;
 #if ANDROID
                 private static string _dataPath;
                 public static string DataPath

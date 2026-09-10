@@ -55,6 +55,11 @@ namespace Client.Main.Controls
             : base(worldIndex)
         {
             Interactive = true;
+#if ANDROID || IOS
+            Camera.Instance.ViewFar = 2200f;
+#else
+            Camera.Instance.ViewFar = 3200f;
+#endif
         }
 
         /// <summary>
@@ -64,6 +69,16 @@ namespace Client.Main.Controls
             : this(worldIndex)
         {
             Walker = walker;
+        }
+
+        public override void AfterLoad()
+        {
+            base.AfterLoad();
+#if ANDROID || IOS
+            Camera.Instance.ViewFar = 2200f;
+#else
+            Camera.Instance.ViewFar = 3200f;
+#endif
         }
 
         // --- Lifecycle Methods ---

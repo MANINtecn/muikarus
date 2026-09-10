@@ -97,6 +97,28 @@ namespace MuAndroid
             Client.Main.Constants.OPTIMIZE_FOR_INTEGRATED_GPU = true;
             Client.Main.Constants.HIGH_QUALITY_TEXTURES = false;
             Client.Main.Constants.RENDER_SCALE = 1.0f;
+
+            try
+            {
+                var metrics = Resources.DisplayMetrics;
+                int screenW = Math.Max(metrics.WidthPixels, metrics.HeightPixels);
+                int screenH = Math.Min(metrics.WidthPixels, metrics.HeightPixels);
+                float aspect = (float)screenW / screenH;
+
+                // Clamp internal render target height to 720p to drastically reduce mobile GPU fillrate load
+                int targetH = Math.Min(720, screenH);
+                int targetW = (int)Math.Round(targetH * aspect);
+                if (targetW % 2 != 0) targetW++;
+                if (targetH % 2 != 0) targetH++;
+
+                Client.Main.Constants.TARGET_RENDER_WIDTH = targetW;
+                Client.Main.Constants.TARGET_RENDER_HEIGHT = targetH;
+                Android.Util.Log.Info("MuAndroid", $"Resolution scaled: Screen={screenW}x{screenH} -> Target={targetW}x{targetH} (Aspect={aspect:F2})");
+            }
+            catch (Exception ex)
+            {
+                Android.Util.Log.Error("MuAndroid", $"Failed to calculate render target: {ex.Message}");
+            }
         }
 
         protected override void OnCreate(Bundle bundle)

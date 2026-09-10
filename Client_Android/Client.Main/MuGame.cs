@@ -41,8 +41,8 @@ namespace Client.Main
 
         // Public Instance Properties
         public BaseScene ActiveScene { get; private set; }
-        public int Width => _graphics.PreferredBackBufferWidth == 0 && GraphicsDevice != null ? GraphicsDevice.PresentationParameters.BackBufferWidth : _graphics.PreferredBackBufferWidth;
-        public int Height => _graphics.PreferredBackBufferHeight == 0 && GraphicsDevice != null ? GraphicsDevice.PresentationParameters.BackBufferHeight : _graphics.PreferredBackBufferHeight;
+        public int Width => GraphicsDevice != null ? GraphicsDevice.PresentationParameters.BackBufferWidth : (_graphics.PreferredBackBufferWidth > 0 ? _graphics.PreferredBackBufferWidth : 1280);
+        public int Height => GraphicsDevice != null ? GraphicsDevice.PresentationParameters.BackBufferHeight : (_graphics.PreferredBackBufferHeight > 0 ? _graphics.PreferredBackBufferHeight : 720);
         public MouseState PrevMouseState { get; private set; }
         public MouseState Mouse { get; private set; }
         public KeyboardState PrevKeyboard { get; private set; }
@@ -70,8 +70,15 @@ namespace Client.Main
 
 #if ANDROID || IOS
             _graphics.IsFullScreen = true;
-            _graphics.PreferredBackBufferWidth = 0;
-            _graphics.PreferredBackBufferHeight = 0;
+            int rw = Constants.TARGET_RENDER_WIDTH;
+            int rh = Constants.TARGET_RENDER_HEIGHT;
+            if (rw <= 0 || rh <= 0)
+            {
+                rw = 1280;
+                rh = 720;
+            }
+            _graphics.PreferredBackBufferWidth = rw;
+            _graphics.PreferredBackBufferHeight = rh;
             _graphics.SynchronizeWithVerticalRetrace = false; // Desativa VSync para evitar quantização/throttle de 7-8 FPS
             IsFixedTimeStep = false;
             TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0 / 60.0); // 60 FPS fluido no Android
@@ -244,6 +251,8 @@ namespace Client.Main
 
             try
             {
+                TouchPanel.DisplayWidth = Width;
+                TouchPanel.DisplayHeight = Height;
                 TouchPanel.EnableMouseTouchPoint = true;
                 TouchPanel.EnableMouseGestures = true;
             }

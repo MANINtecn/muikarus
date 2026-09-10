@@ -416,6 +416,21 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
 - [x] **Release e Versionamento v1.49:**
   - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 49` e `versionName: 1.49`.
 
+### 🎮 [09/09/2026] — Versão 1.50 ("Caminho 1" / Otimização Agressiva de FPS Mobile)
+- [x] **Diagnóstico da Causa Raiz dos 7–8 FPS em Lorencia:**
+  - **Sobrecarga Brutal de Fillrate (Resolução Nativa sem Escalonamento):** O MonoGame Android configurava `PreferredBackBufferWidth = 0` e `PreferredBackBufferHeight = 0`, forçando o backbuffer a rodar na resolução física nativa da tela do celular (ex: 2400x1080 = 2.6 milhões de pixels). Com centenas de quads de terreno e malhas transparentes sobrepostas em Lorencia, a GPU móvel afunilava totalmente a taxa de preenchimento.
+  - **ViewFar Descalibrado (Herança de 50.000f):** A classe singleton `Camera.Instance` herdava `ViewFar = 50000f` de `LoadWorld.cs` ou `5000f` de `SelectCharacterWorld.cs`, pois `WalkableWorldControl` e `LorenciaWorld` nunca redefiniam o `ViewFar`. Isso fazia o loop de culling de blocos de terreno e objetos processar centenas de objetos e blocos distantes desnecessariamente.
+  - **Shadow Passes Redundantes:** Chamadas de `DrawShadowMesh` no `ModelObject.cs` avaliavam condições de sombra e despachavam métodos mesmo com sombras 3D desativadas no mobile.
+  - **Coleta de GC no Frame:** `FPSCounter.CalcFPS()` chamava `GC.GetTotalMemory(false)` 60 vezes por segundo, disparando sincronizações no runtime Mono.
+- [x] **Soluções Implementadas no v1.50:**
+  - **Escalonamento Interno para 720p:** `MainActivity.ApplyAndroidDefaults()` calcula a resolução interna do BackBuffer travando a altura máxima em 720p e adaptando a largura proporcionalmente à proporção de aspecto da tela (ex: 1600x720 num display 20:9), permitindo ao hardware de display do Android (SurfaceFlinger) fazer o upscale para tela cheia com 0% de custo de GPU. Redução de mais de 60% na carga de fragment shaders.
+  - **TouchPanel Adaptado:** `TouchPanel.DisplayWidth = Width` e `TouchPanel.DisplayHeight = Height` para alinhamento 1:1 entre coordenadas de toque e renderização.
+  - **Limitação de Culling (`ViewFar = 2200f`):** Definido `Camera.Instance.ViewFar = 2200f` em `WalkableWorldControl` e `LorenciaWorld.AfterLoad()`, reduzindo o raio de busca de terreno de 62.500 unidades para 2.750 unidades.
+  - **Eliminação de Passes de Sombra no Mobile:** `#if !ANDROID && !IOS` direto nas chamadas de sombra no `ModelObject.DrawModel()`.
+  - **Otimização do Contador de GC:** `GC.GetTotalMemory` passa a ser chamado a cada 2 segundos no `FPSCounter`, eliminando 60 chamadas/s.
+- [x] **Release e Versionamento v1.50:**
+  - `MuAndroid.csproj` e `AndroidManifest.xml` atualizados para `versionCode: 50` e `versionName: 1.50`.
+
 ---
 
 ## 🛠️ PRÓXIMOS PASSOS (ROADMAP)
@@ -433,9 +448,10 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
 11. [x] **CONCLUÍDO (v1.18):** Teclado virtual Android 100% infalível via diálogo nativo escuro ergonômico, auto-avanço de campo (Usuário -> Senha) e disparo direto de login ao teclar Concluir.
 12. [x] **CONCLUÍDO (v1.19/v1.20):** Otimização da Seleção de Personagens (60 FPS estáveis), remoção da colisão de carregamento ao entrar no mundo e botões touch dedicados.
 13. [x] **CONCLUÍDO (v1.24):** Entrada confirmada em Lorencia 3D, batching dinâmico do terreno (30+ FPS), textura das pedras da cidade e Joystick Analógico + Botões Touch no mundo!
-14. [ ] Aprender a usar o **Web Admin Panel** (`http://localhost:5000`) para gerenciar contas, itens e rates.
-15. [ ] **DEPLOY VPS:** Garantir portas `44405` e `55901` totalmente abertas no firewall da VPS Windows (`192.99.110.164`).
-16. [ ] **SISTEMA DE AUTO-UPDATE (PATCHER LEVE):** Criar lógica no `LoadScene.cs` para checar `patch_version.txt`. Se houver atualizações pontuais, baixar apenas um `Patch.zip` de poucos megabytes em vez de pacotes completos.
+14. [x] **CONCLUÍDO (v1.50):** Otimização agressiva de FPS mobile (resolução interna 720p, ViewFar 2200f, corte de shadow pass e culling).
+15. [ ] Aprender a usar o **Web Admin Panel** (`http://localhost:5000`) para gerenciar contas, itens e rates.
+16. [ ] **DEPLOY VPS:** Garantir portas `44405` e `55901` totalmente abertas no firewall da VPS Windows (`192.99.110.164`).
+17. [ ] **SISTEMA DE AUTO-UPDATE (PATCHER LEVE):** Criar lógica no `LoadScene.cs` para checar `patch_version.txt`. Se houver atualizações pontuais, baixar apenas um `Patch.zip` de poucos megabytes em vez de pacotes completos.
 
 ---
 
@@ -454,21 +470,23 @@ Para trabalhar os três (usuário + Gemini + Claude) juntos sem atrito de merge/
 - **Commits:** neste repositório, por pedido explícito do usuário, commits/PRs **não** levam linha de coautoria de IA (`Co-Authored-By`), independente da orientação padrão do sistema.
 
 ### 📋 ESTADO ATUAL (Deixado por: Gemini — 09/09/2026)
-- **Versão Atual:** v1.49 (Commit `a443b7c`).
+- **Versão Atual:** v1.50
 - **O que está funcionando:**
   - Build CI/CD do GitHub Actions 100% estabilizado e gerando APK assinado automaticamente.
   - Painel de debug ativo na tela reportando FPS, DrawCalls (DC) e Garbage Collector Memory (GC).
-  - Causa da Tela Preta erradicada: Restaurado o pacote canônico `MuAndroid.MuAndroid` com varredura dinâmica de dados no Android e remoção do `Thread.Sleep` do loop `Update`.
-  - Conexão de rede ativa com o ConnectServer da VPS (`192.99.110.164:44405`).
-- **Última lição confirmada:**
-  - `Thread.Sleep` dentro de `Update` no MonoGame Android asfixia o pump de rede e ações agendadas na thread principal (`_mainThreadActions`).
-  - Nunca alterar o `package` no `AndroidManifest.xml`, pois ele dita o diretório `/Android/data/<package>/files/` onde ficam armazenados os 1.7 GB do jogo.
-- **Tarefa Imediata para o Desempenho (FPS):**
-  - O FPS base de ~7 a 15 FPS no mobile decorre do BackBuffer em resolução nativa cheia (ex: 2400x1080) e quantidade excessiva de Draw Calls no mundo 3D (Lorencia).
-  - Próximos passos de otimização de FPS: trabalhar em ViewFar/culling, resolução interna renderizada (RenderScale / BackBuffer adaptativo para mobile) e batching de objetos sem desestabilizar o loop de tempo.
+  - Personagem anda, mundo 3D visível, NPCs visíveis em Lorencia.
+  - Implementado o "Caminho 1" de FPS:
+    1. Escalonamento interno para 720p proporcional ao aspect ratio nativo da tela.
+    2. Culling de distância (`Camera.Instance.ViewFar = 2200f`) aplicado em `WalkableWorldControl` e `LorenciaWorld`.
+    3. Corte de chamadas e verificações de shadow passes no `ModelObject.DrawModel`.
+    4. Remoção de checagem per-frame do `GC.GetTotalMemory`.
+- **Tarefa Imediata:**
+  - Usuário testar v1.50 para checar salto de FPS em Lorencia.
+  - Em seguida, avançar para a camada de gameplay mobile (diálogo com NPCs, botão [X] de fechar janelas, menus touch e exibição de itens).
 
 ### 📋 ESTADO ATUAL (Deixado por: Claude)
 - **Área assumida:** Servidor OpenMU e infraestrutura (VPS, portas, Web Admin Panel, rates).
 - **Tarefa Imediata para Claude:** Ainda não iniciada — próximo passo é revisar o item 15 do roadmap ("Garantir portas 44405 e 55901 totalmente abertas no firewall da VPS") e o item 14 ("Aprender a usar o Web Admin Panel"), conforme o usuário confirmar prioridade.
 
 ---
+

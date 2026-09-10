@@ -189,8 +189,10 @@ namespace Client.Main.Objects
                 bool draw = isAfterDraw ? isRGBA : !isRGBA;
                 if (!draw) continue;
 
+#if !ANDROID && !IOS
                 if (!isAfterDraw && RenderShadow)
                     DrawShadowMesh(i, Camera.Instance.View, Camera.Instance.Projection, MuGame.Instance.GameTime);
+#endif
 
                 if (!isAfterDraw && IsMouseHover)
                     DrawMeshHighlight(i);
@@ -211,8 +213,10 @@ namespace Client.Main.Objects
                 bool isRGBA = _meshIsRGBA[i];
                 bool draw = isAfterDraw ? isRGBA || true : false;
 
+#if !ANDROID && !IOS
                 if (!isAfterDraw && RenderShadow)
                     DrawShadowMesh(i, Camera.Instance.View, Camera.Instance.Projection, MuGame.Instance.GameTime);
+#endif
 
                 if (!isAfterDraw && IsMouseHover)
                     DrawMeshHighlight(i);

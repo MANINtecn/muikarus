@@ -57,7 +57,6 @@ namespace Client.Main
             _frameCount++;
             WorldTime = gameTime.TotalGameTime.TotalMilliseconds;
             DrawCalls = 0;
-            GCMemory = GC.GetTotalMemory(false);
 
             double differenceMs = WorldTime - _lastTime;
             if (differenceMs <= 0)
@@ -75,6 +74,7 @@ namespace Client.Main
             if (diffSinceStart > 2000.0 || _frameCount > 25)
             {
                 FPS_AVG = (1000.0 * _frameCount) / diffSinceStart;
+                GCMemory = GC.GetTotalMemory(false);
                 _startTime = WorldTime;
                 _frameCount = 0;
             }
