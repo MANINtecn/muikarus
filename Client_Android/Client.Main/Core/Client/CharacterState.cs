@@ -539,6 +539,47 @@ namespace Client.Main.Core.Client
             return sb.ToString();
         }
 
+        // NPC Shop Items
+        private readonly ConcurrentDictionary<byte, byte[]> _shopItems = new();
+        public event Action ShopItemsChanged;
+        public ushort LastNpcTypeNumber { get; set; }
+        private byte? _pendingSellSlot;
+
+        public void ClearShopItems()
+        {
+            _shopItems.Clear();
+            ShopItemsChanged?.Invoke();
+        }
+
+        public void AddOrUpdateShopItem(byte slot, byte[] itemData)
+        {
+            _shopItems[slot] = itemData;
+        }
+
+        public void RaiseShopItemsChanged()
+        {
+            ShopItemsChanged?.Invoke();
+        }
+
+        public IReadOnlyDictionary<byte, byte[]> GetShopItems()
+        {
+            return new ReadOnlyDictionary<byte, byte[]>(_shopItems.ToDictionary(k => k.Key, v => v.Value));
+        }
+
+        public void SetPendingSellSlot(byte slot) => _pendingSellSlot = slot;
+
+        public bool TryConsumePendingSellSlot(out byte slot)
+        {
+            if (_pendingSellSlot.HasValue)
+            {
+                slot = _pendingSellSlot.Value;
+                _pendingSellSlot = null;
+                return true;
+            }
+            slot = 0;
+            return false;
+        }
+
         /// <summary>
         /// Gets a read-only dictionary representation of the current inventory items.
         /// Key is the slot number, Value is the raw item data.

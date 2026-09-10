@@ -450,5 +450,51 @@ namespace Client.Main.Networking.Services
                 _logger.LogError(ex, "Error sending consume item request for slot {ItemSlot}.", itemSlot);
             }
         }
+
+        /// <summary>
+        /// Sends a buy request for the given NPC shop slot.
+        /// </summary>
+        public async Task SendBuyItemFromNpcRequestAsync(byte shopSlot)
+        {
+            if (!_connectionManager.IsConnected)
+            {
+                _logger.LogError("Not connected - cannot send buy item request.");
+                return;
+            }
+
+            _logger.LogInformation("Sending BuyItemFromNpcRequest for slot {Slot}...", shopSlot);
+            try
+            {
+                await _connectionManager.Connection.SendBuyItemFromNpcRequestAsync(shopSlot);
+                _logger.LogInformation("BuyItemFromNpcRequest sent for slot {Slot}.", shopSlot);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending BuyItemFromNpcRequest for slot {Slot}.", shopSlot);
+            }
+        }
+
+        /// <summary>
+        /// Sends a request to sell an item from the inventory to the currently opened NPC merchant.
+        /// </summary>
+        public async Task SendSellItemToNpcRequestAsync(byte inventorySlot)
+        {
+            if (!_connectionManager.IsConnected)
+            {
+                _logger.LogError("Not connected - cannot send sell item request.");
+                return;
+            }
+
+            _logger.LogInformation("Sending SellItemToNpcRequest for inv slot {Slot}...", inventorySlot);
+            try
+            {
+                await _connectionManager.Connection.SendSellItemToNpcRequestAsync(inventorySlot);
+                _logger.LogInformation("SellItemToNpcRequest sent for inv slot {Slot}.", inventorySlot);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending SellItemToNpcRequest for inv slot {Slot}.", inventorySlot);
+            }
+        }
     }
 }

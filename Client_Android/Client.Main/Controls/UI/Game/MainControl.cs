@@ -43,7 +43,7 @@ namespace Client.Main.Controls.UI.Game
         public MainControl(CharacterState state)
         {
             _state = state ?? throw new ArgumentNullException(nameof(state));
-            Interactive = true;
+            Interactive = false; // Must be false so base GameControl.Update does not capture full screen
 
             // Semi-transparent hotkeys
             foreach (var key in new[] { "ActiveSkill_1", "ActiveSkill_2", "0", "1", "2", "3", "4", "5" })
@@ -123,7 +123,7 @@ namespace Client.Main.Controls.UI.Game
             float scaleY = (float)currentHeight / DesignHeight;
             float uniformScale = Math.Min(scaleX, scaleY) * CustomScale;
 
-            int hudTop = (int)(590 * uniformScale);
+            int hudTop = (int)(595 * uniformScale);
 
             var mouse = MuGame.Instance.Mouse;
             var prevMouse = MuGame.Instance.PrevMouseState;
@@ -151,6 +151,10 @@ namespace Client.Main.Controls.UI.Game
                 {
                     HandleHudClick(mouse.Position);
                 }
+            }
+            else
+            {
+                IsMouseOver = false;
             }
 
             // Keyboard hotkeys (for testing and bluetooth keyboards)

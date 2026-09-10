@@ -509,7 +509,7 @@ Para que o projeto funcione perfeitamente de ponta a ponta (Servidor na VPS + AP
 15. [x] **CONCLUÍDO (v1.51):** Restauração de visibilidade (ViewFar 3500f + blindagem hero), interação touch com NPCs, botões [X] de fechar e menu HUD mobile de ações.
 16. [x] **CONCLUÍDO (v1.52):** Desbloqueio definitivo do clique no chão (correção de overlay touch), comandos em 3 colunas horizontais, ajuste do [X] do bar e renderização de itens com cores vivas e sombras.
 17. [x] **CONCLUÍDO (v1.53):** Barra de Ações Inferior interativa: bloqueio definitivo do vazamento de toque para o chão 3D, consumo de poções Q-W-E-R via rede com som nativo (`SendConsumeItemRequestAsync`), seleção de habilidades 1 a 5, badges com contagem de poções e atalhos touch para janelas de Inventário, Personagem e Comandos.
-18. [ ] **FRENTE 2 (LOJA DE NPCS):** Conectar os pacotes de rede do OpenMU e renderização completa de itens da loja com preços e compra no NPC.
+18. [x] **CONCLUÍDO (v1.54):** Correção definitiva da caminhada no chão (liberação de cliques fora do HUD) e FRENTE 2 (Loja de NPCs): criação do `ShopHandler` no Android, roteamento de pacotes `0x30/0x31/0x32`, renderização touch com detalhes dos itens, preços calculados e compra real com Zen (`SendBuyItemFromNpcRequestAsync`).
 19. [ ] **FRENTE 3 (INVENTÁRIO & EQUIPAMENTOS):** Adicionar slots de equipamentos (elmo, armadura, etc.) e renderizador 3D BMD de itens.
 20. [ ] Aprender a usar o **Web Admin Panel** (`http://localhost:5000`) para gerenciar contas, itens e rates.
 21. [ ] **DEPLOY VPS:** Garantir portas `44405` e `55901` totalmente abertas no firewall da VPS Windows (`192.99.110.164`).
@@ -532,20 +532,17 @@ Para trabalhar os três (usuário + Gemini + Claude) juntos sem atrito de merge/
 - **Commits:** neste repositório, por pedido explícito do usuário, commits/PRs **não** levam linha de coautoria de IA (`Co-Authored-By`), independente da orientação padrão do sistema.
 
 ### 📋 ESTADO ATUAL (Deixado por: Gemini — 10/09/2026)
-- **Versão Atual:** v1.53
+- **Versão Atual:** v1.54
 - **O que está funcionando:**
   - Build CI/CD do GitHub Actions 100% estabilizado e gerando APK assinado automaticamente.
   - Personagem e NPCs 100% visíveis em Lorencia (`ViewFar = 3500f`).
-  - Caminhada livre pelo chão restaurada no celular com 1 toque.
-  - **Frente 1 Concluída (v1.53 - Barra Inferior Interativa):**
-    - **Fim do Vazamento de Clique:** Identificada a causa raiz (o container `MainControl` e seus filhos tinham `Interactive = false` por padrão, fazendo o motor do jogo ignorar o HUD e passar o toque direto ao raycaster 3D do chão). Agora, qualquer toque na área da barra inferior (`mouse.Position.Y >= hudTop`) é imediatamente interceptado, consumido (`SetMouseInputConsumed()`) e capturado, impedindo que o personagem saia andando em direção à parte inferior da tela.
-    - **Consumo Real de Poções (Q-W-E-R):** Tocar em Q (Vida), W (Mana), E (Antídoto/Complex) ou R (Pergaminhos/Especiais) varre a mochila do personagem, localiza o item adequado via `ItemDataParser`, envia o pacote `ConsumeItemRequest` para o servidor OpenMU via `CharacterService.SendConsumeItemRequestAsync()`, e toca o efeito sonoro clássico (`pDrink.wav` ou `pEatApple.wav`).
-    - **Badges Numéricos de Quantidade:** A quantidade disponível de poções de Vida, Mana, Antídoto e Especiais agora é exibida diretamente sobre os slots correspondentes na barra, com texto sombreado e colorido em tempo real.
-    - **Seleção de Skills (1 a 5 e ActiveSkills):** Tocar nos botões numéricos de 1 a 5 ou nos slots centrais de skill ativa seleciona a habilidade aprendida do personagem com feedback de clique sonoro (`iButtonClick.wav`) e log de confirmação na tela.
-    - **Atalhos Touch para Janelas:** Tocar nos botões da barra inferior agora abre/fecha as respectivas janelas: botão `3` abre o Inventário, botão `2` abre a janela de Informações do Personagem e botão `1` abre a janela de Comandos!
-- **Próximos Passos (Frentes 2 e 3):**
-  1. **Frente 2 (Loja de NPCs - NpcShopControl):** Conectar os pacotes de rede do OpenMU e portar a renderização de itens da loja (baseada na implementação de 51 KB do Desktop) para que o bar, ferreiro e mago exibam seus produtos para compra.
-  2. **Frente 3 (Inventário Completo & Equipamentos):** Implementar a parte superior do inventário com os slots de equipamentos (Elmo, Armadura, Calça, Luvas, Botas, Armas, Asa, Pet/Montaria, Anéis, Pingente) e integrar o `BmdPreviewRenderer` para renderizar os modelos 3D reais dos itens.
+  - **Caminhada Livre Restaurada (v1.54):** O chão 3D voltou a responder imediatamente a toques em qualquer lugar da tela fora do HUD inferior. `MainControl.Interactive = false` impede captura indevida de tela inteira, e `IsMouseOver` é limitado com precisão cirúrgica para coordenadas `mouse.Y >= hudTop`.
+  - **Frente 2 Concluída (v1.54 - Loja de NPCs / Comerciantes):**
+    - **ShopHandler no Android:** Criado e registrado no `PacketRouter.cs` para processar os pacotes de loja do OpenMU: `0x30` (`NpcWindowResponse`), `0x31` (`StoreItemList`), `0x32` (`ItemBought`/`NpcItemBuyFailed`) e `0x33` (`NpcItemSellResult`).
+    - **NpcShopControl Mobile Touch:** Interface moderna em tema escuro com moldura dourada (540x430), botão [X] de fechar, indicador do Zen do jogador, lista rolável de itens com botões ▲/▼ e cartões de 48px com nome colorido, categoria, nível e preço.
+    - **Painel de Detalhes & Compra:** Painel direito detalhado com atributos do item (Nível, Durabilidade, Habilidade, Sorte, Excelente), checagem de saldo e botão grande **[ COMPRAR ]** que despacha `SendBuyItemFromNpcRequestAsync(slot)` diretamente ao servidor via `CharacterService`.
+- **Próximo Passo:**
+  - **Frente 3 (Inventário Completo & Equipamentos):** Implementar os slots de equipamentos do personagem (Elmo, Armadura, Calça, Luvas, Botas, Armas, Asa, Pet/Montaria, Anéis, Pingente) e renderizador 3D BMD dos itens.
 
 ### 📋 ESTADO ATUAL (Deixado por: Claude)
 - **Área assumida:** Servidor OpenMU e infraestrutura (VPS, portas, Web Admin Panel, rates).
