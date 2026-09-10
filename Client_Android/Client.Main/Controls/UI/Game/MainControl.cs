@@ -262,7 +262,7 @@ namespace Client.Main.Controls.UI.Game
             if (btnSettings != null && btnSettings.DisplayRectangle.Contains(pos))
             {
                 SoundController.Instance.PlayBuffer("Sound/iButtonClick.wav");
-                OnScreenLogger.Log("[CONFIG] Abrindo configuracoes", LogLevel.Info);
+                OnScreenLogger.Log("[CONFIG] Abrindo configuracoes", LogLevel.Information);
                 return;
             }
 
@@ -270,14 +270,14 @@ namespace Client.Main.Controls.UI.Game
             if (_hp.DisplayRectangle.Contains(pos))
             {
                 SoundController.Instance.PlayBuffer("Sound/iButtonClick.wav");
-                OnScreenLogger.Log($"[HP] Vida: {_state.CurrentHp} / {_state.MaxHp}", LogLevel.Info);
+                OnScreenLogger.Log($"[HP] Vida: {_state.CurrentHp} / {_state.MaxHp}", LogLevel.Information);
                 return;
             }
 
             if (_mp.DisplayRectangle.Contains(pos))
             {
                 SoundController.Instance.PlayBuffer("Sound/iButtonClick.wav");
-                OnScreenLogger.Log($"[MP] Mana: {_state.CurrentMana} / {_state.MaxMp}", LogLevel.Info);
+                OnScreenLogger.Log($"[MP] Mana: {_state.CurrentMana} / {_state.MaxMp}", LogLevel.Information);
                 return;
             }
 
@@ -285,7 +285,7 @@ namespace Client.Main.Controls.UI.Game
             var exp = Controls.FirstOrDefault(c => c.Name == "ExpBar");
             if (exp != null && exp.DisplayRectangle.Contains(pos))
             {
-                OnScreenLogger.Log($"[EXP] Nivel: {_state.Level} | Exp: {_state.Experience} / {_state.ExperienceForNextLevel}", LogLevel.Info);
+                OnScreenLogger.Log($"[EXP] Nivel: {_state.Level} | Exp: {_state.Experience} / {_state.ExperienceForNextLevel}", LogLevel.Information);
                 return;
             }
         }
@@ -372,7 +372,7 @@ namespace Client.Main.Controls.UI.Game
                     });
                 }
 
-                OnScreenLogger.Log($"[POTION] Usou {itemName} (slot {slot})!", LogLevel.Info);
+                OnScreenLogger.Log($"[POTION] Usou {itemName} (slot {slot})!", LogLevel.Information);
                 return true;
             }
             else
@@ -399,19 +399,19 @@ namespace Client.Main.Controls.UI.Game
                 var chosen = skills[skillSlotIndex];
                 _state.SelectedSkillId = chosen.SkillId;
                 SoundController.Instance.PlayBuffer("Sound/iButtonClick.wav");
-                OnScreenLogger.Log($"[SKILL] Habilidade: ID {chosen.SkillId} (Nv {chosen.SkillLevel})", LogLevel.Info);
+                OnScreenLogger.Log($"[SKILL] Habilidade: ID {chosen.SkillId} (Nv {chosen.SkillLevel})", LogLevel.Information);
             }
             else if (skills.Count > 0)
             {
                 var fallback = skills[0];
                 _state.SelectedSkillId = fallback.SkillId;
                 SoundController.Instance.PlayBuffer("Sound/iButtonClick.wav");
-                OnScreenLogger.Log($"[SKILL] Habilidade: ID {fallback.SkillId}", LogLevel.Info);
+                OnScreenLogger.Log($"[SKILL] Habilidade: ID {fallback.SkillId}", LogLevel.Information);
             }
             else
             {
                 SoundController.Instance.PlayBuffer("Sound/iButtonClick.wav");
-                OnScreenLogger.Log($"[SKILL] Atalho {skillSlotIndex + 1} selecionado", LogLevel.Info);
+                OnScreenLogger.Log($"[SKILL] Atalho {skillSlotIndex + 1} selecionado", LogLevel.Information);
             }
         }
 
