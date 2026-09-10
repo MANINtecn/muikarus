@@ -580,6 +580,10 @@ namespace Client.Main.Core.Client
             return false;
         }
 
+        // Inventory Changed Event
+        public event Action InventoryChanged;
+        public void RaiseInventoryChanged() => InventoryChanged?.Invoke();
+
         /// <summary>
         /// Gets a read-only dictionary representation of the current inventory items.
         /// Key is the slot number, Value is the raw item data.
