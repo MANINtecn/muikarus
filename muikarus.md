@@ -539,15 +539,17 @@ Para trabalhar os três (usuário + Gemini + Claude) juntos sem atrito de merge/
   - Janela de Comandos (CMD) reformulada em 3 colunas horizontais ergonômicas para mobile landscape.
   - Botão `[X]` de fechar da loja do bar alinhado com perfeição na quina superior direita.
   - Itens do inventário agora possuem destaque colorido vibrante por tipo (armadura, arma, poção), borda dupla e nomes legíveis com sombra.
-- **Próximos Passos:**
-  - Usuário testar a versão v1.52 no celular (andar livremente pelo chão, abrir comandos em 3 colunas, ver itens coloridos no inventário).
-  - Conectar sincronização de itens de NPC Shop vindos do servidor OpenMU.
+- **Próximos Passos (Definidos com o Usuário em 10/09/2026):**
+  1. **Barra Inferior (Poções Q-W-E-R e Skills 1-5):** Ativar interatividade touch nos botões da barra inferior (`MainControl`) para impedir que o clique vaze para o chão e implementar o consumo de poções e seleção de skills.
+  2. **Loja de NPCs (NpcShopControl):** Conectar os pacotes de rede do OpenMU e portar a renderização de itens da loja (baseada na implementação de 51 KB do Desktop) para que o bar, ferreiro e mago exibam seus produtos para compra.
+  3. **Inventário Completo & Equipamentos:** Implementar a parte superior do inventário com os slots de equipamentos (Elmo, Armadura, Calça, Luvas, Botas, Armas, Asa, Pet/Montaria, Anéis, Pingente) e integrar o `BmdPreviewRenderer` para renderizar os modelos 3D reais dos itens.
 
 ### 📋 ESTADO ATUAL (Deixado por: Claude)
 - **Área assumida:** Servidor OpenMU e infraestrutura (VPS, portas, Web Admin Panel, rates).
 - **Tarefa Imediata para Claude:** Ainda não iniciada — próximo passo é revisar o item 17 do roadmap ("Garantir portas 44405 e 55901 totalmente abertas no firewall da VPS") e o item 16 ("Aprender a usar o Web Admin Panel"), conforme o usuário confirmar prioridade.
 
 ---
+
 
 
 
