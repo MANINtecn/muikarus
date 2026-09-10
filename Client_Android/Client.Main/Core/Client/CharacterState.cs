@@ -121,6 +121,8 @@ namespace Client.Main.Core.Client
 
         // Skills
         private readonly ConcurrentDictionary<ushort, SkillEntryState> _skillList = new();
+        public ushort? SelectedSkillId { get; set; }
+        public event Action<ushort?> SelectedSkillChanged;
 
         // --- Update Methods ---
 

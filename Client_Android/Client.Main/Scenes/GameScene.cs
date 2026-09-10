@@ -150,6 +150,26 @@ namespace Client.Main.Scenes
             _commandWindow = new CommandWindowControl();
             Controls.Add(_commandWindow);
 
+            // Wire bottom HUD interface button events
+            _main.InventoryRequested += () =>
+            {
+                if (_inventoryControl.Visible)
+                    _inventoryControl.Hide();
+                else
+                    _inventoryControl.Show();
+            };
+            _main.CharacterInfoRequested += () =>
+            {
+                if (_characterInfoWindow.Visible)
+                    _characterInfoWindow.HideWindow();
+                else
+                    _characterInfoWindow.ShowWindow();
+            };
+            _main.CommandWindowRequested += () =>
+            {
+                _commandWindow.Visible = !_commandWindow.Visible;
+            };
+
             _mobileControls = new MobileControlsOverlay(this, _hero, _inventoryControl, _characterInfoWindow, _moveCommandWindow, _commandWindow);
             Controls.Add(_mobileControls);
 

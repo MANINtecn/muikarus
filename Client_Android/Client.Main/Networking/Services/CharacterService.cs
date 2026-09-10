@@ -424,5 +424,31 @@ namespace Client.Main.Networking.Services
             await SendCloseNpcRequestAsync();
             _logger.LogInformation("Elf Soldier buff sequence completed for NPC ID {NpcId}.", npcId);
         }
+
+        /// <summary>
+        /// Sends a consume item request packet to the server (potions, scrolls, jewels, etc.).
+        /// </summary>
+        public async Task SendConsumeItemRequestAsync(byte itemSlot, byte targetSlot = 0)
+        {
+            if (!_connectionManager.IsConnected)
+            {
+                _logger.LogError("Not connected - cannot send consume item request.");
+                return;
+            }
+
+            _logger.LogInformation(
+                "Sending consume item request: ItemSlot={ItemSlot}, TargetSlot={TargetSlot}...",
+                itemSlot, targetSlot);
+
+            try
+            {
+                await _connectionManager.Connection.SendConsumeItemRequestAsync(itemSlot, targetSlot, default);
+                _logger.LogInformation("Consume item request sent: ItemSlot={ItemSlot}, TargetSlot={TargetSlot}.", itemSlot, targetSlot);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending consume item request for slot {ItemSlot}.", itemSlot);
+            }
+        }
     }
 }
