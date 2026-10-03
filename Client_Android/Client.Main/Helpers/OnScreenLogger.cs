@@ -19,9 +19,20 @@ namespace Client.Main.Helpers
 
         public static event Action<string, LogLevel, string> OnLogged;
 
+        // Full session log (not trimmed to 12 lines) so it can be shared from the device.
+        private static readonly object _fullLock = new();
+        private static readonly System.Collections.Generic.List<string> _fullLog = new();
+        private const int MaxFullLines = 4000;
+        private static string _logFilePath;
+
+        /// <summary>Set by the platform layer (Android) to share the log text (WhatsApp/Telegram/etc).</summary>
+        public static Action<string> ShareLogRequested;
+
         public static void Log(string message, LogLevel level = LogLevel.Information, string category = "App")
         {
             if (string.IsNullOrEmpty(message)) return;
+
+            AppendFull(message, level, category);
 
             // Trim very long messages to 95 chars so they fit nicely on mobile screens
             if (message.Length > 95)
@@ -45,6 +56,53 @@ namespace Client.Main.Helpers
                 OnLogged?.Invoke(message, level, category);
             }
             catch { }
+        }
+
+        private static void AppendFull(string message, LogLevel level, string category)
+        {
+            string line = $"{DateTime.Now:HH:mm:ss.fff} [{level}] [{category}] {message}";
+            lock (_fullLock)
+            {
+                _fullLog.Add(line);
+                if (_fullLog.Count > MaxFullLines)
+                    _fullLog.RemoveRange(0, _fullLog.Count - MaxFullLines);
+
+                try
+                {
+                    if (_logFilePath == null)
+                    {
+                        _logFilePath = System.IO.Path.Combine(
+                            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                            "ikarus_log.txt");
+                        System.IO.File.WriteAllText(_logFilePath, $"=== Ikarus MU log {DateTime.Now:yyyy-MM-dd HH:mm:ss} ===\n");
+                    }
+                    System.IO.File.AppendAllText(_logFilePath, line + "\n");
+                }
+                catch { /* log file is best-effort */ }
+            }
+        }
+
+        /// <summary>Returns the last <paramref name="maxChars"/> characters of the session log.</summary>
+        public static string GetFullLogText(int maxChars = 120000)
+        {
+            string text;
+            lock (_fullLock)
+            {
+                text = string.Join("\n", _fullLog);
+            }
+            if (text.Length > maxChars) text = text.Substring(text.Length - maxChars);
+            return text;
+        }
+
+        public static void ShareLog()
+        {
+            var handler = ShareLogRequested;
+            if (handler == null)
+            {
+                Log("[LOG] Compartilhar log indisponivel nesta plataforma.", LogLevel.Warning);
+                return;
+            }
+            handler(GetFullLogText());
         }
 
         public static LogEntry[] GetEntries()

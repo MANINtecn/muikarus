@@ -531,6 +531,21 @@ Para trabalhar os três (usuário + Gemini + Claude) juntos sem atrito de merge/
 - **Regra de git:** cada IA trabalha a partir do estado que o usuário confirmar como "atual". Não fazer `push --force` sem avisar o usuário; se o histórico remoto divergir do local, perguntar antes de sincronizar.
 - **Commits:** neste repositório, por pedido explícito do usuário, commits/PRs **não** levam linha de coautoria de IA (`Co-Authored-By`), independente da orientação padrão do sistema.
 
+### 📋 ESTADO ATUAL (Deixado por: Claude Sonnet — 03/10/2026, v1.56)
+- **Regra do usuário:** SEMPRE anotar neste diário tudo o que for feito (cada versão/ajuste).
+- **v1.55 publicada** (Release `v1.55`, `IkarusMU-v1.55.apk`) após corrigir 4 erros de CI no commit `487a070`:
+  - `MiscGamePacketHandler.cs`: faltava `using System.Linq;` (`ToList` em `List<(string,CharacterClassNumber,ushort)>`).
+  - `GameScene.cs`: removido bloco `finally` que atribuía `_hero.Status` (setter inacessível) e `_hero.Visible` (somente leitura). Se o herói não aparecer, investigar o `Load()` do `WalkerObject`.
+- **Feedback do usuário na v1.55:** abre mais rápido; Noria a **14 FPS**; cliques em NPCs funcionam em alguns e em outros não; caminhada ok; **habilidades não abrem nada** ao tocar nos slots; difícil trazer logs do celular.
+- **O que foi feito na v1.56 (ainda a validar no aparelho):**
+  1. **Log compartilhável:** `OnScreenLogger` guarda o log completo da sessão (até 4000 linhas, também em `LocalApplicationData/ikarus_log.txt`). Botão **`LOG`** (canto superior direito, no jogo) chama `OnScreenLogger.ShareLog()` → `MainActivity` abre o compartilhar do Android (`ACTION_SEND` text/plain, últimos ~120k caracteres) para WhatsApp/Telegram/etc.
+  2. **Painel de Habilidades touch:** botão **`HAB`** (barra inferior, à esquerda do INV) e toque nos slots de habilidade do HUD (`MainControl.SkillsRequested`) abrem o painel (`MobileControlsOverlay.ToggleSkillPanel`). Lista as skills do `CharacterState.GetSkills()` com nome (tabela parcial `SkillNames`) e nível; tocar seleciona/desmarca (`SelectedSkillId`). Se vazio mostra "Nenhuma habilidade recebida do servidor" (diagnóstico: o servidor pode não estar enviando a lista de skills).
+  3. **Uso da skill:** `WalkableWorldControl` — ao tocar num monstro com skill selecionada chama `player.UseSkill(1, skillId, monster)` (→ `SendSkillRequestAsync`); sem skill, mantém o ataque básico.
+  4. **Diagnóstico de NPC:** logs `[TAP]` (tile, objeto sob o toque, NPC resolvido) e `[NPC]` (classe, nome, id; erros do `HandleClick` agora capturados e logados).
+- **Achado sobre NPCs:** várias classes têm `HandleClick() { }` vazio **por design** (BerdyshGuard, CrossbowGuard, GoblinGate, GoldenArcher, Leo, LukeTheHelper, Senior) — não é bug de toque. Os demais abrem janelas/lojas.
+- **FPS:** continua fora de escopo por decisão do usuário (14 FPS em Noria registrado como referência).
+- **Próximo passo:** instalar v1.56, tocar `LOG` após testar e enviar o texto; conferir `[SKILL]`/`[TAP]`/`[NPC]`.
+
 ### 📋 ESTADO ATUAL (Deixado por: Gemini — 03/10/2026)
 - **Versão Atual:** v1.55
 - **O que foi corrigido e implementado na v1.55:**

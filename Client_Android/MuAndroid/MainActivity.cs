@@ -153,6 +153,27 @@ namespace MuAndroid
                 Android.Util.Log.Error("MuAndroidCrash", $"{msg}\nSaved: {path}");
             };
 
+            Client.Main.Helpers.OnScreenLogger.ShareLogRequested = text =>
+            {
+                RunOnUiThread(() =>
+                {
+                    try
+                    {
+                        var send = new Intent(Intent.ActionSend);
+                        send.SetType("text/plain");
+                        send.PutExtra(Intent.ExtraSubject, "Ikarus MU log");
+                        send.PutExtra(Intent.ExtraText, text);
+                        var chooser = Intent.CreateChooser(send, "Enviar log");
+                        chooser.AddFlags(ActivityFlags.NewTask);
+                        StartActivity(chooser);
+                    }
+                    catch (Exception ex)
+                    {
+                        Android.Util.Log.Error("MuAndroid", $"Share log failed: {ex}");
+                    }
+                });
+            };
+
             _game = new Client.Main.MuGame();
 
             if (!Directory.Exists(Client.Main.Constants.DataPath))

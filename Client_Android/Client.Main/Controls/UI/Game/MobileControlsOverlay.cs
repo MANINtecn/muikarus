@@ -14,6 +14,8 @@ using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Input.Touch;
 using Client.Main.Models;
 using Client.Main.Helpers;
+using Client.Main.Core.Client;
+using Microsoft.Extensions.Logging;
 
 namespace Client.Main.Controls.UI.Game
 {
@@ -35,6 +37,27 @@ namespace Client.Main.Controls.UI.Game
         private ButtonControl _btnWarp;
         private ButtonControl _btnCommand;
         private ButtonControl _btnCloseAll;
+        private ButtonControl _btnSkills;
+        private ButtonControl _btnLog;
+
+        // Touch skill panel (pre-created rows; Visible toggled on demand)
+        private const int SkillRows = 10;
+        private ButtonControl _skillPanelBg;
+        private ButtonControl _skillPanelClose;
+        private readonly List<ButtonControl> _skillRowButtons = new();
+        private readonly ushort[] _skillRowIds = new ushort[SkillRows];
+        private bool _skillPanelVisible;
+
+        private static readonly Dictionary<ushort, string> SkillNames = new()
+        {
+            { 1, "Poison" }, { 2, "Meteorite" }, { 3, "Lightning" }, { 4, "Fire Ball" },
+            { 5, "Flame" }, { 6, "Teleport" }, { 7, "Ice" }, { 8, "Twister" },
+            { 9, "Evil Spirit" }, { 10, "Hellfire" }, { 11, "Power Wave" }, { 12, "Aqua Beam" },
+            { 13, "Cometfall" }, { 14, "Inferno" }, { 17, "Energy Ball" }, { 18, "Defense" },
+            { 19, "Falling Slash" }, { 20, "Lunge" }, { 21, "Uppercut" }, { 22, "Cyclone" },
+            { 23, "Slash" }, { 24, "Triple Shot" }, { 26, "Heal" }, { 27, "Greater Defense" },
+            { 28, "Greater Attack" }, { 41, "Twisting Slash" }, { 42, "Rageful Blow" }, { 43, "Death Stab" }
+        };
 
         public MobileControlsOverlay(
             GameScene scene,
@@ -58,6 +81,8 @@ namespace Client.Main.Controls.UI.Game
             Visible = true;
 
             CreateHudButtons();
+            CreateSkillAndLogButtons();
+            CreateSkillPanel();
         }
 
         private void CreateHudButtons()
@@ -209,6 +234,166 @@ namespace Client.Main.Controls.UI.Game
                 SoundController.Instance.PlayBuffer("Sound/iButtonClick.wav");
             };
             Controls.Add(_btnCloseAll);
+        }
+
+        private ButtonControl MakeButton(string text, int x, int y, int w, int h, Color textColor, Color bg, Color border, float fontSize = 13f)
+        {
+            return new ButtonControl
+            {
+                Text = text,
+                FontSize = fontSize,
+                TextColor = textColor,
+                BackgroundColor = bg,
+                HoverBackgroundColor = new Color(Math.Min(bg.R + 25, 255), Math.Min(bg.G + 25, 255), Math.Min(bg.B + 35, 255), 255),
+                PressedBackgroundColor = new Color(bg.R / 2, bg.G / 2, bg.B / 2, 255),
+                BorderThickness = 1,
+                BorderColor = border,
+                X = x,
+                Y = y,
+                ControlSize = new Point(w, h),
+                ViewSize = new Point(w, h),
+                Visible = true
+            };
+        }
+
+        private void CreateSkillAndLogButtons()
+        {
+            int btnW = 54, btnH = 34, margin = 6;
+            int screenW = MuGame.Instance.Width;
+            int screenH = MuGame.Instance.Height;
+            int startX = screenW - (btnW + margin) * 5 - 12;
+            int posY = screenH - btnH - 12;
+
+            // Skills button sits immediately left of the INV button
+            _btnSkills = MakeButton("HAB", startX - (btnW + margin), posY, btnW, btnH,
+                Color.Gold, new Color(20, 20, 35, 230), Color.DarkGoldenrod);
+            _btnSkills.Click += (s, e) => ToggleSkillPanel();
+            Controls.Add(_btnSkills);
+
+            // LOG button (top-right): shares the full session log via Android share sheet
+            _btnLog = MakeButton("LOG", screenW - 54 - 8, 8, 54, 30,
+                Color.White, new Color(30, 60, 110, 220), Color.CornflowerBlue, 12f);
+            _btnLog.Click += (s, e) =>
+            {
+                OnScreenLogger.Log("[LOG] Abrindo compartilhamento do log...", LogLevel.Information);
+                OnScreenLogger.ShareLog();
+            };
+            Controls.Add(_btnLog);
+        }
+
+        private void CreateSkillPanel()
+        {
+            int panelW = 320;
+            int rowH = 32;
+            int titleH = 34;
+            int panelH = titleH + SkillRows * (rowH + 2) + 46;
+            int px = (MuGame.Instance.Width - panelW) / 2;
+            int py = Math.Max(4, (MuGame.Instance.Height - panelH) / 2 - 20);
+
+            _skillPanelBg = MakeButton("HABILIDADES", px, py, panelW, panelH,
+                Color.Gold, new Color(12, 16, 28, 245), Color.Goldenrod, 14f);
+            _skillPanelBg.Visible = false;
+            Controls.Add(_skillPanelBg);
+
+            for (int i = 0; i < SkillRows; i++)
+            {
+                int idx = i;
+                var row = MakeButton("", px + 10, py + titleH + i * (rowH + 2), panelW - 20, rowH,
+                    Color.White, new Color(35, 45, 70, 235), Color.Gray, 12f);
+                row.Visible = false;
+                row.Click += (s, e) => OnSkillRowClicked(idx);
+                _skillRowButtons.Add(row);
+                Controls.Add(row);
+            }
+
+            _skillPanelClose = MakeButton("FECHAR", px + panelW / 2 - 60, py + panelH - 40, 120, 32,
+                Color.White, new Color(130, 30, 30, 235), Color.Red, 13f);
+            _skillPanelClose.Visible = false;
+            _skillPanelClose.Click += (s, e) => SetSkillPanelVisible(false);
+            Controls.Add(_skillPanelClose);
+        }
+
+        public void ToggleSkillPanel() => SetSkillPanelVisible(!_skillPanelVisible);
+
+        private void SetSkillPanelVisible(bool visible)
+        {
+            _skillPanelVisible = visible;
+            if (visible) RefreshSkillRows();
+
+            _skillPanelBg.Visible = visible;
+            _skillPanelClose.Visible = visible;
+            if (!visible)
+            {
+                foreach (var r in _skillRowButtons) r.Visible = false;
+            }
+            else
+            {
+                _skillPanelBg.BringToFront();
+                foreach (var r in _skillRowButtons) r.BringToFront();
+                _skillPanelClose.BringToFront();
+            }
+            SoundController.Instance.PlayBuffer("Sound/iButtonClick.wav");
+        }
+
+        private static string SkillName(ushort id) =>
+            SkillNames.TryGetValue(id, out var n) ? n : $"Skill #{id}";
+
+        private void RefreshSkillRows()
+        {
+            var state = MuGame.Network?.GetCharacterState();
+            var skills = state?.GetSkills().ToList() ?? new List<SkillEntryState>();
+            OnScreenLogger.Log($"[SKILL] {skills.Count} habilidade(s) no personagem. Ids: {string.Join(",", skills.Select(s => s.SkillId))}", LogLevel.Information);
+
+            for (int i = 0; i < SkillRows; i++)
+            {
+                var btn = _skillRowButtons[i];
+                if (i < skills.Count)
+                {
+                    var sk = skills[i];
+                    _skillRowIds[i] = sk.SkillId;
+                    bool selected = state?.SelectedSkillId == sk.SkillId;
+                    btn.Text = $"{(selected ? "> " : "")}{SkillName(sk.SkillId)}  (Nv {sk.SkillLevel})";
+                    btn.TextColor = selected ? Color.Gold : Color.White;
+                    btn.BorderColor = selected ? Color.Gold : Color.Gray;
+                    btn.Visible = true;
+                }
+                else if (i == 0)
+                {
+                    _skillRowIds[i] = 0;
+                    btn.Text = "Nenhuma habilidade recebida do servidor";
+                    btn.TextColor = Color.LightGray;
+                    btn.BorderColor = Color.Gray;
+                    btn.Visible = true;
+                }
+                else
+                {
+                    _skillRowIds[i] = 0;
+                    btn.Visible = false;
+                }
+            }
+        }
+
+        private void OnSkillRowClicked(int index)
+        {
+            ushort id = _skillRowIds[index];
+            if (id == 0) return;
+
+            var state = MuGame.Network?.GetCharacterState();
+            if (state == null) return;
+
+            // Toggle: tapping the selected skill again goes back to the basic attack.
+            if (state.SelectedSkillId == id)
+            {
+                state.SelectedSkillId = null;
+                OnScreenLogger.Log("[SKILL] Habilidade desmarcada (ataque basico).", LogLevel.Information);
+            }
+            else
+            {
+                state.SelectedSkillId = id;
+                OnScreenLogger.Log($"[SKILL] Selecionada: {SkillName(id)} (id {id}). Toque num monstro para usar.", LogLevel.Information);
+            }
+            SoundController.Instance.PlayBuffer("Sound/iButtonClick.wav");
+            RefreshSkillRows();
         }
 
         public override void Update(GameTime gameTime)

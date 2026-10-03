@@ -39,6 +39,7 @@ namespace Client.Main.Controls.UI.Game
         public event Action InventoryRequested;
         public event Action CharacterInfoRequested;
         public event Action CommandWindowRequested;
+        public event Action SkillsRequested;
 
         public MainControl(CharacterState state)
         {
@@ -216,7 +217,8 @@ namespace Client.Main.Controls.UI.Game
 
                     if (hitRect.Contains(pos))
                     {
-                        SelectSkillIndex(i - 1);
+                        OnScreenLogger.Log($"[HUD] Toque no atalho de habilidade {i}", LogLevel.Information);
+                        SkillsRequested?.Invoke();
                         return;
                     }
                 }
@@ -226,14 +228,14 @@ namespace Client.Main.Controls.UI.Game
             var as1 = Controls.FirstOrDefault(c => c.Name == "ActiveSkill_1");
             if (as1 != null && as1.DisplayRectangle.Contains(pos))
             {
-                SelectSkillIndex(0);
+                SkillsRequested?.Invoke();
                 return;
             }
 
             var as2 = Controls.FirstOrDefault(c => c.Name == "ActiveSkill_2");
             if (as2 != null && as2.DisplayRectangle.Contains(pos))
             {
-                SelectSkillIndex(1);
+                SkillsRequested?.Invoke();
                 return;
             }
 

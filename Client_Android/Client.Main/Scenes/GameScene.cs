@@ -172,6 +172,7 @@ namespace Client.Main.Scenes
 
             _mobileControls = new MobileControlsOverlay(this, _hero, _inventoryControl, _characterInfoWindow, _moveCommandWindow, _commandWindow);
             Controls.Add(_mobileControls);
+            _main.SkillsRequested += () => _mobileControls?.ToggleSkillPanel();
 
             _chatInput.BringToFront();
             _mobileControls.BringToFront();

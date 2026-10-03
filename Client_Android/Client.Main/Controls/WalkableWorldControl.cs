@@ -108,6 +108,9 @@ namespace Client.Main.Controls
 
                 // 1. Check if an NPC was clicked or tapped
                 NPCObject clickedNpc = (Scene?.MouseHoverObject as NPCObject) ?? FindNpcAtTile(MouseTileX, MouseTileY);
+                Client.Main.Helpers.OnScreenLogger.Log(
+                    $"[TAP] tile=({MouseTileX},{MouseTileY}) hover={Scene?.MouseHoverObject?.GetType().Name ?? "-"} npc={(clickedNpc != null ? clickedNpc.GetType().Name : "-")}",
+                    Microsoft.Extensions.Logging.LogLevel.Information);
                 if (clickedNpc != null)
                 {
                     clickedNpc.OnClick();
@@ -124,6 +127,19 @@ namespace Client.Main.Controls
                     if (monster != null)
                     {
                         float attackRange = player.GetAttackRangeTiles();
+                        var selectedSkill = MuGame.Network?.GetCharacterState()?.SelectedSkillId;
+                        if (selectedSkill.HasValue && selectedSkill.Value > 0)
+                        {
+                            Client.Main.Helpers.OnScreenLogger.Log(
+                                $"[ATK] skill {selectedSkill.Value} -> {monster.GetType().Name} id={monster.NetworkId}",
+                                Microsoft.Extensions.Logging.LogLevel.Information);
+                            player.UseSkill(1, selectedSkill.Value, monster);
+                            if (Scene is Client.Main.Scenes.BaseScene bsSk)
+                                bsSk.SetMouseInputConsumed();
+                            _cursorNextMoveTime = 400f;
+                            return;
+                        }
+
                         if (Vector2.Distance(player.Location, monster.Location) <= attackRange)
                         {
                             player.Attack(monster);

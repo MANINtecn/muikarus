@@ -98,7 +98,19 @@ namespace Client.Main.Objects
             }
 
             _lastClickTime = now;
-            HandleClick();
+            Client.Main.Helpers.OnScreenLogger.Log(
+                $"[NPC] clique em {GetType().Name} ({DisplayName}) id={NetworkId}",
+                Microsoft.Extensions.Logging.LogLevel.Information);
+            try
+            {
+                HandleClick();
+            }
+            catch (Exception ex)
+            {
+                Client.Main.Helpers.OnScreenLogger.Log(
+                    $"[NPC] ERRO em {GetType().Name}.HandleClick: {ex.GetType().Name}: {ex.Message}",
+                    Microsoft.Extensions.Logging.LogLevel.Error);
+            }
         }
 
         internal void ExecuteInteraction()
