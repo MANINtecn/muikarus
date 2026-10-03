@@ -784,7 +784,7 @@ namespace Client.Main.Core.Utilities
         }
 
         /// <summary>
-        /// Gets the item name based on its ItemData (ReadOnlySpan<byte>).
+        /// Gets the item name based on its ItemData (ReadOnlySpan&lt;byte&gt;).
         /// Assumes a standard OpenMU format where ID and Group can be extracted.
         /// Adjust indices based on actual packet structure for different versions if needed.
         /// </summary>

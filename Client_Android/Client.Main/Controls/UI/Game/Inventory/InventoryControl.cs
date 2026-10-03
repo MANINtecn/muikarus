@@ -511,7 +511,7 @@ namespace Client.Main.Controls.UI.Game.Inventory
         }
 
         /// <summary>
-        /// Determines the highlight color for a given slot during drag & drop
+        /// Determines the highlight color for a given slot during drag and drop
         /// </summary>
         /// <param name="slot">Coordinates of the slot to check</param>
         /// <param name="draggedItem">The item being dragged</param>

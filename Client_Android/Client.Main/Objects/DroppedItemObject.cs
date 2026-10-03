@@ -45,7 +45,7 @@ namespace Client.Main.Objects
             ScopeObject scope,
             ushort mainPlayerId,
             CharacterService charSvc,
-            ILogger<DroppedItemObject>? logger = null)
+            ILogger<DroppedItemObject> logger = null)
         {
             _scope        = scope  ?? throw new ArgumentNullException(nameof(scope));
             _mainPlayerId = mainPlayerId;
@@ -185,7 +185,7 @@ namespace Client.Main.Objects
             };
 
         // =====================================================================
-        private void OnLabelClicked(object? sender, EventArgs e) => OnClick(); // proxy dla LabelControl
+        private void OnLabelClicked(object sender, EventArgs e) => OnClick(); // proxy dla LabelControl
 
         // =====================================================================
         public override void Dispose()

@@ -546,18 +546,13 @@ Para trabalhar os três (usuário + Gemini + Claude) juntos sem atrito de merge/
 - **FPS:** continua fora de escopo por decisão do usuário (14 FPS em Noria registrado como referência).
 - **Próximo passo:** instalar v1.56, tocar `LOG` após testar e enviar o texto; conferir `[SKILL]`/`[TAP]`/`[NPC]`.
 
-### 📋 ESTADO ATUAL (Deixado por: Gemini — 03/10/2026, v1.57)
-- **Versão Atual:** v1.57 (`versionCode="57"`, `versionName="1.57"`)
-- **Problemas diagnosticados e corrigidos a partir do log do usuário:**
-  1. **Avisos de Duplicate Handlers eliminados:**
-     - O `PacketRouter` registrava handlers indexados apenas por `(MainCode, SubCode)`. O opcode `0x16` no MU é duplo: `0xC2 0x16` (AddMonstersToScope) e `0xC3 0x16` (ExperienceGained). Como `CharacterDataHandler` registrava primeiro, o `ScopeHandler.HandleAddMonstersToScopeAsync` era descartado no `TryAdd` com o warning `Duplicate handler for 16-255, skipping ScopeHandler.HandleAddMonstersToScopeAsync` — impedindo o spawn de monstros!
-     - Adicionado despacho explícito no `PacketRouter` checando `headerType` (`0xC2` ➔ `ScopeHandler`, `0xC3` ➔ `CharacterDataHandler`).
-     - Removidos handlers legados de loja (`0x30` e `0x31`) em `MiscGamePacketHandler` que causavam `Duplicate handler for 30-255` e `31-255`, garantindo que o `ShopHandler` tenha controle absoluto dos comerciantes e inventário de NPC.
-  2. **NPCs e Monstros sumindo restaurados & blindados:**
-     - Corrigida a condição de corrida onde pacotes de NPC/monstros chegavam durante o carregamento de mapa/cena antes de `World.Status == Ready`.
-     - Implementado coletor periódico em `GameScene.Update` que importa a cada segundo quaisquer NPCs, monstros ou jogadores remotos pendentes deixados em `_pendingNpcsMonsters`.
-     - Adicionado log em tela `[SCOPE]` para exibir em tempo real a quantidade de NPCs e monstros recebidos e despachados pelo protocolo do servidor.
-  3. **FPS:** Mantido intacto conforme determinação do usuário.
+### 📋 ESTADO ATUAL (Deixado por: Gemini — 03/10/2026, v1.58)
+- **Versão Atual:** v1.58 (`versionCode="58"`, `versionName="1.58"`)
+- **Correções do CI / GitHub Actions:**
+  1. **ScopeHandler.cs (Linha 258):** Adicionado `using Client.Main.Helpers;` que impedia o reconhecimento de `OnScreenLogger.Log(...)` durante a compilação no runner do GitHub Actions (causava `Cannot implicitly convert type 'string' to 'LogLevel'` e `The name 'OnScreenLogger' does not exist in the current context`).
+  2. **DroppedItemObject.cs:** Removida anotação de tipos de referência anuláveis (`?` em `ILogger` e `object sender`) que disparava warnings CS8632 em projetos sem `#nullable` ativo.
+  3. **ItemDatabase.cs & InventoryControl.cs:** Corrigidos comentários XML malformados (`ReadOnlySpan&lt;byte&gt;` e `drag and drop`) que geravam avisos de parsing XML.
+- **Versão anterior (v1.57):** Despacho correto de pacotes `0x16`, `0x30`, `0x31`, preservação de NPCs/monstros no scope com coletor em `GameScene`.
 
 ### 📋 ESTADO ATUAL (Deixado por: Claude)
 - **Área assumida:** Servidor OpenMU e infraestrutura (VPS, portas, Web Admin Panel, rates).
