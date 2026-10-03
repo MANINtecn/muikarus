@@ -301,6 +301,38 @@ namespace Client.Main.Networking.PacketHandling
             return length;
         }
 
+        /// <summary>
+        /// Builds a packet requesting to create a new character.
+        /// </summary>
+        public static int BuildCreateCharacterPacket(
+            IBufferWriter<byte> writer,
+            string name,
+            CharacterClassNumber charClass)
+        {
+            int length = CreateCharacter.Length;
+            var memory = writer.GetMemory(length).Slice(0, length);
+            var packet = new CreateCharacter(memory);
+            packet.Name = name;
+            packet.Class = charClass;
+            return length;
+        }
+
+        /// <summary>
+        /// Builds a packet requesting to delete an existing character.
+        /// </summary>
+        public static int BuildDeleteCharacterPacket(
+            IBufferWriter<byte> writer,
+            string name,
+            string securityCode)
+        {
+            int length = DeleteCharacter.Length;
+            var memory = writer.GetMemory(length).Slice(0, length);
+            var packet = new DeleteCharacter(memory);
+            packet.Name = name;
+            packet.SecurityCode = securityCode ?? string.Empty;
+            return length;
+        }
+
         // ──────────────────────────── Helpers ─────────────────────────────
 
         /// <summary>

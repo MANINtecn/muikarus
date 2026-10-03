@@ -292,7 +292,7 @@ namespace Client.Main.Scenes
                 if (worldInstance is WalkableWorldControl walkable)
                 {
                     walkable.Walker = _hero;
-                    if (walkable.Walker.NetworkId != charState.Id)
+                    if (walkable.Walker != null && walkable.Walker.NetworkId != charState.Id)
                     {
                         walkable.Walker.NetworkId = charState.Id;
                     }
@@ -337,7 +337,7 @@ namespace Client.Main.Scenes
                 if (worldInstance is WalkableWorldControl walkableAfterInit)
                 {
                     walkableAfterInit.Walker = _hero;
-                    if (walkableAfterInit.Walker.NetworkId != charState.Id)
+                    if (walkableAfterInit.Walker != null && walkableAfterInit.Walker.NetworkId != charState.Id)
                     {
                         walkableAfterInit.Walker.NetworkId = charState.Id;
                     }
@@ -348,21 +348,30 @@ namespace Client.Main.Scenes
                 _hero.Location = new Vector2(charState.PositionX, charState.PositionY);
                 _hero.Position = _hero.TargetPosition;
                 _hero.MoveTargetPosition = _hero.TargetPosition;
-                _hero.Update(new GameTime());
+                try { _hero.Update(new GameTime()); } catch { }
 
                 OnScreenLogger.Log($"[MAP] Entrou em {initialWorldType.Name} (MapId: {charState.MapId}, Hero: {charState.PositionX},{charState.PositionY})", LogLevel.Information);
 
                 // 4. Load Hero Assets
                 UpdateLoadProgress("Carregando aparencia do heroi...", 0.65f);
-                if (_hero.Status == GameControlStatus.NonInitialized || _hero.Status == GameControlStatus.Initializing)
+                try
                 {
-                    ushort expectedNetworkId = charState.Id;
-                    var heroLoadTask = _hero.Load();
-                    await Task.WhenAny(heroLoadTask, Task.Delay(3000));
-                    if (_hero.NetworkId != expectedNetworkId)
+                    if (_hero.Status == GameControlStatus.NonInitialized || _hero.Status == GameControlStatus.Initializing)
                     {
+                        ushort expectedNetworkId = charState.Id;
+                        var heroLoadTask = _hero.Load();
+                        await Task.WhenAny(heroLoadTask, Task.Delay(4000));
                         _hero.NetworkId = expectedNetworkId;
                     }
+                }
+                catch (Exception exHero)
+                {
+                    _logger?.LogWarning(exHero, "Aviso ao carregar modelos do heroi");
+                }
+                finally
+                {
+                    _hero.Status = GameControlStatus.Ready;
+                    _hero.Visible = true;
                 }
                 UpdateLoadProgress("Heroi pronto.", 0.80f);
 
@@ -385,29 +394,44 @@ namespace Client.Main.Scenes
 
                 if (World is WalkableWorldControl finalWalkable)
                 {
-                    if (finalWalkable.Walker?.NetworkId != charState.Id)
+                    if (finalWalkable.Walker == null)
+                    {
+                        finalWalkable.Walker = _hero;
+                    }
+                    if (finalWalkable.Walker != null)
                     {
                         finalWalkable.Walker.NetworkId = charState.Id;
                     }
                 }
 
-                // Non-blocking notification to server in background if supported
+                // CRITICAL: Send ClientReady (0xB0) packet to server so it streams NPCs, monsters and allows walking
                 if (MuGame.Network != null)
                 {
-                    _ = Task.Run(async () =>
+                    try
                     {
-                        try
-                        {
-                            await MuGame.Network.SendClientReadyAfterMapChangeAsync();
-                        }
-                        catch { /* Ignore */ }
-                    });
+                        await MuGame.Network.SendClientReadyAfterMapChangeAsync();
+                        OnScreenLogger.Log(">>> Notificacao 0xB0 (ClientReady) enviada com sucesso ao servidor!");
+                    }
+                    catch (Exception exNet)
+                    {
+                        _logger?.LogWarning(exNet, "Falha ao enviar ClientReady diretamente.");
+                    }
                 }
             }
             catch (Exception ex)
             {
                 OnScreenLogger.Log($"ERRO no carregamento: {ex.Message}", LogLevel.Error);
                 _logger?.LogError(ex, "Error during GameScene.LoadSceneContentWithProgress.");
+
+                // Failsafe: Ensure ClientReady (0xB0) is sent even if some asset loading failed
+                try
+                {
+                    if (MuGame.Network != null)
+                    {
+                        _ = MuGame.Network.SendClientReadyAfterMapChangeAsync();
+                    }
+                }
+                catch { }
             }
             finally
             {

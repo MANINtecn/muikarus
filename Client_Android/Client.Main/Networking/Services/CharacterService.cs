@@ -121,6 +121,57 @@ namespace Client.Main.Networking.Services
             }
         }
 
+        public string LastDeletedCharacterName { get; set; }
+
+        /// <summary>
+        /// Sends a request to create a new character.
+        /// </summary>
+        public async Task SendCreateCharacterRequestAsync(string characterName, CharacterClassNumber characterClass)
+        {
+            if (!_connectionManager.IsConnected)
+            {
+                _logger.LogError("Not connected - cannot create character.");
+                return;
+            }
+
+            _logger.LogInformation("Sending CreateCharacter request: Name={Name}, Class={Class}", characterName, characterClass);
+            try
+            {
+                await _connectionManager.Connection.SendAsync(() =>
+                    PacketBuilder.BuildCreateCharacterPacket(_connectionManager.Connection.Output, characterName, characterClass));
+                _logger.LogInformation("CreateCharacter request sent.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending CreateCharacter request.");
+            }
+        }
+
+        /// <summary>
+        /// Sends a request to delete an existing character.
+        /// </summary>
+        public async Task SendDeleteCharacterRequestAsync(string characterName, string securityCode = "1234567")
+        {
+            if (!_connectionManager.IsConnected)
+            {
+                _logger.LogError("Not connected - cannot delete character.");
+                return;
+            }
+
+            LastDeletedCharacterName = characterName;
+            _logger.LogInformation("Sending DeleteCharacter request: Name={Name}", characterName);
+            try
+            {
+                await _connectionManager.Connection.SendAsync(() =>
+                    PacketBuilder.BuildDeleteCharacterPacket(_connectionManager.Connection.Output, characterName, securityCode));
+                _logger.LogInformation("DeleteCharacter request sent.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending DeleteCharacter request.");
+            }
+        }
+
         /// <summary>
         /// Sends an instant move (teleport) request to the given coordinates.
         /// </summary>

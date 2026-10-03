@@ -13,6 +13,7 @@ namespace Client.Main.Controls.UI.Game
     public class LoadingScreenControl : GameControl
     {
         private SpriteFont _font;
+        private Texture2D _backgroundTexture;
         private string _pendingMessage = "Loading…";
         private float _progress = 0f;
         private BasicEffect _basicEffect;
@@ -79,6 +80,14 @@ namespace Client.Main.Controls.UI.Game
         public override async Task Load()
         {
             _font = GraphicsManager.Instance.Font;
+            try
+            {
+                _backgroundTexture = MuGame.Instance?.Content?.Load<Texture2D>("Background");
+            }
+            catch
+            {
+                _backgroundTexture = null;
+            }
             _basicEffect = new BasicEffect(GraphicsDevice)
             {
                 VertexColorEnabled = true,
@@ -166,13 +175,22 @@ namespace Client.Main.Controls.UI.Game
                 DepthStencilState.None,
                 RasterizerState.CullNone))
             {
-                // Fullscreen dark background
-                spriteBatch.Draw(pixel, new Rectangle(0, 0, gd.Viewport.Width, gd.Viewport.Height), Color.Black * 0.88f);
+                // Fullscreen background: Official MU Online art if loaded, else dark slate
+                if (_backgroundTexture != null)
+                {
+                    spriteBatch.Draw(_backgroundTexture, new Rectangle(0, 0, gd.Viewport.Width, gd.Viewport.Height), Color.White);
+                    // Subtle overlay so text and diagnostics remain 100% crisp and readable
+                    spriteBatch.Draw(pixel, new Rectangle(0, 0, gd.Viewport.Width, gd.Viewport.Height), Color.Black * 0.35f);
+                }
+                else
+                {
+                    spriteBatch.Draw(pixel, new Rectangle(0, 0, gd.Viewport.Width, gd.Viewport.Height), Color.Black * 0.88f);
+                }
 
                 if (_font != null)
                 {
                     // 1. Top Title
-                    string title = $"[IKARUS MU v1.23] CARREGANDO MUNDO ({_visibleDuration:F1}s)";
+                    string title = $"[IKARUS MU v1.55] CARREGANDO MUNDO ({_visibleDuration:F1}s)";
                     spriteBatch.DrawString(_font, title, new Vector2(20, 16), Color.Goldenrod);
 
                     // 2. Dismiss Button (Top Right)

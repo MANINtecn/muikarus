@@ -72,6 +72,11 @@ public class CursorControl : SpriteControl
             {
                 TexturePath = "Interface/CursorPush.ozt";
                 CurrentAnimation = DefaultAnimation;
+
+                if (touch.State == TouchLocationState.Pressed && hoveredObject is NPCObject npcTouch)
+                {
+                    npcTouch.OnClick();
+                }
             }
             else if (hoveredObject is MonsterObject)
             {

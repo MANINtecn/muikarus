@@ -249,20 +249,27 @@ namespace Client.Main.Controls
         }
 
         /// <summary>
-        /// Returns the first <see cref="NPCObject"/> on the given tile, or <c>null</c>.
+        /// Returns the first <see cref="NPCObject"/> on or adjacent to the given tile, or <c>null</c>.
         /// </summary>
         private NPCObject FindNpcAtTile(byte tileX, byte tileY)
         {
+            NPCObject closest = null;
+            float minDistance = 2.2f; // Touch-friendly proximity tolerance
+            var clickPos = new Vector2(tileX, tileY);
+
             foreach (var obj in Objects)
             {
-                if (obj is NPCObject npc &&
-                    (int)npc.Location.X == tileX &&
-                    (int)npc.Location.Y == tileY)
+                if (obj is NPCObject npc)
                 {
-                    return npc;
+                    float dist = Vector2.Distance(npc.Location, clickPos);
+                    if (dist < minDistance)
+                    {
+                        minDistance = dist;
+                        closest = npc;
+                    }
                 }
             }
-            return null;
+            return closest;
         }
     }
 }

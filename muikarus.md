@@ -531,18 +531,30 @@ Para trabalhar os três (usuário + Gemini + Claude) juntos sem atrito de merge/
 - **Regra de git:** cada IA trabalha a partir do estado que o usuário confirmar como "atual". Não fazer `push --force` sem avisar o usuário; se o histórico remoto divergir do local, perguntar antes de sincronizar.
 - **Commits:** neste repositório, por pedido explícito do usuário, commits/PRs **não** levam linha de coautoria de IA (`Co-Authored-By`), independente da orientação padrão do sistema.
 
-### 📋 ESTADO ATUAL (Deixado por: Gemini — 10/09/2026)
-- **Versão Atual:** v1.54
-- **O que está funcionando:**
-  - Build CI/CD do GitHub Actions 100% estabilizado e gerando APK assinado automaticamente.
-  - Personagem e NPCs 100% visíveis em Lorencia (`ViewFar = 3500f`).
-  - **Caminhada Livre Restaurada (v1.54):** O chão 3D voltou a responder imediatamente a toques em qualquer lugar da tela fora do HUD inferior. `MainControl.Interactive = false` impede captura indevida de tela inteira, e `IsMouseOver` é limitado com precisão cirúrgica para coordenadas `mouse.Y >= hudTop`.
-  - **Frente 2 Concluída (v1.54 - Loja de NPCs / Comerciantes):**
-    - **ShopHandler no Android:** Criado e registrado no `PacketRouter.cs` para processar os pacotes de loja do OpenMU: `0x30` (`NpcWindowResponse`), `0x31` (`StoreItemList`), `0x32` (`ItemBought`/`NpcItemBuyFailed`) e `0x33` (`NpcItemSellResult`).
-    - **NpcShopControl Mobile Touch:** Interface moderna em tema escuro com moldura dourada (540x430), botão [X] de fechar, indicador do Zen do jogador, lista rolável de itens com botões ▲/▼ e cartões de 48px com nome colorido, categoria, nível e preço.
-    - **Painel de Detalhes & Compra:** Painel direito detalhado com atributos do item (Nível, Durabilidade, Habilidade, Sorte, Excelente), checagem de saldo e botão grande **[ COMPRAR ]** que despacha `SendBuyItemFromNpcRequestAsync(slot)` diretamente ao servidor via `CharacterService`.
+### 📋 ESTADO ATUAL (Deixado por: Gemini — 03/10/2026)
+- **Versão Atual:** v1.55
+- **O que foi corrigido e implementado na v1.55:**
+  1. **Música desativada por padrão:** `Constants.BACKGROUND_MUSIC = false;` para que o jogo entre em silêncio imediato sem poluição sonora.
+  2. **Tela de Carregamento com Arte Oficial (Fim da Tela Preta):** `LoadingScreenControl` agora desenha a textura oficial `Background.jpg` em tela cheia com overlay escuro sutil para garantir legibilidade dos textos e barra de progresso durante todo o carregamento do mapa e troca de cena.
+  3. **Blindagem e Eliminação do `NullReferenceException` em `GameScene.LoadSceneContentWithProgress`:**
+     - Corrigida a avaliação de `walkable.Walker.NetworkId` e `finalWalkable.Walker.NetworkId` para evitar acessos nulos.
+     - Proteção por blocos `try/catch` independentes em cada etapa do carregamento (terreno, herói, entidades, sons).
+     - **Garantia de envio do pacote `ClientReady` (`0xB0`):** Sem o `0xB0`, o servidor OpenMU não ativava o personagem no mapa, não transmitia o scope de NPCs/monstros e bloqueava a movimentação. O envio agora é executado e garantido tanto no fluxo normal quanto em fallback.
+     - Herói agora tem status forçado para `GameControlStatus.Ready` e `Visible = true` para garantir que seu modelo 3D seja sempre renderizado.
+  4. **Criação e Deleção de Personagens no Mobile (SelectCharacterScene):**
+     - Botões touch `[ + CRIAR ]` e `[ DELETAR ]` na barra inferior do lobby de seleção de personagens.
+     - Modal touch-friendly `ShowCharacterCreationDialog()` com seleção de classes clássicas (`Dark Knight`, `Dark Wizard`, `Fairy Elf`), gerador de nomes e botão de confirmação.
+     - Modal de confirmação para deleção de personagem selecionado `ShowDeleteConfirmDialog()`.
+     - Implementados `BuildCreateCharacterPacket` e `BuildDeleteCharacterPacket` em `PacketBuilder.cs`.
+     - Implementados `SendCreateCharacterRequestAsync` e `SendDeleteCharacterRequestAsync` em `CharacterService.cs`.
+     - Implementados handlers `HandleCreateCharacterResponseAsync` (0xF3 0x01) e `HandleDeleteCharacterResponseAsync` (0xF3 0x02) em `MiscGamePacketHandler.cs`.
+     - `SelectCharacterScene` inscrito no evento `CharacterListReceived` para atualizar instantaneamente os botões e os modelos 3D do `SelectWorld`.
+  5. **Interação com NPCs Touch-Friendly:**
+     - `FindNpcAtTile` atualizado com raio de tolerância de 2.2 tiles para reconhecer toques na malha/corpo do NPC em telas touch.
+     - `CursorControl` agora aciona `npc.OnClick()` no toque (`TouchLocationState.Pressed`).
+  6. **FPS:** Conforme determinação do usuário, a taxa de quadros e o pipeline de rendering não foram alterados nesta versão.
 - **Próximo Passo:**
-  - **Frente 3 (Inventário Completo & Equipamentos):** Implementar os slots de equipamentos do personagem (Elmo, Armadura, Calça, Luvas, Botas, Armas, Asa, Pet/Montaria, Anéis, Pingente) e renderizador 3D BMD dos itens.
+  - Testar a v1.55 no dispositivo Android e validar o fluxo de criação/deleção e entrada em Lorencia com NPCs e caminhada.
 
 ### 📋 ESTADO ATUAL (Deixado por: Claude)
 - **Área assumida:** Servidor OpenMU e infraestrutura (VPS, portas, Web Admin Panel, rates).

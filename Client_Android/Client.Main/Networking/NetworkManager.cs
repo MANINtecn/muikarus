@@ -45,6 +45,7 @@ namespace Client.Main.Networking
 
         private ClientConnectionState _currentState = ClientConnectionState.Initial;
         private List<ServerInfo> _serverList = new();
+        private List<(string Name, CharacterClassNumber Class, ushort Level)> _cachedCharacters;
         private CancellationTokenSource _managerCts;
 
         // Events
@@ -64,6 +65,7 @@ namespace Client.Main.Networking
             => _characterService.SendClientReadyAfterMapChangeAsync();
 
         public CharacterService GetCharacterService() => _characterService;
+        public List<(string Name, CharacterClassNumber Class, ushort Level)> GetCachedCharacterList() => _cachedCharacters;
         public TargetProtocolVersion TargetVersion => _packetRouter.TargetVersion;
 
         // Constructors
@@ -425,6 +427,7 @@ namespace Client.Main.Networking
 
         internal void ProcessCharacterList(List<(string Name, CharacterClassNumber Class, ushort Level)> characters)
         {
+            _cachedCharacters = characters;
             _logger.LogInformation(">>> ProcessCharacterList: Received list with {Count} characters. Raising event on UI thread...", characters?.Count ?? 0);
             MuGame.ScheduleOnMainThread(() =>
             {

@@ -387,6 +387,105 @@ namespace Client.Main.Networking.PacketHandling.Handlers
             return Task.CompletedTask;
         }
 
+        [PacketHandler(0xF3, 0x01)]  // CreateCharacterResponse
+        public Task HandleCreateCharacterResponseAsync(Memory<byte> packet)
+        {
+            try
+            {
+                if (packet.Length < 5)
+                {
+                    _logger.LogWarning("CreateCharacterResponse packet too short ({Length} bytes).", packet.Length);
+                    return Task.CompletedTask;
+                }
+
+                // Success packet is 42 bytes (Season 6) or has success status byte
+                bool success = (packet.Length == 42 && packet.Span[4] != 0) || (packet.Length >= 5 && packet.Span[4] == 0x01);
+                _logger.LogInformation("CreateCharacter response: Length={Length}, Success={Success}", packet.Length, success);
+
+                if (success)
+                {
+                    string characterName = packet.Length >= 15
+                        ? System.Text.Encoding.ASCII.GetString(packet.Span.Slice(5, 10)).TrimEnd('\0')
+                        : "NewCharacter";
+                    ushort level = packet.Length >= 18
+                        ? (ushort)(packet.Span[16] | (packet.Span[17] << 8))
+                        : (ushort)1;
+                    byte apByte = packet.Length >= 19 ? packet.Span[18] : (byte)0;
+                    int rawClassVal = (apByte >> 3) & 0b1_1111;
+                    CharacterClassNumber classNumber = MapClassValueToEnum(rawClassVal);
+
+                    Helpers.OnScreenLogger.Log($"Personagem '{characterName}' criado com sucesso!", LogLevel.Information);
+
+                    MuGame.ScheduleOnMainThread(() =>
+                    {
+                        var currentList = _networkManager.GetCachedCharacterList()?.ToList()
+                            ?? new List<(string, CharacterClassNumber, ushort)>();
+                        currentList.Add((characterName, classNumber, level));
+                        _networkManager.ProcessCharacterList(currentList);
+                    });
+                }
+                else
+                {
+                    byte errorCode = packet.Span[4];
+                    string msg = errorCode switch
+                    {
+                        0x00 => "Nome de personagem ja existe ou invalido.",
+                        0x02 => "Limite maximo de personagens atingido.",
+                        _ => $"Falha ao criar personagem (Erro 0x{errorCode:X2})."
+                    };
+                    Helpers.OnScreenLogger.Log(msg, LogLevel.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing CreateCharacterResponse packet.");
+            }
+            return Task.CompletedTask;
+        }
+
+        [PacketHandler(0xF3, 0x02)]  // DeleteCharacterResponse
+        public Task HandleDeleteCharacterResponseAsync(Memory<byte> packet)
+        {
+            try
+            {
+                if (packet.Length < 5)
+                {
+                    _logger.LogWarning("DeleteCharacterResponse packet too short.");
+                    return Task.CompletedTask;
+                }
+
+                byte result = packet.Span[4];
+                _logger.LogInformation("DeleteCharacter response: Result=0x{Result:X2}", result);
+
+                if (result == 0x01) // Success
+                {
+                    string deletedCharName = _characterService.LastDeletedCharacterName ?? string.Empty;
+                    Helpers.OnScreenLogger.Log($"Personagem '{deletedCharName}' deletado com sucesso!", LogLevel.Information);
+
+                    MuGame.ScheduleOnMainThread(() =>
+                    {
+                        var currentList = _networkManager.GetCachedCharacterList()?.ToList()
+                            ?? new List<(string, CharacterClassNumber, ushort)>();
+                        if (!string.IsNullOrEmpty(deletedCharName))
+                        {
+                            currentList.RemoveAll(c => c.Name.Equals(deletedCharName, StringComparison.OrdinalIgnoreCase));
+                        }
+                        _networkManager.ProcessCharacterList(currentList);
+                        _characterService.LastDeletedCharacterName = null;
+                    });
+                }
+                else
+                {
+                    Helpers.OnScreenLogger.Log("Falha ao deletar personagem. Codigo de seguranca incorreto.", LogLevel.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing DeleteCharacterResponse packet.");
+            }
+            return Task.CompletedTask;
+        }
+
         // ────────────────────────── Helpers ────────────────────────────
 
         /// <summary>
