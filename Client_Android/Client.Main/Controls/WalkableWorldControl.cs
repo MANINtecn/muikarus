@@ -268,7 +268,10 @@ namespace Client.Main.Controls
 
             foreach (var obj in Objects)
             {
-                if (obj is not NPCObject npc || !npc.Visible || npc.Status == GameControlStatus.Disposed)
+                if (obj is not NPCObject npc)
+                    continue;
+
+                if (!npc.Visible || npc.Status == GameControlStatus.Disposed)
                     continue;
 
                 bool matched = false;
@@ -341,7 +344,10 @@ namespace Client.Main.Controls
 
             foreach (var obj in Objects)
             {
-                if (obj is not MonsterObject m || !m.Visible || m.Status == GameControlStatus.Disposed || m.IsDead)
+                if (obj is not MonsterObject m)
+                    continue;
+
+                if (!m.Visible || m.Status == GameControlStatus.Disposed)
                     continue;
 
                 bool matched = false;
