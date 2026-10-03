@@ -1,3 +1,4 @@
+using Client.Main.Controls;
 using Client.Main.Controls.UI;
 using Client.Main.Controls.UI.Game;
 using Client.Main.Core.Client;
@@ -28,9 +29,9 @@ namespace Client.Main.Scenes
         private LoadingScreenControl _loadingScreen;
         private bool _initialLoadComplete = false;
         private float _selectionElapsed = 0f;
-        private readonly List<Control> _mobileButtons = new();
-        private Control _creationModal = null;
-        private Control _deleteConfirmModal = null;
+        private readonly List<GameControl> _mobileButtons = new();
+        private GameControl _creationModal = null;
+        private GameControl _deleteConfirmModal = null;
         private string _lastSelectedCharForDelete = null;
 
         // Constructors
@@ -311,11 +312,12 @@ namespace Client.Main.Scenes
             int modalX = (MuGame.Instance.Width - modalW) / 2;
             int modalY = (MuGame.Instance.Height - modalH) / 2;
 
-            var modal = new Control
+            var modal = new LabelControl
             {
                 X = modalX,
                 Y = modalY,
                 ViewSize = new Point(modalW, modalH),
+                AutoViewSize = false,
                 Interactive = true
             };
 
@@ -533,11 +535,12 @@ namespace Client.Main.Scenes
             int modalX = (MuGame.Instance.Width - modalW) / 2;
             int modalY = (MuGame.Instance.Height - modalH) / 2;
 
-            var modal = new Control
+            var modal = new LabelControl
             {
                 X = modalX,
                 Y = modalY,
                 ViewSize = new Point(modalW, modalH),
+                AutoViewSize = false,
                 Interactive = true
             };
 
