@@ -368,11 +368,6 @@ namespace Client.Main.Scenes
                 {
                     _logger?.LogWarning(exHero, "Aviso ao carregar modelos do heroi");
                 }
-                finally
-                {
-                    _hero.Status = GameControlStatus.Ready;
-                    _hero.Visible = true;
-                }
                 UpdateLoadProgress("Heroi pronto.", 0.80f);
 
                 // 5. Import Pending Objects
