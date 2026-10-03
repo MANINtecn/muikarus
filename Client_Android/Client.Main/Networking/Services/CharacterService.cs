@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using MUnique.OpenMU.Network.Packets.ClientToServer;
 using MUnique.OpenMU.Network.Packets;
 using Client.Main.Core.Client;
+using Client.Main.Helpers;
 
 namespace Client.Main.Networking.Services
 {
@@ -382,6 +383,7 @@ namespace Client.Main.Networking.Services
 
             ushort masked = (ushort)(npcNetworkId & 0x7FFF);
             _logger.LogInformation("Sending TalkToNpcRequest for NPC {NpcId:X4}...", masked);
+            OnScreenLogger.Log($"[NPC] Enviando TalkToNpcRequest id=0x{masked:X4}...", LogLevel.Information);
             try
             {
                 await _connectionManager.Connection.SendAsync(() =>
@@ -392,10 +394,12 @@ namespace Client.Main.Networking.Services
                     return len;
                 });
                 _logger.LogInformation("TalkToNpcRequest sent for NPC {NpcId:X4}.", masked);
+                OnScreenLogger.Log($"[NPC] TalkToNpcRequest enviado ao servidor com sucesso!", LogLevel.Information);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error sending TalkToNpcRequest for NPC {NpcId:X4}.", masked);
+                OnScreenLogger.Log($"[NPC] ERRO ao enviar: {ex.Message}", LogLevel.Error);
             }
         }
 

@@ -546,13 +546,20 @@ Para trabalhar os três (usuário + Gemini + Claude) juntos sem atrito de merge/
 - **FPS:** continua fora de escopo por decisão do usuário (14 FPS em Noria registrado como referência).
 - **Próximo passo:** instalar v1.56, tocar `LOG` após testar e enviar o texto; conferir `[SKILL]`/`[TAP]`/`[NPC]`.
 
-### 📋 ESTADO ATUAL (Deixado por: Gemini — 03/10/2026, v1.58)
-- **Versão Atual:** v1.58 (`versionCode="58"`, `versionName="1.58"`)
-- **Correções do CI / GitHub Actions:**
-  1. **ScopeHandler.cs (Linha 258):** Adicionado `using Client.Main.Helpers;` que impedia o reconhecimento de `OnScreenLogger.Log(...)` durante a compilação no runner do GitHub Actions (causava `Cannot implicitly convert type 'string' to 'LogLevel'` e `The name 'OnScreenLogger' does not exist in the current context`).
-  2. **DroppedItemObject.cs:** Removida anotação de tipos de referência anuláveis (`?` em `ILogger` e `object sender`) que disparava warnings CS8632 em projetos sem `#nullable` ativo.
-  3. **ItemDatabase.cs & InventoryControl.cs:** Corrigidos comentários XML malformados (`ReadOnlySpan&lt;byte&gt;` e `drag and drop`) que geravam avisos de parsing XML.
-- **Versão anterior (v1.57):** Despacho correto de pacotes `0x16`, `0x30`, `0x31`, preservação de NPCs/monstros no scope com coletor em `GameScene`.
+### 📋 ESTADO ATUAL (Deixado por: Gemini — 03/10/2026, v1.59)
+- **Versão Atual:** v1.59 (`versionCode="59"`, `versionName="1.59"`)
+- **Correção da Interação com NPCs e Monstros no Mobile:**
+  1. **Diagnóstico Raiz do Toque no NPC:**
+     - A detecção de NPC e monstro em `WalkableWorldControl` calculava o toque baseado no raycast contra o terreno plano (`CalculateMouseTilePos`). Pelo ângulo isométrico da câmera (~45°), um toque no peito/cabeça do NPC no celular interceptava o chão 3 a 5 tiles atrás da posição dos pés do NPC, falhando a verificação de proximidade de 2.2 tiles e transformando o toque em comando de caminhada.
+     - Além disso, `MouseHoverObject` era resetado a cada frame em `BaseScene.Update` e só era recalculado em `base.Update()` que ocorria no final do frame, fazendo com que no exato momento do clique touch `MouseHoverObject` fosse sempre nulo.
+  2. **Implementação de `FindNpcAtTouch` e `FindMonsterAtTouch`:**
+     - **Projeção 2D de tela (`Viewport.Project`):** Projeta a posição 3D do NPC/Monstro na tela e calcula a distância em pixels em relação ao toque. Se estiver dentro de 75 pixels (alvo ergonômico de toque no celular), detecta imediatamente como toque direto no NPC/Monstro.
+     - **Raycast 3D com Bounding Box expandida:** Margem de tolerância tridimensional no volume do modelo.
+     - **Fallback de proximidade no mapa:** Tolerância estendida para 4.0 tiles.
+  3. **Abertura de Baú / Armazém (VaultStorage):**
+     - O `ShopHandler.HandleNpcWindowResponseAsync` agora reconhece explicitamente `NpcWindowResponse.NpcWindow.VaultStorage` (além de `Merchant` e `Merchant1`), abrindo a interface de itens do cofre (Baz / Bau de Lorencia).
+  4. **Feedback Visual Imediato no Log de Tela:**
+     - Adicionados logs em tela para cada etapa: detecção do toque no NPC (`[NPC] Tocou em...`), envio do pacote `TalkToNpcRequest` (`[NPC] Enviando TalkToNpcRequest...`), e confirmação de resposta da janela pelo servidor (`[NPC] Resposta da janela recebida: ...`).
 
 ### 📋 ESTADO ATUAL (Deixado por: Claude)
 - **Área assumida:** Servidor OpenMU e infraestrutura (VPS, portas, Web Admin Panel, rates).

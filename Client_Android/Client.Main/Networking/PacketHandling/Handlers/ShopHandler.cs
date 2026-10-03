@@ -42,8 +42,11 @@ namespace Client.Main.Networking.PacketHandling.Handlers
             {
                 var resp = new NpcWindowResponse(packet);
                 _logger.LogInformation("NpcWindowResponse received: Window={Window}", resp.Window);
+                OnScreenLogger.Log($"[NPC] Resposta da janela recebida: {resp.Window}", LogLevel.Information);
 
-                if (resp.Window == NpcWindowResponse.NpcWindow.Merchant || resp.Window == NpcWindowResponse.NpcWindow.Merchant1)
+                if (resp.Window == NpcWindowResponse.NpcWindow.Merchant ||
+                    resp.Window == NpcWindowResponse.NpcWindow.Merchant1 ||
+                    resp.Window == NpcWindowResponse.NpcWindow.VaultStorage)
                 {
                     _characterState.ClearShopItems();
 
@@ -52,7 +55,10 @@ namespace Client.Main.Networking.PacketHandling.Handlers
                         var shop = NpcShopControl.Instance;
                         shop.Visible = true;
                         shop.BringToFront();
-                        OnScreenLogger.Log("[LOJA] Loja do comerciante aberta!", LogLevel.Information);
+                        string msg = resp.Window == NpcWindowResponse.NpcWindow.VaultStorage
+                            ? "[BAU] Bau / Armazem aberto!"
+                            : "[LOJA] Loja do comerciante aberta!";
+                        OnScreenLogger.Log(msg, LogLevel.Information);
                     });
                 }
             }

@@ -106,13 +106,18 @@ namespace Client.Main.Controls
             {
                 CalculateMouseTilePos();
 
+                Point mousePos = MuGame.Instance.Mouse.Position;
+
                 // 1. Check if an NPC was clicked or tapped
-                NPCObject clickedNpc = (Scene?.MouseHoverObject as NPCObject) ?? FindNpcAtTile(MouseTileX, MouseTileY);
+                NPCObject clickedNpc = (Scene?.MouseHoverObject as NPCObject) ?? FindNpcAtTouch(mousePos, MouseTileX, MouseTileY);
                 Client.Main.Helpers.OnScreenLogger.Log(
-                    $"[TAP] tile=({MouseTileX},{MouseTileY}) hover={Scene?.MouseHoverObject?.GetType().Name ?? "-"} npc={(clickedNpc != null ? clickedNpc.GetType().Name : "-")}",
+                    $"[TAP] tile=({MouseTileX},{MouseTileY}) npc={(clickedNpc != null ? clickedNpc.GetType().Name : "-")}",
                     Microsoft.Extensions.Logging.LogLevel.Information);
                 if (clickedNpc != null)
                 {
+                    Client.Main.Helpers.OnScreenLogger.Log(
+                        $"[NPC] Tocou em {clickedNpc.GetType().Name} ({clickedNpc.DisplayName}) id={clickedNpc.NetworkId}!",
+                        Microsoft.Extensions.Logging.LogLevel.Information);
                     clickedNpc.OnClick();
                     if (Scene is Client.Main.Scenes.BaseScene bsNpc)
                         bsNpc.SetMouseInputConsumed();
@@ -123,7 +128,7 @@ namespace Client.Main.Controls
                 // 2. Check if a Monster was clicked or attacked
                 if (Walker is PlayerObject player)
                 {
-                    MonsterObject monster = hoveredMonster ?? FindMonsterAtTile(MouseTileX, MouseTileY);
+                    MonsterObject monster = hoveredMonster ?? FindMonsterAtTouch(mousePos, MouseTileX, MouseTileY);
                     if (monster != null)
                     {
                         float attackRange = player.GetAttackRangeTiles();
@@ -248,44 +253,149 @@ namespace Client.Main.Controls
         }
 
         /// <summary>
-        /// Returns the first <see cref="MonsterObject"/> occupying the given tile, or <c>null</c>.
+        /// Finds the most likely touched <see cref="NPCObject"/> using screen-space projection, 3D raycast, and tile proximity.
         /// </summary>
-        private MonsterObject FindMonsterAtTile(byte tileX, byte tileY)
+        private NPCObject FindNpcAtTouch(Point mousePos, byte tileX, byte tileY)
         {
-            foreach (var obj in Objects)          // Objects list comes from WorldControl
-            {
-                if (obj is MonsterObject m &&
-                    m.Location.X == tileX &&
-                    m.Location.Y == tileY)
-                {
-                    return m;
-                }
-            }
-            return null;
-        }
+            NPCObject bestNpc = null;
+            float bestScore = float.MaxValue;
 
-        /// <summary>
-        /// Returns the first <see cref="NPCObject"/> on or adjacent to the given tile, or <c>null</c>.
-        /// </summary>
-        private NPCObject FindNpcAtTile(byte tileX, byte tileY)
-        {
-            NPCObject closest = null;
-            float minDistance = 2.2f; // Touch-friendly proximity tolerance
-            var clickPos = new Vector2(tileX, tileY);
+            var mouseVec = mousePos.ToVector2();
+            var clickTile = new Vector2(tileX, tileY);
+            var gd = GraphicsManager.Instance?.GraphicsDevice;
+            var cam = Camera.Instance;
+            var ray = MuGame.Instance?.MouseRay ?? default;
 
             foreach (var obj in Objects)
             {
-                if (obj is NPCObject npc)
+                if (obj is not NPCObject npc || !npc.Visible || npc.Status == GameControlStatus.Disposed)
+                    continue;
+
+                bool matched = false;
+                float score = float.MaxValue;
+
+                // 1. 2D Screen-space projection hit test (direct finger touch target on mobile screen)
+                if (gd != null && cam != null)
                 {
-                    float dist = Vector2.Distance(npc.Location, clickPos);
-                    if (dist < minDistance)
+                    Vector3 worldCenter = npc.Position + new Vector3(0, 0, 75f);
+                    Vector3 proj = gd.Viewport.Project(worldCenter, cam.Projection, cam.View, Matrix.Identity);
+                    if (proj.Z > 0f && proj.Z < 1f)
                     {
-                        minDistance = dist;
-                        closest = npc;
+                        float screenDist = Vector2.Distance(new Vector2(proj.X, proj.Y), mouseVec);
+                        if (screenDist < 75f)
+                        {
+                            matched = true;
+                            score = screenDist; // Lower pixel distance wins
+                        }
                     }
                 }
+
+                // 2. 3D Raycast against expanded bounding box
+                if (!matched && npc.BoundingBoxWorld.Min != Vector3.Zero)
+                {
+                    var touchBox = new BoundingBox(
+                        npc.BoundingBoxWorld.Min - new Vector3(40f, 40f, 20f),
+                        npc.BoundingBoxWorld.Max + new Vector3(40f, 40f, 40f));
+                    float? rayHit = ray.Intersects(touchBox);
+                    if (rayHit.HasValue)
+                    {
+                        matched = true;
+                        score = 100f + rayHit.Value * 0.01f;
+                    }
+                }
+
+                // 3. Tile space proximity fallback (generous 4.0 tiles tolerance)
+                if (!matched)
+                {
+                    float tileDist = Vector2.Distance(npc.Location, clickTile);
+                    if (tileDist <= 4.0f)
+                    {
+                        matched = true;
+                        score = 200f + tileDist * 10f;
+                    }
+                }
+
+                if (matched && score < bestScore)
+                {
+                    bestScore = score;
+                    bestNpc = npc;
+                }
             }
-            return closest;
+
+            return bestNpc;
+        }
+
+        /// <summary>
+        /// Finds the most likely touched <see cref="MonsterObject"/> using screen-space projection, 3D raycast, and tile proximity.
+        /// </summary>
+        private MonsterObject FindMonsterAtTouch(Point mousePos, byte tileX, byte tileY)
+        {
+            MonsterObject bestMonster = null;
+            float bestScore = float.MaxValue;
+
+            var mouseVec = mousePos.ToVector2();
+            var clickTile = new Vector2(tileX, tileY);
+            var gd = GraphicsManager.Instance?.GraphicsDevice;
+            var cam = Camera.Instance;
+            var ray = MuGame.Instance?.MouseRay ?? default;
+
+            foreach (var obj in Objects)
+            {
+                if (obj is not MonsterObject m || !m.Visible || m.Status == GameControlStatus.Disposed || m.IsDead)
+                    continue;
+
+                bool matched = false;
+                float score = float.MaxValue;
+
+                // 1. 2D Screen-space projection hit test
+                if (gd != null && cam != null)
+                {
+                    Vector3 worldCenter = m.Position + new Vector3(0, 0, 50f);
+                    Vector3 proj = gd.Viewport.Project(worldCenter, cam.Projection, cam.View, Matrix.Identity);
+                    if (proj.Z > 0f && proj.Z < 1f)
+                    {
+                        float screenDist = Vector2.Distance(new Vector2(proj.X, proj.Y), mouseVec);
+                        if (screenDist < 75f)
+                        {
+                            matched = true;
+                            score = screenDist;
+                        }
+                    }
+                }
+
+                // 2. 3D Raycast against expanded bounding box
+                if (!matched && m.BoundingBoxWorld.Min != Vector3.Zero)
+                {
+                    var touchBox = new BoundingBox(
+                        m.BoundingBoxWorld.Min - new Vector3(40f, 40f, 20f),
+                        m.BoundingBoxWorld.Max + new Vector3(40f, 40f, 40f));
+                    float? rayHit = ray.Intersects(touchBox);
+                    if (rayHit.HasValue)
+                    {
+                        matched = true;
+                        score = 100f + rayHit.Value * 0.01f;
+                    }
+                }
+
+                // 3. Tile space proximity fallback
+                if (!matched)
+                {
+                    float tileDist = Vector2.Distance(m.Location, clickTile);
+                    if (tileDist <= 3.5f)
+                    {
+                        matched = true;
+                        score = 200f + tileDist * 10f;
+                    }
+                }
+
+                if (matched && score < bestScore)
+                {
+                    bestScore = score;
+                    bestMonster = m;
+                }
+            }
+
+            return bestMonster;
         }
     }
 }
