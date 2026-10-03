@@ -147,6 +147,21 @@ namespace Client.Main.Networking.PacketHandling
             if (ShouldSkipPacket(code))
                 return Task.CompletedTask;
 
+            // Special case: 0x16 is AddMonstersToScope on C2, or ExperienceGained on C3
+            if (!_isConnectServerRouting && code == 0x16)
+            {
+                if (headerType == 0xC2)
+                {
+                    _logger.LogTrace("Executing AddMonstersToScope for 16 (C2)");
+                    return ExecuteHandlerAsync(_scopeHandler.HandleAddMonstersToScopeAsync, packet, code, subCode);
+                }
+                else
+                {
+                    _logger.LogTrace("Executing ExperienceGained for 16 ({H:X2})", headerType);
+                    return ExecuteHandlerAsync(_characterDataHandler.HandleExperienceGainedAsync, packet, code, subCode);
+                }
+            }
+
             var key = (code, subCode);
             if (_packetHandlers.TryGetValue(key, out var handler))
             {

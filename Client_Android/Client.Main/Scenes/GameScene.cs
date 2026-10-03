@@ -46,6 +46,7 @@ namespace Client.Main.Scenes
         private MobileControlsOverlay _mobileControls;
         private ILogger _logger = MuGame.AppLoggerFactory?.CreateLogger<GameScene>();
         private MapNameControl _currentMapNameControl; // Track active map name display
+        private float _pendingImportCheckTimer = 0f;
 
         // ───────────────────────── Properties ─────────────────────────
         public PlayerObject Hero => _hero;
@@ -865,6 +866,18 @@ namespace Client.Main.Scenes
 
             _notificationManager?.Update(gameTime);
             ProcessPendingNotifications();
+
+            // Periodic import of pending NPCs/Monsters/Players that arrived while world was loading
+            _pendingImportCheckTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
+            if (_pendingImportCheckTimer >= 1.0f)
+            {
+                _pendingImportCheckTimer = 0f;
+                if (World is WalkableWorldControl && World.Status == GameControlStatus.Ready)
+                {
+                    _ = ImportPendingNpcsMonsters();
+                    _ = ImportPendingRemotePlayers();
+                }
+            }
 
             if (World == null || World.Status != GameControlStatus.Ready)
             {

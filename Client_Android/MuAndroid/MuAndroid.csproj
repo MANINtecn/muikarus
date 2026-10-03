@@ -6,8 +6,8 @@
 
     <OutputType>Exe</OutputType>
     <ApplicationId>MuAndroid.MuAndroid</ApplicationId>
-    <ApplicationVersion>56</ApplicationVersion>
-    <ApplicationDisplayVersion>1.56</ApplicationDisplayVersion>
+    <ApplicationVersion>57</ApplicationVersion>
+    <ApplicationDisplayVersion>1.57</ApplicationDisplayVersion>
 
     <AndroidManifest>AndroidManifest.xml</AndroidManifest>
     <MonoGamePlatform>Android</MonoGamePlatform>

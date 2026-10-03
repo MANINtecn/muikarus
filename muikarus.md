@@ -546,30 +546,18 @@ Para trabalhar os três (usuário + Gemini + Claude) juntos sem atrito de merge/
 - **FPS:** continua fora de escopo por decisão do usuário (14 FPS em Noria registrado como referência).
 - **Próximo passo:** instalar v1.56, tocar `LOG` após testar e enviar o texto; conferir `[SKILL]`/`[TAP]`/`[NPC]`.
 
-### 📋 ESTADO ATUAL (Deixado por: Gemini — 03/10/2026)
-- **Versão Atual:** v1.55
-- **O que foi corrigido e implementado na v1.55:**
-  1. **Música desativada por padrão:** `Constants.BACKGROUND_MUSIC = false;` para que o jogo entre em silêncio imediato sem poluição sonora.
-  2. **Tela de Carregamento com Arte Oficial (Fim da Tela Preta):** `LoadingScreenControl` agora desenha a textura oficial `Background.jpg` em tela cheia com overlay escuro sutil para garantir legibilidade dos textos e barra de progresso durante todo o carregamento do mapa e troca de cena.
-  3. **Blindagem e Eliminação do `NullReferenceException` em `GameScene.LoadSceneContentWithProgress`:**
-     - Corrigida a avaliação de `walkable.Walker.NetworkId` e `finalWalkable.Walker.NetworkId` para evitar acessos nulos.
-     - Proteção por blocos `try/catch` independentes em cada etapa do carregamento (terreno, herói, entidades, sons).
-     - **Garantia de envio do pacote `ClientReady` (`0xB0`):** Sem o `0xB0`, o servidor OpenMU não ativava o personagem no mapa, não transmitia o scope de NPCs/monstros e bloqueava a movimentação. O envio agora é executado e garantido tanto no fluxo normal quanto em fallback.
-     - Herói agora tem status forçado para `GameControlStatus.Ready` e `Visible = true` para garantir que seu modelo 3D seja sempre renderizado.
-  4. **Criação e Deleção de Personagens no Mobile (SelectCharacterScene):**
-     - Botões touch `[ + CRIAR ]` e `[ DELETAR ]` na barra inferior do lobby de seleção de personagens.
-     - Modal touch-friendly `ShowCharacterCreationDialog()` com seleção de classes clássicas (`Dark Knight`, `Dark Wizard`, `Fairy Elf`), gerador de nomes e botão de confirmação.
-     - Modal de confirmação para deleção de personagem selecionado `ShowDeleteConfirmDialog()`.
-     - Implementados `BuildCreateCharacterPacket` e `BuildDeleteCharacterPacket` em `PacketBuilder.cs`.
-     - Implementados `SendCreateCharacterRequestAsync` e `SendDeleteCharacterRequestAsync` em `CharacterService.cs`.
-     - Implementados handlers `HandleCreateCharacterResponseAsync` (0xF3 0x01) e `HandleDeleteCharacterResponseAsync` (0xF3 0x02) em `MiscGamePacketHandler.cs`.
-     - `SelectCharacterScene` inscrito no evento `CharacterListReceived` para atualizar instantaneamente os botões e os modelos 3D do `SelectWorld`.
-  5. **Interação com NPCs Touch-Friendly:**
-     - `FindNpcAtTile` atualizado com raio de tolerância de 2.2 tiles para reconhecer toques na malha/corpo do NPC em telas touch.
-     - `CursorControl` agora aciona `npc.OnClick()` no toque (`TouchLocationState.Pressed`).
-  6. **FPS:** Conforme determinação do usuário, a taxa de quadros e o pipeline de rendering não foram alterados nesta versão.
-- **Próximo Passo:**
-  - Testar a v1.55 no dispositivo Android e validar o fluxo de criação/deleção e entrada em Lorencia com NPCs e caminhada.
+### 📋 ESTADO ATUAL (Deixado por: Gemini — 03/10/2026, v1.57)
+- **Versão Atual:** v1.57 (`versionCode="57"`, `versionName="1.57"`)
+- **Problemas diagnosticados e corrigidos a partir do log do usuário:**
+  1. **Avisos de Duplicate Handlers eliminados:**
+     - O `PacketRouter` registrava handlers indexados apenas por `(MainCode, SubCode)`. O opcode `0x16` no MU é duplo: `0xC2 0x16` (AddMonstersToScope) e `0xC3 0x16` (ExperienceGained). Como `CharacterDataHandler` registrava primeiro, o `ScopeHandler.HandleAddMonstersToScopeAsync` era descartado no `TryAdd` com o warning `Duplicate handler for 16-255, skipping ScopeHandler.HandleAddMonstersToScopeAsync` — impedindo o spawn de monstros!
+     - Adicionado despacho explícito no `PacketRouter` checando `headerType` (`0xC2` ➔ `ScopeHandler`, `0xC3` ➔ `CharacterDataHandler`).
+     - Removidos handlers legados de loja (`0x30` e `0x31`) em `MiscGamePacketHandler` que causavam `Duplicate handler for 30-255` e `31-255`, garantindo que o `ShopHandler` tenha controle absoluto dos comerciantes e inventário de NPC.
+  2. **NPCs e Monstros sumindo restaurados & blindados:**
+     - Corrigida a condição de corrida onde pacotes de NPC/monstros chegavam durante o carregamento de mapa/cena antes de `World.Status == Ready`.
+     - Implementado coletor periódico em `GameScene.Update` que importa a cada segundo quaisquer NPCs, monstros ou jogadores remotos pendentes deixados em `_pendingNpcsMonsters`.
+     - Adicionado log em tela `[SCOPE]` para exibir em tempo real a quantidade de NPCs e monstros recebidos e despachados pelo protocolo do servidor.
+  3. **FPS:** Mantido intacto conforme determinação do usuário.
 
 ### 📋 ESTADO ATUAL (Deixado por: Claude)
 - **Área assumida:** Servidor OpenMU e infraestrutura (VPS, portas, Web Admin Panel, rates).

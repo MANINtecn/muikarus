@@ -578,8 +578,8 @@ namespace Client.Main.Networking.PacketHandling.Handlers
             return Task.CompletedTask;
         }
 
-        [PacketHandler(0x16, PacketRouter.NoSubCode)] // ExperienceGained
-        private Task HandleExperienceGainedAsync(Memory<byte> packet)
+        // Handled specifically in PacketRouter based on HeaderType (C3 = ExperienceGained, C2 = AddMonstersToScope)
+        public Task HandleExperienceGainedAsync(Memory<byte> packet)
         {
             try
             {

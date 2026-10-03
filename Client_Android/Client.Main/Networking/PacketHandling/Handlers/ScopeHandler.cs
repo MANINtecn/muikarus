@@ -213,7 +213,7 @@ namespace Client.Main.Networking.PacketHandling.Handlers
             return Task.CompletedTask;
         }
 
-        [PacketHandler(0x16, PacketRouter.NoSubCode)] // AddMonstersToScope
+        // Handled specifically in PacketRouter based on HeaderType (C2 = AddMonstersToScope, C3 = ExperienceGained)
         public Task HandleAddMonstersToScopeAsync(Memory<byte> packet)
         {
             _ = Task.Run(() => ParseAndAddNpcsToScopeWithStaggering(packet.ToArray()));
@@ -255,6 +255,7 @@ namespace Client.Main.Networking.PacketHandling.Handlers
             }
 
             _logger.LogInformation("ScopeHandler: AddNpcToScope received {Count} objects.", npcCount);
+            OnScreenLogger.Log($"[SCOPE] Recebido pacote com {npcCount} NPCs/Monstros (Versao: {_targetVersion})", LogLevel.Information);
 
             int currentPacketOffset = firstOffset;
             for (int i = 0; i < npcCount; i++)
