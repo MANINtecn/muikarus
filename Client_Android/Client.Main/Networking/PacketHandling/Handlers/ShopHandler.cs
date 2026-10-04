@@ -82,7 +82,7 @@ namespace Client.Main.Networking.PacketHandling.Handlers
                 if (span.Length >= 6)
                 {
                     ushort npcNumber = BinaryPrimitives.ReadUInt16LittleEndian(span[4..]);
-                    string npcName = NpcDatabase.GetNpcName((short)npcNumber);
+                    string npcName = NpcDatabase.GetNpcName(npcNumber);
                     _logger.LogInformation("OpenNpcDialog received: NpcNumber={NpcNumber} ({NpcName})", npcNumber, npcName);
                     OnScreenLogger.Log($"[NPC] Dialogo com {npcName} (#{npcNumber}) iniciado!", LogLevel.Information);
                 }

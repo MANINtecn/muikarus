@@ -721,16 +721,11 @@ namespace Client.Main.Scenes
                     }
                     try
                     {
-                        await npcMonster.Initialize();
+                        await npcMonster.Load();
                     }
                     catch (Exception exInit)
                     {
-                        _logger?.LogWarning(exInit, "Erro ao inicializar NPC/Monster pendente {Id}", s.Id);
-                    }
-                    finally
-                    {
-                        npcMonster.Status = GameControlStatus.Ready;
-                        npcMonster.Visible = true;
+                        _logger?.LogWarning(exInit, "Erro ao carregar NPC/Monster pendente {Id}", s.Id);
                     }
                 }
             }
@@ -755,16 +750,11 @@ namespace Client.Main.Scenes
                 w.Objects.Add(remote);
                 try
                 {
-                    await remote.Initialize();
+                    await remote.Load();
                 }
                 catch (Exception exInit)
                 {
-                    _logger?.LogWarning(exInit, "Erro ao inicializar jogador remoto pendente {Id}", s.Id);
-                }
-                finally
-                {
-                    remote.Status = GameControlStatus.Ready;
-                    remote.Visible = true;
+                    _logger?.LogWarning(exInit, "Erro ao carregar jogador remoto pendente {Id}", s.Id);
                 }
             }
         }
