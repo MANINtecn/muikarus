@@ -277,44 +277,66 @@ namespace Client.Main.Controls
                 bool matched = false;
                 float score = float.MaxValue;
 
-                // 1. 2D Screen-space projection hit test (direct finger touch target on mobile screen)
+                // 1. 2D Screen-space projection hit test across head, torso and feet (ergonomic mobile touch target)
                 if (gd != null && cam != null)
                 {
-                    Vector3 worldCenter = npc.Position + new Vector3(0, 0, 75f);
-                    Vector3 proj = gd.Viewport.Project(worldCenter, cam.Projection, cam.View, Matrix.Identity);
-                    if (proj.Z > 0f && proj.Z < 1f)
+                    Vector3[] testPoints =
+                    [
+                        npc.Position + new Vector3(0, 0, 75f),  // Torso
+                        npc.Position + new Vector3(0, 0, 130f), // Head
+                        npc.Position + new Vector3(0, 0, 15f)   // Base / Feet
+                    ];
+
+                    foreach (var pt in testPoints)
                     {
-                        float screenDist = Vector2.Distance(new Vector2(proj.X, proj.Y), mouseVec);
-                        if (screenDist < 75f)
+                        Vector3 proj = gd.Viewport.Project(pt, cam.Projection, cam.View, Matrix.Identity);
+                        if (proj.Z > 0f && proj.Z < 1f)
                         {
-                            matched = true;
-                            score = screenDist; // Lower pixel distance wins
+                            float screenDist = Vector2.Distance(new Vector2(proj.X, proj.Y), mouseVec);
+                            // 160px accommodates fingertip touch on high-DPI (1080p/1440p) mobile screens
+                            if (screenDist < 160f && screenDist < score)
+                            {
+                                matched = true;
+                                score = screenDist;
+                            }
                         }
                     }
                 }
 
-                // 2. 3D Raycast against expanded bounding box
-                if (!matched && npc.BoundingBoxWorld.Min != Vector3.Zero)
+                // 2. 3D Raycast against model bounding box or synthetic body box (handles skeleton-only rigs like Man01/Female01)
+                if (!matched)
                 {
-                    var touchBox = new BoundingBox(
-                        npc.BoundingBoxWorld.Min - new Vector3(40f, 40f, 20f),
-                        npc.BoundingBoxWorld.Max + new Vector3(40f, 40f, 40f));
+                    BoundingBox touchBox;
+                    if (npc.BoundingBoxWorld.Min != Vector3.Zero && (npc.BoundingBoxWorld.Max - npc.BoundingBoxWorld.Min).LengthSquared() > 100f)
+                    {
+                        touchBox = new BoundingBox(
+                            npc.BoundingBoxWorld.Min - new Vector3(50f, 50f, 20f),
+                            npc.BoundingBoxWorld.Max + new Vector3(50f, 50f, 50f));
+                    }
+                    else
+                    {
+                        var center = npc.Position + new Vector3(0, 0, 75f);
+                        touchBox = new BoundingBox(
+                            center - new Vector3(70f, 70f, 75f),
+                            center + new Vector3(70f, 70f, 95f));
+                    }
+
                     float? rayHit = ray.Intersects(touchBox);
                     if (rayHit.HasValue)
                     {
                         matched = true;
-                        score = 100f + rayHit.Value * 0.01f;
+                        score = 200f + rayHit.Value * 0.01f;
                     }
                 }
 
-                // 3. Tile space proximity fallback (generous 4.0 tiles tolerance)
+                // 3. Tile space proximity fallback (6.0 tiles accounts for ~45° isometric ground raycast offset)
                 if (!matched)
                 {
                     float tileDist = Vector2.Distance(npc.Location, clickTile);
-                    if (tileDist <= 4.0f)
+                    if (tileDist <= 6.0f)
                     {
                         matched = true;
-                        score = 200f + tileDist * 10f;
+                        score = 300f + tileDist * 10f;
                     }
                 }
 
@@ -353,33 +375,54 @@ namespace Client.Main.Controls
                 bool matched = false;
                 float score = float.MaxValue;
 
-                // 1. 2D Screen-space projection hit test
+                // 1. 2D Screen-space projection hit test (torso and head)
                 if (gd != null && cam != null)
                 {
-                    Vector3 worldCenter = m.Position + new Vector3(0, 0, 50f);
-                    Vector3 proj = gd.Viewport.Project(worldCenter, cam.Projection, cam.View, Matrix.Identity);
-                    if (proj.Z > 0f && proj.Z < 1f)
+                    Vector3[] testPoints =
+                    [
+                        m.Position + new Vector3(0, 0, 50f),
+                        m.Position + new Vector3(0, 0, 100f),
+                        m.Position + new Vector3(0, 0, 15f)
+                    ];
+
+                    foreach (var pt in testPoints)
                     {
-                        float screenDist = Vector2.Distance(new Vector2(proj.X, proj.Y), mouseVec);
-                        if (screenDist < 75f)
+                        Vector3 proj = gd.Viewport.Project(pt, cam.Projection, cam.View, Matrix.Identity);
+                        if (proj.Z > 0f && proj.Z < 1f)
                         {
-                            matched = true;
-                            score = screenDist;
+                            float screenDist = Vector2.Distance(new Vector2(proj.X, proj.Y), mouseVec);
+                            if (screenDist < 150f && screenDist < score)
+                            {
+                                matched = true;
+                                score = screenDist;
+                            }
                         }
                     }
                 }
 
-                // 2. 3D Raycast against expanded bounding box
-                if (!matched && m.BoundingBoxWorld.Min != Vector3.Zero)
+                // 2. 3D Raycast against expanded bounding box or synthetic body box
+                if (!matched)
                 {
-                    var touchBox = new BoundingBox(
-                        m.BoundingBoxWorld.Min - new Vector3(40f, 40f, 20f),
-                        m.BoundingBoxWorld.Max + new Vector3(40f, 40f, 40f));
+                    BoundingBox touchBox;
+                    if (m.BoundingBoxWorld.Min != Vector3.Zero && (m.BoundingBoxWorld.Max - m.BoundingBoxWorld.Min).LengthSquared() > 100f)
+                    {
+                        touchBox = new BoundingBox(
+                            m.BoundingBoxWorld.Min - new Vector3(40f, 40f, 20f),
+                            m.BoundingBoxWorld.Max + new Vector3(40f, 40f, 40f));
+                    }
+                    else
+                    {
+                        var center = m.Position + new Vector3(0, 0, 50f);
+                        touchBox = new BoundingBox(
+                            center - new Vector3(60f, 60f, 50f),
+                            center + new Vector3(60f, 60f, 70f));
+                    }
+
                     float? rayHit = ray.Intersects(touchBox);
                     if (rayHit.HasValue)
                     {
                         matched = true;
-                        score = 100f + rayHit.Value * 0.01f;
+                        score = 200f + rayHit.Value * 0.01f;
                     }
                 }
 
@@ -387,10 +430,10 @@ namespace Client.Main.Controls
                 if (!matched)
                 {
                     float tileDist = Vector2.Distance(m.Location, clickTile);
-                    if (tileDist <= 3.5f)
+                    if (tileDist <= 5.5f)
                     {
                         matched = true;
-                        score = 200f + tileDist * 10f;
+                        score = 300f + tileDist * 10f;
                     }
                 }
 

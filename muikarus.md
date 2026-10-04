@@ -546,26 +546,27 @@ Para trabalhar os três (usuário + Gemini + Claude) juntos sem atrito de merge/
 - **FPS:** continua fora de escopo por decisão do usuário (14 FPS em Noria registrado como referência).
 - **Próximo passo:** instalar v1.56, tocar `LOG` após testar e enviar o texto; conferir `[SKILL]`/`[TAP]`/`[NPC]`.
 
-### 📋 ESTADO ATUAL (Deixado por: Gemini — 03/10/2026, v1.59)
-- **Versão Atual:** v1.59 (`versionCode="59"`, `versionName="1.59"`)
-- **Correção da Interação com NPCs e Monstros no Mobile:**
-  1. **Diagnóstico Raiz do Toque no NPC:**
-     - A detecção de NPC e monstro em `WalkableWorldControl` calculava o toque baseado no raycast contra o terreno plano (`CalculateMouseTilePos`). Pelo ângulo isométrico da câmera (~45°), um toque no peito/cabeça do NPC no celular interceptava o chão 3 a 5 tiles atrás da posição dos pés do NPC, falhando a verificação de proximidade de 2.2 tiles e transformando o toque em comando de caminhada.
-     - Além disso, `MouseHoverObject` era resetado a cada frame em `BaseScene.Update` e só era recalculado em `base.Update()` que ocorria no final do frame, fazendo com que no exato momento do clique touch `MouseHoverObject` fosse sempre nulo.
-  2. **Implementação de `FindNpcAtTouch` e `FindMonsterAtTouch`:**
-     - **Projeção 2D de tela (`Viewport.Project`):** Projeta a posição 3D do NPC/Monstro na tela e calcula a distância em pixels em relação ao toque. Se estiver dentro de 75 pixels (alvo ergonômico de toque no celular), detecta imediatamente como toque direto no NPC/Monstro.
-     - **Raycast 3D com Bounding Box expandida:** Margem de tolerância tridimensional no volume do modelo.
-     - **Fallback de proximidade no mapa:** Tolerância estendida para 4.0 tiles.
-  3. **Abertura de Baú / Armazém (VaultStorage):**
-     - O `ShopHandler.HandleNpcWindowResponseAsync` agora reconhece explicitamente `NpcWindowResponse.NpcWindow.VaultStorage` (além de `Merchant` e `Merchant1`), abrindo a interface de itens do cofre (Baz / Bau de Lorencia).
-  4. **Feedback Visual Imediato no Log de Tela:**
-     - Adicionados logs em tela para cada etapa: detecção do toque no NPC (`[NPC] Tocou em...`), envio do pacote `TalkToNpcRequest` (`[NPC] Enviando TalkToNpcRequest...`), e confirmação de resposta da janela pelo servidor (`[NPC] Resposta da janela recebida: ...`).
+### 📋 ESTADO ATUAL (Deixado por: Gemini — 04/10/2026, v1.60)
+- **Versão Atual:** v1.60 (`versionCode="60"`, `versionName="1.60"`)
+- **Correção da Tela Preta e do Erro "muikarus parou de funcionar" (ANR):**
+  1. **Fim do Auto-Dismiss prematuro:** No `GameScene.cs`, o `LoadingScreenControl` estava configurado com `AutoDismissTimeout = 5.0f`. Como a carga completa de terreno 3D, herói e entidades leva entre 6 e 9 segundos, aos 5 segundos a tela de loading se destruía e sumia, deixando a tela 100% preta enquanto o mundo ainda não estava pronto (`Status != Ready`). O `AutoDismissTimeout` arbitrário foi removido de `GameScene`, mantendo a tela informativa com barra e diagnóstico visível até o mundo estar pronto, além de manter o botão manual `[ ENTRAR (X) ]`.
+  2. **Envio Não-Bloqueante do ClientReady (0xB0):** Restaurada a solução do Claude da v1.21 onde `SendClientReadyAfterMapChangeAsync()` roda em segundo plano via `Task.Run`, impedindo que atrasos na resposta do socket congelem o carregamento da cena e acionem o aviso de ANR do Android.
+  3. **Fallback Gráfico Anti-Tela Preta:** Em `GameScene.Draw()`, se por qualquer motivo a tela de loading estiver nula ou invisível enquanto o mapa ainda está carregando, desenha-se uma tela informativa de transição ("Entrando no mundo... Aguarde...") para que o jogador jamais veja tela preta.
+  4. **Timeout Seguro na Seleção:** `SelectCharacterScene` com timeout estendido para 20s para aguardar autorização do servidor sem congelar.
+
+- **Correção Definitiva da Interação com NPCs e Monstros no Mobile:**
+  1. **Inicialização Completa dos NPCs (`Initialize` vs `Load`):** Em `ScopeHandler.cs` e `GameScene.ImportPendingNpcsMonsters()`, corrigida a chamada para `await obj.Initialize()`. Anteriormente chamava-se apenas `Load()`, deixando `Status = NonInitialized` e as peças do corpo filhas (`Helm`, `Armor`, `Pants`, `Gloves`, `Boots` dos NPCs humanos) não inicializadas. Agora o objeto recebe `Status = Ready` e `Visible = true` imediatamente.
+  2. **Multi-ponto Vertical de Toque na Tela:** `FindNpcAtTouch` agora testa projeção na tela em 3 alturas do NPC (cabeça `Z=130`, tronco `Z=75` e pés `Z=15`) com raio aumentado para **160 pixels** (ergonômico para ponta do dedo em telas 1080p e 1440p).
+  3. **Caixa Delimitadora Sintética 3D para NPCs Humanos:** NPCs baseados em `Man01.bmd` / `Female01.bmd` possuem 0 vértices no modelo raiz (os vértices ficam nas roupas filhas), o que gerava BoundingBox zerada. Criada BoundingBox 3D sintética volumétrica em torno de `npc.Position`, garantindo que o raycast 3D intercepte o NPC de qualquer ângulo.
+  4. **Tolerância de Proximidade no Terreno:** Tolerância de tiles estendida para 6.0 tiles em NPCs e 5.5 tiles em monstros, compensando o ângulo isométrico de 45° da câmera.
+  5. **Manipulador do Pacote 0xF9, 0x01 (OpenNpcDialog):** Adicionado em `ShopHandler.cs` para suportar NPCs de buff, diálogo e missões (Elf Soldier, guardas, etc.), exibindo feedback em tela.
 
 ### 📋 ESTADO ATUAL (Deixado por: Claude)
 - **Área assumida:** Servidor OpenMU e infraestrutura (VPS, portas, Web Admin Panel, rates).
 - **Tarefa Imediata para Claude:** Ainda não iniciada — próximo passo é revisar o item 21 do roadmap ("Garantir portas 44405 e 55901 totalmente abertas no firewall da VPS") e o item 20 ("Aprender a usar o Web Admin Panel"), conforme o usuário confirmar prioridade.
 
 ---
+
 
 
 

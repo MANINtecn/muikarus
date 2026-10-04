@@ -320,15 +320,16 @@ namespace Client.Main.Networking.PacketHandling.Handlers
 
                                 try
                                 {
-                                    await obj.Load();
-                                    if (obj.Status != GameControlStatus.Ready)
-                                    {
-                                        _logger.LogWarning($"ScopeHandler: NPC/Monster {maskedId} ({obj.GetType().Name}) loaded but status is {obj.Status}.");
-                                    }
+                                    await obj.Initialize();
                                 }
                                 catch (Exception ex)
                                 {
-                                    _logger.LogError(ex, $"ScopeHandler: Error loading NPC/Monster {maskedId} ({obj.GetType().Name}).");
+                                    _logger.LogError(ex, $"ScopeHandler: Error initializing NPC/Monster {maskedId} ({obj.GetType().Name}).");
+                                }
+                                finally
+                                {
+                                    obj.Status = GameControlStatus.Ready;
+                                    obj.Visible = true;
                                 }
                             }
                             else

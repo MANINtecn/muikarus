@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using MUnique.OpenMU.Network.Packets.ServerToClient;
@@ -11,7 +12,7 @@ using Client.Main.Helpers;
 namespace Client.Main.Networking.PacketHandling.Handlers
 {
     /// <summary>
-    /// Handles packets related to NPC shops (NpcWindowResponse, StoreItemList, ItemBought, NpcItemBuyFailed, NpcItemSellResult).
+    /// Handles packets related to NPC shops (NpcWindowResponse, StoreItemList, ItemBought, NpcItemBuyFailed, NpcItemSellResult, OpenNpcDialog).
     /// </summary>
     public class ShopHandler : IGamePacketHandler
     {
@@ -65,6 +66,30 @@ namespace Client.Main.Networking.PacketHandling.Handlers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error parsing NpcWindowResponse packet.");
+            }
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// OpenNpcDialog: Sent when opening dialogue with quest / buff / guard NPCs (0xF9, 0x01).
+        /// </summary>
+        [PacketHandler(0xF9, 0x01)]
+        public Task HandleOpenNpcDialogAsync(Memory<byte> packet)
+        {
+            try
+            {
+                var span = packet.Span;
+                if (span.Length >= 6)
+                {
+                    ushort npcNumber = BinaryPrimitives.ReadUInt16LittleEndian(span[4..]);
+                    string npcName = NpcDatabase.GetNpcName((short)npcNumber);
+                    _logger.LogInformation("OpenNpcDialog received: NpcNumber={NpcNumber} ({NpcName})", npcNumber, npcName);
+                    OnScreenLogger.Log($"[NPC] Dialogo com {npcName} (#{npcNumber}) iniciado!", LogLevel.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error parsing OpenNpcDialog packet.");
             }
             return Task.CompletedTask;
         }

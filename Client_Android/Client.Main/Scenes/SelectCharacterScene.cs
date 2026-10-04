@@ -874,12 +874,12 @@ namespace Client.Main.Scenes
 
             if (_loadingScreen == null)
             {
-                _loadingScreen = new LoadingScreenControl { Visible = true, AutoDismissTimeout = 7.0f };
+                _loadingScreen = new LoadingScreenControl { Visible = true, AutoDismissTimeout = 20.0f };
                 Controls.Add(_loadingScreen);
             }
             else
             {
-                _loadingScreen.AutoDismissTimeout = 7.0f;
+                _loadingScreen.AutoDismissTimeout = 20.0f;
             }
             _loadingScreen.Message = $"Entering game as {characterName}...";
             _loadingScreen.Progress = 0f;

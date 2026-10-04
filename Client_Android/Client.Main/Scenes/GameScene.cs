@@ -137,7 +137,7 @@ namespace Client.Main.Scenes
             _inventoryControl = new InventoryControl(MuGame.Network);
             Controls.Add(_inventoryControl);
 
-            _loadingScreen = new LoadingScreenControl { Visible = true, Message = "Loading Game...", AutoDismissTimeout = 5.0f };
+            _loadingScreen = new LoadingScreenControl { Visible = true, Message = "Loading Game..." };
             Controls.Add(_loadingScreen);
             _loadingScreen.BringToFront();
 
@@ -401,18 +401,21 @@ namespace Client.Main.Scenes
                     }
                 }
 
-                // CRITICAL: Send ClientReady (0xB0) packet to server so it streams NPCs, monsters and allows walking
+                // CRITICAL: Send ClientReady (0xB0) packet to server in background so scene entry is never delayed or blocked
                 if (MuGame.Network != null)
                 {
-                    try
+                    _ = Task.Run(async () =>
                     {
-                        await MuGame.Network.SendClientReadyAfterMapChangeAsync();
-                        OnScreenLogger.Log(">>> Notificacao 0xB0 (ClientReady) enviada com sucesso ao servidor!");
-                    }
-                    catch (Exception exNet)
-                    {
-                        _logger?.LogWarning(exNet, "Falha ao enviar ClientReady diretamente.");
-                    }
+                        try
+                        {
+                            await MuGame.Network.SendClientReadyAfterMapChangeAsync();
+                            OnScreenLogger.Log(">>> Notificacao 0xB0 (ClientReady) enviada ao servidor com sucesso!");
+                        }
+                        catch (Exception exNet)
+                        {
+                            _logger?.LogWarning(exNet, "Falha ao enviar ClientReady em segundo plano.");
+                        }
+                    });
                 }
             }
             catch (Exception ex)
@@ -716,7 +719,19 @@ namespace Client.Main.Scenes
                         npcMonster.Position = npcMonster.TargetPosition;
                         npcMonster.MoveTargetPosition = npcMonster.Position;
                     }
-                    await npcMonster.Load();
+                    try
+                    {
+                        await npcMonster.Initialize();
+                    }
+                    catch (Exception exInit)
+                    {
+                        _logger?.LogWarning(exInit, "Erro ao inicializar NPC/Monster pendente {Id}", s.Id);
+                    }
+                    finally
+                    {
+                        npcMonster.Status = GameControlStatus.Ready;
+                        npcMonster.Visible = true;
+                    }
                 }
             }
         }
@@ -738,7 +753,19 @@ namespace Client.Main.Scenes
                     Location = new Vector2(s.PositionX, s.PositionY)
                 };
                 w.Objects.Add(remote);
-                await remote.Load();
+                try
+                {
+                    await remote.Initialize();
+                }
+                catch (Exception exInit)
+                {
+                    _logger?.LogWarning(exInit, "Erro ao inicializar jogador remoto pendente {Id}", s.Id);
+                }
+                finally
+                {
+                    remote.Status = GameControlStatus.Ready;
+                    remote.Visible = true;
+                }
             }
         }
 
@@ -927,7 +954,26 @@ namespace Client.Main.Scenes
         {
             if (_isChangingWorld || World == null || World.Status != GameControlStatus.Ready)
             {
-                _loadingScreen?.Draw(gameTime);
+                if (_loadingScreen != null && _loadingScreen.Visible)
+                {
+                    _loadingScreen.Draw(gameTime);
+                }
+                else
+                {
+                    // Fallback to avoid pitch-black screen during loading/world switch
+                    var gd = GraphicsManager.Instance?.GraphicsDevice;
+                    var font = GraphicsManager.Instance?.Font;
+                    var sprite = GraphicsManager.Instance?.Sprite;
+                    var pixel = GraphicsManager.Instance?.Pixel;
+                    if (gd != null && sprite != null && pixel != null && font != null)
+                    {
+                        using (new SpriteBatchScope(sprite, SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, RasterizerState.CullNone))
+                        {
+                            sprite.Draw(pixel, new Rectangle(0, 0, gd.Viewport.Width, gd.Viewport.Height), Color.Black * 0.92f);
+                            sprite.DrawString(font, "Entrando no mundo... Aguarde...", new Vector2(30, gd.Viewport.Height / 2 - 10), Color.Gold);
+                        }
+                    }
+                }
                 return;
             }
 

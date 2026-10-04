@@ -190,7 +190,7 @@ namespace Client.Main.Controls.UI.Game
                 if (_font != null)
                 {
                     // 1. Top Title
-                    string title = $"[IKARUS MU v1.55] CARREGANDO MUNDO ({_visibleDuration:F1}s)";
+                    string title = $"[IKARUS MU v1.60] CARREGANDO MUNDO ({_visibleDuration:F1}s)";
                     spriteBatch.DrawString(_font, title, new Vector2(20, 16), Color.Goldenrod);
 
                     // 2. Dismiss Button (Top Right)
