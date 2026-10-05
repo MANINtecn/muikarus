@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="MuMono.MuMono">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.ikarus.mumobile">
   <!-- The HiDef rendering path requires OpenGL ES 3.0 class hardware. -->
   <uses-feature android:glEsVersion="0x00030000" android:required="true" />
 
@@ -12,7 +12,7 @@
   <!-- minSdk, targetSdk and version metadata are generated from MuAndroid.csproj. -->
   <application
       android:hardwareAccelerated="true"
-      android:label="MuMono"
+      android:label="Ikarus MU"
       android:icon="@mipmap/ic_launcher"
       android:roundIcon="@mipmap/ic_launcher"
       android:usesCleartextTraffic="true"

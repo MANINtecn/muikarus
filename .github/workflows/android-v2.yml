@@ -1,0 +1,141 @@
+name: Build Ikarus MU Mobile v2 (base Client_Desktop)
+
+# Mobile re-baseado no Client_Desktop/MuAndroid. Roda so na branch mobile-rebase
+# (ou manualmente), para nao misturar com o android-build.yml legado (v1.x).
+#
+# Assinatura estavel (opcional, recomendada): crie estes Secrets no repositorio
+#   ANDROID_KEYSTORE_B64  (keystore em base64)
+#   ANDROID_KEY_ALIAS
+#   ANDROID_KEYSTORE_PASSWORD
+# Sem eles o APK sai assinado com chave de debug, que muda a cada build
+# (atualizar o app exigiria desinstalar e perder o Data de 1.7 GB).
+on:
+  push:
+    branches: [ "mobile-rebase" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: Client_Desktop
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+      DOTNET_NOLOGO: 1
+      NUGET_XMLDOC_MODE: skip
+      MSBUILDDISABLENODEREUSE: 1
+      NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+      ApplicationVersion: ${{ github.run_number }}
+      ApplicationDisplayVersion: 2.0.${{ github.run_number }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: 11076708
+          packages: |
+            platform-tools
+            platforms;android-36
+            build-tools;36.0.0
+            ndk;27.2.12479018
+          accept-android-sdk-licenses: true
+
+      - name: Configure signing from Secrets (if present)
+        shell: pwsh
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if ($env:KS_B64 -and $env:KS_ALIAS -and $env:KS_PASS) {
+            $ks = Join-Path $env:RUNNER_TEMP "release.keystore"
+            [IO.File]::WriteAllBytes($ks, [Convert]::FromBase64String($env:KS_B64))
+            "AndroidKeyStore=true" >> $env:GITHUB_ENV
+            "AndroidSigningKeyStore=$ks" >> $env:GITHUB_ENV
+            "AndroidSigningKeyAlias=$env:KS_ALIAS" >> $env:GITHUB_ENV
+            "AndroidSigningKeyPass=$env:KS_PASS" >> $env:GITHUB_ENV
+            "AndroidSigningStorePass=$env:KS_PASS" >> $env:GITHUB_ENV
+            Write-Output "Assinatura: keystore dos Secrets"
+          } else {
+            Write-Output "AVISO: sem Secrets de assinatura; usando chave de debug."
+          }
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: .nuget/packages
+          key: android-nuget-${{ runner.os }}-${{ hashFiles('Client_Desktop/global.json', 'Client_Desktop/Directory.Build.props', 'Client_Desktop/MuAndroid/**/*.csproj', 'Client_Desktop/Client.Main/**/*.csproj', 'Client_Desktop/Client.Data/**/*.csproj') }}
+          restore-keys: |
+            android-nuget-${{ runner.os }}-
+
+      - name: Restore Android workload
+        shell: pwsh
+        run: dotnet workload restore MuAndroid/MuAndroid.csproj --skip-manifest-update
+
+      - name: Restore MonoGame tools
+        shell: pwsh
+        run: dotnet tool restore --tool-manifest MuAndroid/.config/dotnet-tools.json
+
+      - name: Publish ARM64 APK
+        shell: pwsh
+        run: >
+          ./scripts/publish/android-performance.ps1
+          -Mode FullAot
+          -PackageFormats apk
+          -RuntimeIdentifier android-arm64
+          -OutputDirectory artifacts/publish/android-arm64-performance
+          -SkipWorkloadRestore
+          -SkipToolRestore
+          -NoArchive
+
+      - name: Prepare APK
+        id: prep
+        shell: pwsh
+        run: |
+          $ver = "v2.0.${{ github.run_number }}"
+          $dir = "artifacts/publish/android-arm64-performance"
+          $apk = Get-ChildItem $dir -Filter "*-Signed.apk" -Recurse | Select-Object -First 1
+          if (-not $apk) { $apk = Get-ChildItem $dir -Filter "*.apk" -Recurse | Select-Object -First 1 }
+          if (-not $apk) { throw "Nenhum APK encontrado em $dir" }
+          $dest = "IkarusMU-$ver.apk"
+          Copy-Item $apk.FullName -Destination (Join-Path $env:GITHUB_WORKSPACE $dest)
+          Write-Output "APK: $($apk.Name) -> $dest ($([math]::Round($apk.Length/1MB,1)) MB)"
+          echo "version=$ver" >> $env:GITHUB_OUTPUT
+          echo "apk_file=$dest" >> $env:GITHUB_OUTPUT
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: IkarusMU-v2
+          path: ${{ github.workspace }}/${{ steps.prep.outputs.apk_file }}
+          if-no-files-found: error
+
+      - name: Publish APK to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.prep.outputs.version }}
+          name: "Ikarus MU Mobile ${{ steps.prep.outputs.version }}"
+          body: |
+            Ikarus MU Mobile v2 (base Client_Desktop/MuAndroid)
+            Commit: ${{ github.sha }}
+            Pacote: com.ikarus.mumobile (convive com o app antigo)
+          draft: false
+          prerelease: true
+          files: ${{ steps.prep.outputs.apk_file }}

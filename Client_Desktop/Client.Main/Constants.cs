@@ -204,7 +204,7 @@ namespace Client.Main
 
         // Paths
         public static string DataPath;
-        public static string DataPathUrl = "http://192.168.55.220/Data.zip";
+        public static string DataPathUrl = "https://github.com/MANINtecn/muikarus/releases/download/data-v1/Data.zip";
         public static string DefaultDataPathUrl = "https://full-wkr.mu.webzen.co.kr/muweb/full/MU_Red_1_20_61_Full.zip";
         public static string SETTINGS_PATH = "appsettings.json";
 
@@ -286,7 +286,19 @@ namespace Client.Main
             SHADOW_BIAS = 0.005f;
             SHADOW_NORMAL_BIAS = 0.008f;
 
+#if ANDROID
+            try
+            {
+                var ext = Android.App.Application.Context.GetExternalFilesDir(null)?.AbsolutePath;
+                DataPath = System.IO.Path.Combine(!string.IsNullOrEmpty(ext) ? ext : AppDomain.CurrentDomain.BaseDirectory, "Data");
+            }
+            catch
+            {
+                DataPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data");
+            }
+#else
             DataPath = @"C:\TECX SOFTHOUSE\L2 IKARUS INTERCROW\MU_ONLINE\MU_Full_Data_Extracted\Data";
+#endif
         }
 
 #if DEBUG

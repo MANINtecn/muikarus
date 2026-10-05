@@ -9,9 +9,9 @@
     <NoWarn>$(NoWarn);XA0141;XA4211</NoWarn>
 
     <OutputType>Exe</OutputType>
-    <ApplicationId>MuMono.MuMono</ApplicationId>
-    <ApplicationVersion>1</ApplicationVersion>
-    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <ApplicationId>com.ikarus.mumobile</ApplicationId>
+    <ApplicationVersion Condition="'$(ApplicationVersion)' == ''">200</ApplicationVersion>
+    <ApplicationDisplayVersion Condition="'$(ApplicationDisplayVersion)' == ''">2.0.0</ApplicationDisplayVersion>
 
     <AndroidManifest>AndroidManifest.xml</AndroidManifest>
     <MonoGamePlatform>Android</MonoGamePlatform>
@@ -105,7 +105,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AndroidAsset Include="..\Client.Main\appsettings.json">
+    <AndroidAsset Include="appsettings.android.json">
       <Link>appsettings.json</Link>
     </AndroidAsset>
   </ItemGroup>
