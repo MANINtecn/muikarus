@@ -29,7 +29,6 @@ jobs:
       NUGET_XMLDOC_MODE: skip
       MSBUILDDISABLENODEREUSE: 1
       NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
-      ApplicationVersion: ${{ github.run_number }}
       ApplicationDisplayVersion: 2.0.${{ github.run_number }}
 
     steps:
@@ -56,6 +55,11 @@ jobs:
             build-tools;36.0.0
             ndk;27.2.12479018
           accept-android-sdk-licenses: true
+
+      - name: Version code (acima do app antigo, que era 60)
+        shell: pwsh
+        run: |
+          "ApplicationVersion=$([int]${{ github.run_number }} + 100)" >> $env:GITHUB_ENV
 
       - name: Configure signing from Secrets (if present)
         shell: pwsh
@@ -135,7 +139,7 @@ jobs:
           body: |
             Ikarus MU Mobile v2 (base Client_Desktop/MuAndroid)
             Commit: ${{ github.sha }}
-            Pacote: com.ikarus.mumobile (convive com o app antigo)
+            Pacote: MuAndroid.MuAndroid (substitui o app antigo; exige desinstalar o antigo na 1a vez se a assinatura for diferente)
           draft: false
           prerelease: true
           files: ${{ steps.prep.outputs.apk_file }}

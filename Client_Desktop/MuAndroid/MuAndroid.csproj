@@ -9,7 +9,7 @@
     <NoWarn>$(NoWarn);XA0141;XA4211</NoWarn>
 
     <OutputType>Exe</OutputType>
-    <ApplicationId>com.ikarus.mumobile</ApplicationId>
+    <ApplicationId>MuAndroid.MuAndroid</ApplicationId>
     <ApplicationVersion Condition="'$(ApplicationVersion)' == ''">200</ApplicationVersion>
     <ApplicationDisplayVersion Condition="'$(ApplicationDisplayVersion)' == ''">2.0.0</ApplicationDisplayVersion>
 
