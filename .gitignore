@@ -3,7 +3,7 @@
 MU_Full_Data.zip
 MU_Full_Data_Extracted/
 Data.zip
-Data/
+/Data/
 
 # .NET Core
 bin/
