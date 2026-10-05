@@ -572,3 +572,17 @@ Para trabalhar os três (usuário + Gemini + Claude) juntos sem atrito de merge/
 
 
 
+
+---
+
+### 05/10/2026 — AUDITORIA COMPLETA + Decisão: re-base do mobile no `Client_Desktop/MuAndroid` (v2.0)
+- **Auditoria (leitura de código, 3 auditores + cobrador + testador). Causas candidatas para "NPC não fala / some / some após warp" — AINDA NÃO provadas em campo:**
+  1. **Android nunca envia 0x31 (CloseNpc)** ao fechar loja/baú; o servidor (`TalkNpcAction.cs:32-38`) ignora em silêncio qualquer conversa seguinte. Desktop envia em 10 lugares.
+  2. **`WorldObject.Visible` depende de `OutOfView` (nasce `true`)** e `FindNpcAtTouch` descarta `!Visible` (`WalkableWorldControl.cs:268`). Desktop não tem `OutOfView`.
+  3. **Sem reconciliação de NPCs** (Desktop tem `ReconcileMissingScopedNpcs`, `MapId`/geração por spawn); falha de `Load()` é engolida em log Debug.
+  4. Corrida 0x13 vs 0x14 (risco menor).
+- **Descartado:** NPC sem BMD, case de caminho, pacote de clique errado, ClientReady cedo no ChangeMap, versão "1.04d".
+- **ERRO DO DIÁRIO (v1.60):** o commit `deb0bff` NÃO foi regressão. `WorldObject` não tem `Initialize()` nem setter de `Visible`; o commit trocou para `Load()` (correto). A "correção principal" descrita na v1.60 não existe no código.
+- **Decisão (usuário, 05/10):** ir direto para o `Client_Desktop/MuAndroid` (net10, DXT, imersivo, teclado, logger; skills/loja/baú/NPC já resolvidos no Desktop). Legado congelado na tag local `android-legacy-v1.60`.
+- **Branch `mobile-rebase` (commit `299eb95`):** `Constants.cs` com DataPath por plataforma (Android = `GetExternalFilesDir/Data`) e URL do Data.zip no release `data-v1`; `MuAndroid` com ApplicationId `com.ikarus.mumobile` (convive com o app antigo), label "Ikarus MU", `appsettings.android.json` apontando para a VPS; workflow `android-v2.yml` (roda só na branch `mobile-rebase`, releases `v2.0.N`).
+- **Pendências conhecidas:** (a) criar Secrets de assinatura (`ANDROID_KEYSTORE_B64`, `ANDROID_KEY_ALIAS`, `ANDROID_KEYSTORE_PASSWORD`), senão cada build usa chave de debug diferente e atualizar apaga o Data; (b) camada touch (joystick/HUD/toque em NPC) ainda NÃO portada; (c) DnsEndPoint/NAT64 ainda não portado (usa IP literal); (d) keystore `ikarus123` está versionado no repo antigo — rotacionar; (e) validar FPS real no aparelho.
